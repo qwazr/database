@@ -59,8 +59,7 @@ public abstract class UniqueKey<T> {
 
 	private final String namePrefix;
 
-	public UniqueKey(File directory, String namePrefix)
-			throws FileNotFoundException {
+	UniqueKey(File directory, String namePrefix) throws FileNotFoundException {
 
 		if (logger.isInfoEnabled())
 			logger.info("Create UniqueKey " + namePrefix);
@@ -102,7 +101,7 @@ public abstract class UniqueKey<T> {
 
 	protected abstract void saveKeyMap(File file) throws FileNotFoundException;
 
-	public void commit() throws FileNotFoundException {
+	void commit() throws FileNotFoundException {
 		rwl.r.lock();
 		try {
 			if (!mustBeSaved)
@@ -122,7 +121,7 @@ public abstract class UniqueKey<T> {
 		}
 	}
 
-	public void deleteKey(T key) {
+	void deleteKey(T key) {
 		rwl.r.lock();
 		try {
 			Integer id = keyMap.get(key);
@@ -141,6 +140,36 @@ public abstract class UniqueKey<T> {
 		} finally {
 			rwl.w.unlock();
 		}
+	}
+
+	void removeDeleted(RoaringBitmap finalBitmap) {
+		rwl.r.lock();
+		try {
+			if (deletedSet.isEmpty())
+				return;
+			finalBitmap.andNot(deletedSet);
+		} finally {
+			rwl.r.unlock();
+		}
+	}
+
+	public RoaringBitmap getActiveSet() {
+		rwl.r.lock();
+		try {
+			RoaringBitmap bitmap = deletedSet.clone();
+			bitmap.flip(0, higherId + 1);
+			return bitmap;
+		} finally {
+			rwl.r.unlock();
+		}
+	}
+
+	int size() {
+		int count1 = keyMap.size();
+		int count2 = higherId + 1 - deletedSet.getCardinality();
+		if (count1 != count2)
+			logger.warn("Size count issue: " + count1 + "/" + count2);
+		return count1;
 	}
 
 	public Integer getExistingId(T key) {
@@ -241,6 +270,7 @@ public abstract class UniqueKey<T> {
 		protected void saveKeyMap(File file) throws FileNotFoundException {
 			SerializationUtils.serialize(map, file);
 		}
+
 	}
 
 	public static class UniqueDoubleKey extends UniqueKey<Double> {

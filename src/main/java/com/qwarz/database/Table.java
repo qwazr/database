@@ -441,7 +441,12 @@ public class Table implements Closeable {
 		if (id == null)
 			return false;
 		deleteDocument(id);
+		primaryKey.deleteKey(key);
 		return true;
+	}
+
+	public int getSize() {
+		return primaryKey.size();
 	}
 
 	public List<Map<String, List<?>>> getDocuments(Collection<String> keys,
@@ -496,7 +501,12 @@ public class Table implements Closeable {
 			// long lastTime = System.currentTimeMillis();
 
 			// First we search for the document using Bitset
-			RoaringBitmap finalBitmap = query.execute(this, readExecutor);
+			RoaringBitmap finalBitmap;
+			if (query != null) {
+				finalBitmap = query.execute(this, readExecutor);
+				primaryKey.removeDeleted(finalBitmap);
+			} else
+				finalBitmap = primaryKey.getActiveSet();
 			if (finalBitmap.isEmpty())
 				return finalBitmap;
 
