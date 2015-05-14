@@ -252,14 +252,12 @@ public abstract class UniqueKey<T> {
 			super(directory, namePrefix);
 		}
 
-		@SuppressWarnings("unchecked")
 		@Override
 		protected Map<Double, Integer> getNewKeyMap() {
 			map = new HashMap<Double, Integer>();
 			return map;
 		}
 
-		@SuppressWarnings("unchecked")
 		@Override
 		protected Map<Double, Integer> loadKeyMap(File file)
 				throws FileNotFoundException {

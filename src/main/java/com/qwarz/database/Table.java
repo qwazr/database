@@ -39,6 +39,10 @@ import org.slf4j.LoggerFactory;
 
 import com.qwarz.database.CollectorInterface.LongCounter;
 import com.qwarz.database.FieldInterface.FieldDefinition;
+import com.qwarz.database.IndexedField.IndexedDoubleField;
+import com.qwarz.database.IndexedField.IndexedStringField;
+import com.qwarz.database.StoredField.StoredDoubleField;
+import com.qwarz.database.StoredField.StoredStringField;
 import com.qwarz.database.UniqueKey.UniqueDoubleKey;
 import com.qwarz.database.UniqueKey.UniqueStringKey;
 import com.qwazr.utils.LockUtils;
@@ -303,7 +307,6 @@ public class Table implements Closeable {
 		}
 	}
 
-	@SuppressWarnings({ "unchecked", "rawtypes" })
 	private void loadOrCreateFieldNoLock(FieldDefinition fieldDefinition,
 			AtomicBoolean needSave) throws IOException {
 		if (fields.containsKey(fieldDefinition.name))
@@ -320,12 +323,12 @@ public class Table implements Closeable {
 			switch (fieldDefinition.type) {
 			default:
 			case STRING:
-				field = new IndexedField(fieldDefinition.name, fieldId,
+				field = new IndexedStringField(fieldDefinition.name, fieldId,
 						directory, indexedStringDictionary,
 						storedInvertedStringDictionaryMap, wasExisting);
 				break;
 			case DOUBLE:
-				field = new IndexedField(fieldDefinition.name, fieldId,
+				field = new IndexedDoubleField(fieldDefinition.name, fieldId,
 						directory, indexedDoubleDictionary,
 						storedInvertedDoubleDictionaryMap, wasExisting);
 				break;
@@ -335,11 +338,11 @@ public class Table implements Closeable {
 			switch (fieldDefinition.type) {
 			default:
 			case STRING:
-				field = new StoredField<String>(fieldDefinition.name, fieldId,
+				field = new StoredStringField(fieldDefinition.name, fieldId,
 						storeDb, wasExisting);
 				break;
 			case DOUBLE:
-				field = new StoredField<Double>(fieldDefinition.name, fieldId,
+				field = new StoredDoubleField(fieldDefinition.name, fieldId,
 						storeDb, wasExisting);
 				break;
 			}

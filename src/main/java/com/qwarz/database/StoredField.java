@@ -27,12 +27,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.mapdb.DB;
 
-public class StoredField<T> extends FieldAbstract<T> {
+public abstract class StoredField<T> extends FieldAbstract<T> {
 
 	private final Map<Integer, T> map;
 	private final String collectionName;
 
-	public StoredField(String name, long fieldId, DB storeDb,
+	protected StoredField(String name, long fieldId, DB storeDb,
 			AtomicBoolean wasExisting) {
 		super(name, fieldId);
 		collectionName = "store." + fieldId;
@@ -46,24 +46,29 @@ public class StoredField<T> extends FieldAbstract<T> {
 	}
 
 	@Override
-	public void setValue(Integer id, T value) {
-		map.put(id, value);
+	public void setValue(Integer id, Object value) {
+		map.put(id, convertValue(value));
 	}
 
 	@Override
-	public void setValues(Integer docId, Collection<T> values) {
+	public void setValues(Integer docId, Collection<Object> values) {
 		throw new IllegalArgumentException(
 				"Only one value allowed for this field: " + this.name);
 	}
 
 	@Override
-	public List<T> getValues(Integer id) {
-		T value = map.get(id);
+	public List<T> getValues(Integer docId) {
+		T value = map.get(docId);
 		if (value == null)
 			return Collections.emptyList();
 		ArrayList<T> list = new ArrayList<T>(1);
 		list.add(value);
 		return list;
+	}
+
+	@Override
+	public T getValue(Integer docId) {
+		return map.get(docId);
 	}
 
 	@Override
@@ -81,4 +86,37 @@ public class StoredField<T> extends FieldAbstract<T> {
 			// Faster use the exception than calling hasNext for each document
 		}
 	}
+
+	public static class StoredDoubleField extends StoredField<Double> {
+
+		StoredDoubleField(String name, long fieldId, DB storeDb,
+				AtomicBoolean wasExisting) {
+			super(name, fieldId, storeDb, wasExisting);
+		}
+
+		@Override
+		final public Double convertValue(final Object value) {
+			if (value instanceof Double)
+				return (Double) value;
+			return Double.valueOf(value.toString());
+		}
+
+	}
+
+	public static class StoredStringField extends StoredField<String> {
+
+		StoredStringField(String name, long fieldId, DB storeDb,
+				AtomicBoolean wasExisting) {
+			super(name, fieldId, storeDb, wasExisting);
+		}
+
+		@Override
+		final public String convertValue(final Object value) {
+			if (value instanceof String)
+				return (String) value;
+			return value.toString();
+		}
+
+	}
+
 }

@@ -36,7 +36,7 @@ import com.qwarz.database.CollectorInterface.LongCounter;
 import com.qwazr.utils.LockUtils;
 import com.qwazr.utils.SerializationUtils;
 
-public class IndexedField<T> extends FieldAbstract<T> {
+public abstract class IndexedField<T> extends FieldAbstract<T> {
 
 	private final LockUtils.ReadWriteLock rwl = new LockUtils.ReadWriteLock();
 
@@ -178,15 +178,17 @@ public class IndexedField<T> extends FieldAbstract<T> {
 		boolean isIdentical = termIdSet != null && termIdSet.size() == 1
 				&& termIdSet.contains(termId);
 
-		if (!isIdentical)
+		if (!isIdentical) {
+			termIdSet.add(termId);
 			putTermVectorIdSet(docId, termIdSet);
+		}
 
 		// Update the bitmap
 		setTermDocNoLock(docId, termId);
 	}
 
 	@Override
-	public void setValues(final Integer docId, Collection<T> values)
+	public void setValues(final Integer docId, Collection<Object> values)
 			throws IOException {
 
 		if (values == null || values.isEmpty())
@@ -194,8 +196,8 @@ public class IndexedField<T> extends FieldAbstract<T> {
 
 		// Prepare the id of the terms
 		final Set<Integer> newTermIdSet = new HashSet<Integer>();
-		for (T value : values)
-			newTermIdSet.add(getTermIdOrNew(value));
+		for (Object value : values)
+			newTermIdSet.add(getTermIdOrNew(convertValue(value)));
 
 		rwl.w.lock();
 		try {
@@ -206,16 +208,29 @@ public class IndexedField<T> extends FieldAbstract<T> {
 	}
 
 	@Override
-	public void setValue(final Integer docId, T value) throws IOException {
+	public void setValue(final Integer docId, Object value) throws IOException {
 		if (value == null)
 			return;
 		// Get the term ID
-		final Integer termId = getTermIdOrNew(value);
+		final Integer termId = getTermIdOrNew(convertValue(value));
 		rwl.w.lock();
 		try {
 			setTerm(docId, termId);
 		} finally {
 			rwl.w.unlock();
+		}
+	}
+
+	@Override
+	public T getValue(final Integer docId) throws IOException {
+		rwl.r.lock();
+		try {
+			int[] termIdArray = getIntArrayOrNull(termVectorMap.get(docId));
+			if (termIdArray == null || termIdArray.length == 0)
+				return null;
+			return storedInvertedDictionaryMap.get(termIdArray[0]);
+		} finally {
+			rwl.r.unlock();
 		}
 	}
 
@@ -364,4 +379,39 @@ public class IndexedField<T> extends FieldAbstract<T> {
 		}
 	}
 
+	public static class IndexedStringField extends IndexedField<String> {
+
+		public IndexedStringField(String name, long fieldId, File directory,
+				UniqueKey<String> indexedDictionary,
+				Map<Integer, String> storedInvertedDictionaryMap,
+				AtomicBoolean wasExisting) throws FileNotFoundException {
+			super(name, fieldId, directory, indexedDictionary,
+					storedInvertedDictionaryMap, wasExisting);
+		}
+
+		@Override
+		final public String convertValue(final Object value) {
+			if (value instanceof String)
+				return (String) value;
+			return value.toString();
+		}
+	}
+
+	public static class IndexedDoubleField extends IndexedField<Double> {
+
+		public IndexedDoubleField(String name, long fieldId, File directory,
+				UniqueKey<Double> indexedDictionary,
+				Map<Integer, Double> storedInvertedDictionaryMap,
+				AtomicBoolean wasExisting) throws FileNotFoundException {
+			super(name, fieldId, directory, indexedDictionary,
+					storedInvertedDictionaryMap, wasExisting);
+		}
+
+		@Override
+		final public Double convertValue(final Object value) {
+			if (value instanceof Double)
+				return (Double) value;
+			return Double.valueOf(value.toString());
+		}
+	}
 }

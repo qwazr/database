@@ -22,9 +22,13 @@ import java.util.List;
 
 public interface FieldInterface<T> {
 
-	void setValues(Integer docId, Collection<T> values) throws IOException;
+	T convertValue(Object value);
 
-	void setValue(Integer docId, T value) throws IOException;
+	void setValues(Integer docId, Collection<Object> values) throws IOException;
+
+	void setValue(Integer docId, Object value) throws IOException;
+
+	T getValue(Integer docId) throws IOException;
 
 	List<T> getValues(Integer docId) throws IOException;
 
