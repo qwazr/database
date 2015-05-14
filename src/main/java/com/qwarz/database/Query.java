@@ -48,29 +48,31 @@ public abstract class Query {
 			newQuery = new OrGroup(node.get("$OR"), queryHook);
 		else if (node.has("$AND"))
 			newQuery = new AndGroup(node.get("$AND"), queryHook);
-		else
-			newQuery = new TermQuery(node);
+		else {
+			Map.Entry<String, JsonNode> entry = node.fields().next();
+			String field = entry.getKey();
+			JsonNode valueNode = entry.getValue();
+			if (valueNode.isTextual())
+				newQuery = new TermQuery<String>(field, valueNode.asText());
+			else if (node.isFloatingPointNumber())
+				newQuery = new TermQuery<Double>(field, valueNode.asDouble());
+			else if (node.isIntegralNumber())
+				newQuery = new TermQuery<Long>(field, valueNode.asLong());
+		}
 		if (queryHook != null)
-			newQuery = queryHook.query(newQuery);
+			queryHook.query(newQuery);
 		return newQuery;
 	}
 
 	abstract RoaringBitmap execute(final Table table,
 			final ExecutorService executor) throws Exception;
 
-	public static class TermQuery extends Query {
+	public static class TermQuery<T> extends Query {
 
-		private final String field;
-		private final String value;
+		private String field;
+		private final T value;
 
-		TermQuery(JsonNode node) {
-			super();
-			Map.Entry<String, JsonNode> entry = node.fields().next();
-			field = entry.getKey();
-			value = entry.getValue().textValue();
-		}
-
-		public TermQuery(String field, String value) {
+		public TermQuery(String field, T value) {
 			super();
 			this.field = field;
 			this.value = value;
@@ -86,11 +88,15 @@ public abstract class Query {
 			return bitset;
 		}
 
+		final public void setField(String field) {
+			this.field = field;
+		}
+
 		final public String getField() {
 			return field;
 		}
 
-		final public String getValue() {
+		final public T getValue() {
 			return value;
 		}
 	}
@@ -213,7 +219,7 @@ public abstract class Query {
 
 	public static interface QueryHook {
 
-		Query query(Query query);
+		void query(Query query);
 	}
 
 }

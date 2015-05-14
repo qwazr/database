@@ -18,6 +18,8 @@ package com.qwarz.database;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.collections4.trie.PatriciaTrie;
@@ -28,7 +30,7 @@ import org.slf4j.LoggerFactory;
 import com.qwazr.utils.LockUtils;
 import com.qwazr.utils.SerializationUtils;
 
-public class UniqueKey {
+public abstract class UniqueKey<T> {
 
 	private static final Logger logger = LoggerFactory
 			.getLogger(UniqueKey.class);
@@ -49,7 +51,7 @@ public class UniqueKey {
 
 	private final File deletedFile;
 
-	private final PatriciaTrie<Integer> keyTrie;
+	private final Map<T, Integer> keyMap;
 
 	private final LockUtils.ReadWriteLock rwl = new LockUtils.ReadWriteLock();
 
@@ -70,9 +72,9 @@ public class UniqueKey {
 		// Load trie
 		trieFile = new File(directory, namePrefix + ".trie");
 		if (trieFile.exists() && trieFile.length() > 0)
-			keyTrie = SerializationUtils.deserialize(trieFile);
+			keyMap = loadKeyMap(trieFile);
 		else
-			keyTrie = new PatriciaTrie<Integer>();
+			keyMap = getNewKeyMap();
 		trieTempFile = new File(directory, "." + trieFile.getName());
 
 		// Load delete ids
@@ -93,6 +95,13 @@ public class UniqueKey {
 
 	}
 
+	protected abstract Map<T, Integer> getNewKeyMap();
+
+	protected abstract Map<T, Integer> loadKeyMap(File file)
+			throws FileNotFoundException;
+
+	protected abstract void saveKeyMap(File file) throws FileNotFoundException;
+
 	public void commit() throws FileNotFoundException {
 		rwl.r.lock();
 		try {
@@ -100,7 +109,7 @@ public class UniqueKey {
 				return;
 			if (logger.isInfoEnabled())
 				logger.info("Commit saved " + namePrefix);
-			SerializationUtils.serialize(keyTrie, trieTempFile);
+			saveKeyMap(trieTempFile);
 			SerializationUtils.serialize(deletedSet, deletedTempFile);
 			if (higherId != null)
 				SerializationUtils.serialize(higherId, higherIdTempFile);
@@ -113,10 +122,10 @@ public class UniqueKey {
 		}
 	}
 
-	public void deleteKey(String key) {
+	public void deleteKey(T key) {
 		rwl.r.lock();
 		try {
-			Integer id = keyTrie.get(key);
+			Integer id = keyMap.get(key);
 			if (id == null)
 				return;
 		} finally {
@@ -124,7 +133,7 @@ public class UniqueKey {
 		}
 		rwl.w.lock();
 		try {
-			Integer id = keyTrie.remove(key);
+			Integer id = keyMap.remove(key);
 			if (id == null)
 				return;
 			deletedSet.add(id);
@@ -134,32 +143,32 @@ public class UniqueKey {
 		}
 	}
 
-	public Integer getExistingId(String key) {
+	public Integer getExistingId(T key) {
 		rwl.r.lock();
 		try {
-			return keyTrie.get(key);
+			return keyMap.get(key);
 		} finally {
 			rwl.r.unlock();
 		}
 	}
 
-	void fillExistingIds(Collection<String> keys, Collection<Integer> ids) {
+	void fillExistingIds(Collection<T> keys, Collection<Integer> ids) {
 		rwl.r.lock();
 		try {
-			for (String key : keys)
-				ids.add(keyTrie.get(key));
+			for (T key : keys)
+				ids.add(keyMap.get(key));
 		} finally {
 			rwl.r.unlock();
 		}
 	}
 
-	public Integer getIdOrNew(String key, AtomicBoolean isNew) {
+	public Integer getIdOrNew(T key, AtomicBoolean isNew) {
 		if (isNew == null)
 			isNew = new AtomicBoolean();
 		isNew.set(false);
 		rwl.r.lock();
 		try {
-			Integer id = keyTrie.get(key);
+			Integer id = keyMap.get(key);
 			if (id != null)
 				return id;
 		} finally {
@@ -167,14 +176,14 @@ public class UniqueKey {
 		}
 		rwl.w.lock();
 		try {
-			Integer id = keyTrie.get(key);
+			Integer id = keyMap.get(key);
 			if (id != null)
 				return id;
 
 			// Retrieve an already deleted id
 			if (!deletedSet.isEmpty()) {
 				id = deletedSet.iterator().next();
-				keyTrie.put(key, id);
+				keyMap.put(key, id);
 				deletedSet.remove(id);
 				isNew.set(true);
 				mustBeSaved = true;
@@ -185,7 +194,7 @@ public class UniqueKey {
 			if (higherId == null)
 				higherId = findHigher();
 			id = higherId + 1;
-			keyTrie.put(key, id);
+			keyMap.put(key, id);
 			higherId = id;
 			isNew.set(true);
 			mustBeSaved = true;
@@ -198,12 +207,71 @@ public class UniqueKey {
 
 	private Integer findHigher() {
 		Integer found = -1;
-		for (Integer id : keyTrie.values())
+		for (Integer id : keyMap.values())
 			if (id > found)
 				found = id;
 		if (logger.isInfoEnabled())
 			logger.info("Find higher (" + namePrefix + ") : " + found);
 		return found;
+	}
+
+	public static class UniqueStringKey extends UniqueKey<String> {
+
+		private PatriciaTrie<Integer> map;
+
+		public UniqueStringKey(File directory, String namePrefix)
+				throws FileNotFoundException {
+			super(directory, namePrefix);
+		}
+
+		@Override
+		protected Map<String, Integer> getNewKeyMap() {
+			map = new PatriciaTrie<Integer>();
+			return map;
+		}
+
+		@Override
+		protected Map<String, Integer> loadKeyMap(File file)
+				throws FileNotFoundException {
+			map = SerializationUtils.deserialize(file);
+			return map;
+		}
+
+		@Override
+		protected void saveKeyMap(File file) throws FileNotFoundException {
+			SerializationUtils.serialize(map, file);
+		}
+	}
+
+	public static class UniqueDoubleKey extends UniqueKey<Double> {
+
+		private HashMap<Double, Integer> map;
+
+		public UniqueDoubleKey(File directory, String namePrefix)
+				throws FileNotFoundException {
+			super(directory, namePrefix);
+		}
+
+		@SuppressWarnings("unchecked")
+		@Override
+		protected Map<Double, Integer> getNewKeyMap() {
+			map = new HashMap<Double, Integer>();
+			return map;
+		}
+
+		@SuppressWarnings("unchecked")
+		@Override
+		protected Map<Double, Integer> loadKeyMap(File file)
+				throws FileNotFoundException {
+			map = SerializationUtils.deserialize(file);
+			return map;
+		}
+
+		@Override
+		protected void saveKeyMap(File file) throws FileNotFoundException {
+			SerializationUtils.serialize(map, file);
+		}
+
 	}
 
 }

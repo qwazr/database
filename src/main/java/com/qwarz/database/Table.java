@@ -22,7 +22,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -40,7 +39,8 @@ import org.slf4j.LoggerFactory;
 
 import com.qwarz.database.CollectorInterface.LongCounter;
 import com.qwarz.database.FieldInterface.FieldDefinition;
-import com.qwarz.database.FieldInterface.FieldValueCollector;
+import com.qwarz.database.UniqueKey.UniqueDoubleKey;
+import com.qwarz.database.UniqueKey.UniqueStringKey;
 import com.qwazr.utils.LockUtils;
 import com.qwazr.utils.threads.ThreadUtils;
 import com.qwazr.utils.threads.ThreadUtils.FunctionExceptionCatcher;
@@ -56,17 +56,21 @@ public class Table implements Closeable {
 
 	private final LockUtils.ReadWriteLock rwlFields = new LockUtils.ReadWriteLock();
 
-	private final Map<String, FieldInterface> fields = new HashMap<String, FieldInterface>();
+	private final Map<String, FieldInterface<?>> fields = new HashMap<String, FieldInterface<?>>();
 
 	private final File directory;
 
 	private final DB storeDb;
 
-	private final UniqueKey primaryKey;
+	private final UniqueStringKey primaryKey;
 
-	private final UniqueKey indexedDictionary;
+	private final UniqueStringKey indexedStringDictionary;
 
-	private final Map<Integer, String> storedInvertedDictionaryMap;
+	private final UniqueDoubleKey indexedDoubleDictionary;
+
+	private final Map<Integer, String> storedInvertedStringDictionaryMap;
+
+	private final Map<Integer, Double> storedInvertedDoubleDictionaryMap;
 
 	private final Map<String, Long> storedFieldIdMap;
 
@@ -106,31 +110,46 @@ public class Table implements Closeable {
 		// Load the primary key
 		FunctionExceptionCatcher<Object> primaryKeyLoader = new FunctionExceptionCatcher<Object>() {
 			@Override
-			public UniqueKey execute() throws Exception {
-				return new UniqueKey(directory, "pkey");
+			public UniqueStringKey execute() throws Exception {
+				return new UniqueStringKey(directory, "pkey");
 			}
 		};
 
 		// Load the indexed dictionary
-		FunctionExceptionCatcher<Object> indexedDictionaryLoader = new FunctionExceptionCatcher<Object>() {
+		FunctionExceptionCatcher<Object> indexedStringDictionaryLoader = new FunctionExceptionCatcher<Object>() {
 			@Override
-			public UniqueKey execute() throws Exception {
-				return new UniqueKey(directory, "dict");
+			public UniqueStringKey execute() throws Exception {
+				return new UniqueStringKey(directory, "dict");
+			}
+		};
+
+		// Load the indexed dictionary
+		FunctionExceptionCatcher<Object> indexedDoubleDictionaryLoader = new FunctionExceptionCatcher<Object>() {
+			@Override
+			public UniqueDoubleKey execute() throws Exception {
+				return new UniqueDoubleKey(directory, "dict.double");
 			}
 		};
 
 		try {
 			ThreadUtils.invokeAndJoin(writeExecutor, Arrays.asList(
-					storeDbLoader, primaryKeyLoader, indexedDictionaryLoader));
+					storeDbLoader, primaryKeyLoader,
+					indexedStringDictionaryLoader,
+					indexedDoubleDictionaryLoader));
 		} catch (Exception e) {
 			throw new IOException(e);
 		}
 
 		storeDb = (DB) storeDbLoader.getResult();
-		primaryKey = (UniqueKey) primaryKeyLoader.getResult();
-		indexedDictionary = (UniqueKey) indexedDictionaryLoader.getResult();
-		storedInvertedDictionaryMap = storeDb
+		primaryKey = (UniqueStringKey) primaryKeyLoader.getResult();
+		indexedStringDictionary = (UniqueStringKey) indexedStringDictionaryLoader
+				.getResult();
+		storedInvertedStringDictionaryMap = storeDb
 				.getTreeMap("invertedDirectionary");
+		indexedDoubleDictionary = (UniqueDoubleKey) indexedDoubleDictionaryLoader
+				.getResult();
+		storedInvertedDoubleDictionaryMap = storeDb
+				.getTreeMap("invertedDoubleDirectionary");
 		storedFieldIdMap = storeDb.getTreeMap("storedFieldIdMap");
 		Atomic.Long longSequence = storeDb.getAtomicLong("fieldIdSequence");
 		if (longSequence == null)
@@ -198,7 +217,14 @@ public class Table implements Closeable {
 		threads.add(new ProcedureExceptionCatcher() {
 			@Override
 			public void execute() throws Exception {
-				indexedDictionary.commit();
+				indexedStringDictionary.commit();
+			}
+		});
+
+		threads.add(new ProcedureExceptionCatcher() {
+			@Override
+			public void execute() throws Exception {
+				indexedDoubleDictionary.commit();
 			}
 		});
 
@@ -209,7 +235,7 @@ public class Table implements Closeable {
 			}
 		});
 
-		for (FieldInterface field : fields.values()) {
+		for (FieldInterface<?> field : fields.values()) {
 			threads.add(new ProcedureExceptionCatcher() {
 				@Override
 				public void execute() throws Exception {
@@ -277,6 +303,7 @@ public class Table implements Closeable {
 		}
 	}
 
+	@SuppressWarnings({ "unchecked", "rawtypes" })
 	private void loadOrCreateFieldNoLock(FieldDefinition fieldDefinition,
 			AtomicBoolean needSave) throws IOException {
 		if (fields.containsKey(fieldDefinition.name))
@@ -286,16 +313,36 @@ public class Table implements Closeable {
 			fieldId = fieldIdSequence.incrementAndGet();
 			storedFieldIdMap.put(fieldDefinition.name, fieldId);
 		}
-		FieldInterface field;
+		FieldInterface<?> field;
 		AtomicBoolean wasExisting = new AtomicBoolean(false);
-		switch (fieldDefinition.type) {
+		switch (fieldDefinition.mode) {
 		case INDEXED:
-			field = new IndexedField(fieldDefinition.name, fieldId, directory,
-					indexedDictionary, storedInvertedDictionaryMap, wasExisting);
+			switch (fieldDefinition.type) {
+			default:
+			case STRING:
+				field = new IndexedField(fieldDefinition.name, fieldId,
+						directory, indexedStringDictionary,
+						storedInvertedStringDictionaryMap, wasExisting);
+				break;
+			case DOUBLE:
+				field = new IndexedField(fieldDefinition.name, fieldId,
+						directory, indexedDoubleDictionary,
+						storedInvertedDoubleDictionaryMap, wasExisting);
+				break;
+			}
 			break;
 		default:
-			field = new StoredField(fieldDefinition.name, fieldId, storeDb,
-					wasExisting);
+			switch (fieldDefinition.type) {
+			default:
+			case STRING:
+				field = new StoredField<String>(fieldDefinition.name, fieldId,
+						storeDb, wasExisting);
+				break;
+			case DOUBLE:
+				field = new StoredField<Double>(fieldDefinition.name, fieldId,
+						storeDb, wasExisting);
+				break;
+			}
 			break;
 		}
 		if (!wasExisting.get())
@@ -325,7 +372,7 @@ public class Table implements Closeable {
 		rwlFields.w.lock();
 		try {
 			storeDb.delete(fieldName);
-			FieldInterface field = fields.get(fieldName);
+			FieldInterface<?> field = fields.get(fieldName);
 			if (field != null) {
 				field.delete();
 				fields.remove(fieldName);
@@ -338,56 +385,41 @@ public class Table implements Closeable {
 	void deleteDocument(final Integer id) throws IOException {
 		rwlFields.r.lock();
 		try {
-			for (FieldInterface field : fields.values())
+			for (FieldInterface<?> field : fields.values())
 				field.deleteDocument(id);
 		} finally {
 			rwlFields.r.unlock();
 		}
 	}
 
-	private FieldInterface getField(String field) throws IOException {
-		FieldInterface fieldInterface = fields.get(field);
-		if (fieldInterface != null)
-			return fieldInterface;
-		throw new IOException("Field not found: " + field);
-	}
-
-	public void setValues(Integer id, String field, Collection<String> values)
-			throws IOException {
+	public FieldInterface<?> getField(String field) throws IOException {
 		rwlFields.r.lock();
 		try {
-			getField(field).setValues(id, values);
+			FieldInterface<?> fieldInterface = fields.get(field);
+			if (fieldInterface != null)
+				return fieldInterface;
+			throw new IOException("Field not found: " + field);
 		} finally {
 			rwlFields.r.unlock();
 		}
 	}
 
-	public void setValue(Integer id, String field, String value)
-			throws IOException {
-		rwlFields.r.lock();
-		try {
-			getField(field).setValue(id, value);
-		} finally {
-			rwlFields.r.unlock();
-		}
-	}
-
-	public UniqueKey getPrimaryKeyIndex() {
+	public UniqueStringKey getPrimaryKeyIndex() {
 		return primaryKey;
 	}
 
-	public Map<String, List<String>> getDocument(String key,
+	public Map<String, List<?>> getDocument(String key,
 			Collection<String> returnedFields) throws IOException {
 		if (key == null)
 			return null;
 		Integer id = primaryKey.getExistingId(key);
 		if (id == null)
 			return null;
-		Map<String, List<String>> document = new HashMap<String, List<String>>();
+		Map<String, List<?>> document = new HashMap<String, List<?>>();
 		rwlFields.r.lock();
 		try {
 			for (String returnedField : returnedFields) {
-				FieldInterface field = fields.get(returnedField);
+				FieldInterface<?> field = fields.get(returnedField);
 				if (field == null)
 					throw new IllegalArgumentException("Field not found: "
 							+ returnedField);
@@ -409,26 +441,25 @@ public class Table implements Closeable {
 		return true;
 	}
 
-	public List<Map<String, List<String>>> getDocuments(
-			Collection<String> keys, Collection<String> returnedFields)
-			throws IOException {
+	public List<Map<String, List<?>>> getDocuments(Collection<String> keys,
+			Collection<String> returnedFields) throws IOException {
 		if (keys == null || keys.isEmpty())
 			return null;
 		ArrayList<Integer> ids = new ArrayList<Integer>(keys.size());
 		primaryKey.fillExistingIds(keys, ids);
 		if (ids == null || ids.isEmpty())
 			return null;
-		List<Map<String, List<String>>> documents = new ArrayList<Map<String, List<String>>>(
+		List<Map<String, List<?>>> documents = new ArrayList<Map<String, List<?>>>(
 				ids.size());
 		rwlFields.r.lock();
 		try {
 			for (Integer id : ids) {
-				Map<String, List<String>> document = null;
+				Map<String, List<?>> document = null;
 				// Id can be null if the document did not exists
 				if (id != null) {
-					document = new HashMap<String, List<String>>();
+					document = new HashMap<String, List<?>>();
 					for (String returnedField : returnedFields) {
-						FieldInterface field = fields.get(returnedField);
+						FieldInterface<?> field = fields.get(returnedField);
 						if (field == null)
 							throw new IllegalArgumentException(
 									"Field not found: " + returnedField);
@@ -443,24 +474,15 @@ public class Table implements Closeable {
 		}
 	}
 
-	public void collectFieldValues(String fieldName, Iterator<Integer> docIds,
-			FieldValueCollector collector) throws IOException {
-		rwlFields.r.lock();
-		try {
-			getField(fieldName).collectValues(docIds, collector);
-		} finally {
-			rwlFields.r.unlock();
-		}
-	}
-
-	IndexedField getIndexedField(String fieldName) {
-		FieldInterface field = fields.get(fieldName);
+	@SuppressWarnings("unchecked")
+	<T> IndexedField<T> getIndexedField(String fieldName) {
+		FieldInterface<?> field = fields.get(fieldName);
 		if (field == null)
 			throw new IllegalArgumentException("Field not found: " + fieldName);
 		if (!(field instanceof IndexedField))
 			throw new IllegalArgumentException("The field is not indexed: "
 					+ fieldName);
-		return ((IndexedField) field);
+		return ((IndexedField<T>) field);
 	}
 
 	public RoaringBitmap query(Query query,

@@ -20,7 +20,7 @@ import java.io.IOException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-abstract class FieldAbstract implements FieldInterface {
+abstract class FieldAbstract<T> implements FieldInterface<T> {
 
 	protected static final Logger logger = LoggerFactory
 			.getLogger(FieldAbstract.class);

@@ -36,11 +36,11 @@ import com.qwarz.database.CollectorInterface.LongCounter;
 import com.qwazr.utils.LockUtils;
 import com.qwazr.utils.SerializationUtils;
 
-public class IndexedField extends FieldAbstract {
+public class IndexedField<T> extends FieldAbstract<T> {
 
 	private final LockUtils.ReadWriteLock rwl = new LockUtils.ReadWriteLock();
 
-	private final UniqueKey indexedDictionary;
+	private final UniqueKey<T> indexedDictionary;
 
 	private final HashMap<Integer, RoaringBitmap> docBitsetsMap;
 	private final File docBitsetsFile;
@@ -50,11 +50,11 @@ public class IndexedField extends FieldAbstract {
 	private final File termVectorFile;
 	private boolean termVectorMustBeSaved;
 
-	private final Map<Integer, String> storedInvertedDictionaryMap;
+	private final Map<Integer, T> storedInvertedDictionaryMap;
 
 	public IndexedField(String name, long fieldId, File directory,
-			UniqueKey indexedDictionary,
-			Map<Integer, String> storedInvertedDictionaryMap,
+			UniqueKey<T> indexedDictionary,
+			Map<Integer, T> storedInvertedDictionaryMap,
 			AtomicBoolean wasExisting) throws FileNotFoundException {
 		super(name, fieldId);
 		docBitsetsMustBeSaved = false;
@@ -111,7 +111,7 @@ public class IndexedField extends FieldAbstract {
 		}
 	}
 
-	private Integer getTermIdOrNew(String term) {
+	private Integer getTermIdOrNew(T term) {
 		AtomicBoolean isNewTerm = new AtomicBoolean();
 		Integer termId = indexedDictionary.getIdOrNew(term, isNewTerm);
 		// Its a new term, we store it in the dictionary
@@ -186,7 +186,7 @@ public class IndexedField extends FieldAbstract {
 	}
 
 	@Override
-	public void setValues(final Integer docId, Collection<String> values)
+	public void setValues(final Integer docId, Collection<T> values)
 			throws IOException {
 
 		if (values == null || values.isEmpty())
@@ -194,7 +194,7 @@ public class IndexedField extends FieldAbstract {
 
 		// Prepare the id of the terms
 		final Set<Integer> newTermIdSet = new HashSet<Integer>();
-		for (String value : values)
+		for (T value : values)
 			newTermIdSet.add(getTermIdOrNew(value));
 
 		rwl.w.lock();
@@ -206,7 +206,7 @@ public class IndexedField extends FieldAbstract {
 	}
 
 	@Override
-	public void setValue(final Integer docId, String value) throws IOException {
+	public void setValue(final Integer docId, T value) throws IOException {
 		if (value == null)
 			return;
 		// Get the term ID
@@ -229,13 +229,13 @@ public class IndexedField extends FieldAbstract {
 	}
 
 	@Override
-	public List<String> getValues(Integer docId) throws IOException {
+	public List<T> getValues(Integer docId) throws IOException {
 		rwl.r.lock();
 		try {
 			int[] termIdArray = getIntArrayOrNull(termVectorMap.get(docId));
 			if (termIdArray == null || termIdArray.length == 0)
 				return null;
-			List<String> list = new ArrayList<String>(termIdArray.length);
+			List<T> list = new ArrayList<T>(termIdArray.length);
 			for (int termId : termIdArray)
 				list.add(storedInvertedDictionaryMap.get(termId));
 			return list;
@@ -246,7 +246,7 @@ public class IndexedField extends FieldAbstract {
 
 	@Override
 	public void collectValues(Iterator<Integer> docIds,
-			FieldValueCollector collector) throws IOException {
+			FieldValueCollector<T> collector) throws IOException {
 		rwl.r.lock();
 		try {
 			Integer docId;
@@ -264,14 +264,14 @@ public class IndexedField extends FieldAbstract {
 		}
 	}
 
-	private RoaringBitmap getDocBitSetNoLock(String term) {
+	private RoaringBitmap getDocBitSetNoLock(T term) {
 		Integer termId = indexedDictionary.getExistingId(term);
 		if (termId == null)
 			return null;
 		return docBitsetsMap.get(termId);
 	}
 
-	RoaringBitmap getDocBitSet(String term) {
+	RoaringBitmap getDocBitSet(T term) {
 		rwl.r.lock();
 		try {
 			return getDocBitSetNoLock(term);
@@ -280,11 +280,11 @@ public class IndexedField extends FieldAbstract {
 		}
 	}
 
-	RoaringBitmap getDocBitSetOr(Set<String> terms) {
+	RoaringBitmap getDocBitSetOr(Set<T> terms) {
 		rwl.r.lock();
 		try {
 			RoaringBitmap finalBitMap = null;
-			for (String term : terms) {
+			for (T term : terms) {
 				RoaringBitmap bitMap = getDocBitSetNoLock(term);
 				if (bitMap == null)
 					continue;
@@ -299,11 +299,11 @@ public class IndexedField extends FieldAbstract {
 		}
 	}
 
-	RoaringBitmap getDocBitSetAnd(Set<String> terms) {
+	RoaringBitmap getDocBitSetAnd(Set<T> terms) {
 		rwl.r.lock();
 		try {
 			RoaringBitmap finalBitMap = null;
-			for (String term : terms) {
+			for (T term : terms) {
 				RoaringBitmap bitMap = getDocBitSetNoLock(term);
 				if (bitMap == null)
 					continue;
@@ -355,7 +355,8 @@ public class IndexedField extends FieldAbstract {
 		rwl.r.lock();
 		try {
 			for (Map.Entry<Integer, LongCounter> entry : termIdMap.entrySet()) {
-				String term = storedInvertedDictionaryMap.get(entry.getKey());
+				String term = storedInvertedDictionaryMap.get(entry.getKey())
+						.toString();
 				termMap.put(term, entry.getValue());
 			}
 		} finally {

@@ -27,9 +27,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.mapdb.DB;
 
-public class StoredField extends FieldAbstract {
+public class StoredField<T> extends FieldAbstract<T> {
 
-	private final Map<Integer, String> map;
+	private final Map<Integer, T> map;
 	private final String collectionName;
 
 	public StoredField(String name, long fieldId, DB storeDb,
@@ -46,33 +46,33 @@ public class StoredField extends FieldAbstract {
 	}
 
 	@Override
-	public void setValue(Integer id, String value) {
+	public void setValue(Integer id, T value) {
 		map.put(id, value);
 	}
 
 	@Override
-	public void setValues(Integer docId, Collection<String> values) {
+	public void setValues(Integer docId, Collection<T> values) {
 		throw new IllegalArgumentException(
 				"Only one value allowed for this field: " + this.name);
 	}
 
 	@Override
-	public List<String> getValues(Integer id) {
-		String value = map.get(id);
+	public List<T> getValues(Integer id) {
+		T value = map.get(id);
 		if (value == null)
 			return Collections.emptyList();
-		ArrayList<String> list = new ArrayList<String>(1);
+		ArrayList<T> list = new ArrayList<T>(1);
 		list.add(value);
 		return list;
 	}
 
 	@Override
 	public void collectValues(Iterator<Integer> docIds,
-			FieldValueCollector collector) throws IOException {
+			FieldValueCollector<T> collector) throws IOException {
 		Integer docId;
 		try {
 			while ((docId = docIds.next()) != null) {
-				String value = map.get(docId);
+				T value = map.get(docId);
 				if (value == null)
 					continue;
 				collector.collect(value);
