@@ -17,6 +17,7 @@ package com.qwarz.database;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 
 public interface FieldInterface {
@@ -26,6 +27,9 @@ public interface FieldInterface {
 	void setValue(Integer docId, String value) throws IOException;
 
 	List<String> getValues(Integer docId) throws IOException;
+
+	void collectValues(Iterator<Integer> docIds, FieldValueCollector collector)
+			throws IOException;
 
 	void deleteDocument(Integer id) throws IOException;
 
@@ -50,5 +54,10 @@ public interface FieldInterface {
 			this.name = name;
 			this.type = type;
 		}
+	}
+
+	public static interface FieldValueCollector {
+
+		void collect(String value);
 	}
 }

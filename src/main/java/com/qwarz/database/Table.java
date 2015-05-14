@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -39,19 +40,19 @@ import org.slf4j.LoggerFactory;
 
 import com.qwarz.database.CollectorInterface.LongCounter;
 import com.qwarz.database.FieldInterface.FieldDefinition;
+import com.qwarz.database.FieldInterface.FieldValueCollector;
 import com.qwazr.utils.LockUtils;
 import com.qwazr.utils.threads.ThreadUtils;
 import com.qwazr.utils.threads.ThreadUtils.FunctionExceptionCatcher;
 import com.qwazr.utils.threads.ThreadUtils.ProcedureExceptionCatcher;
 
-public class Database implements Closeable {
+public class Table implements Closeable {
 
-	private static final Logger logger = LoggerFactory
-			.getLogger(Database.class);
+	private static final Logger logger = LoggerFactory.getLogger(Table.class);
 
-	private final static LockUtils.ReadWriteLock rwlBases = new LockUtils.ReadWriteLock();
+	private final static LockUtils.ReadWriteLock rwlTables = new LockUtils.ReadWriteLock();
 
-	private final static Map<File, Database> bases = new HashMap<File, Database>();
+	private final static Map<File, Table> tables = new HashMap<File, Table>();
 
 	private final LockUtils.ReadWriteLock rwlFields = new LockUtils.ReadWriteLock();
 
@@ -87,7 +88,7 @@ public class Database implements Closeable {
 		});
 	}
 
-	private Database(File directory) throws IOException {
+	private Table(File directory) throws IOException {
 		this.directory = directory;
 
 		logger.info("Load GraphDB (MapDB): " + directory);
@@ -137,46 +138,46 @@ public class Database implements Closeable {
 		fieldIdSequence = longSequence;
 	}
 
-	public static Database getInstance(File directory) throws IOException {
-		rwlBases.r.lock();
+	public static Table getInstance(File directory) throws IOException {
+		rwlTables.r.lock();
 		try {
-			Database base = bases.get(directory);
-			if (base != null)
-				return base;
+			Table table = tables.get(directory);
+			if (table != null)
+				return table;
 		} finally {
-			rwlBases.r.unlock();
+			rwlTables.r.unlock();
 		}
-		rwlBases.w.lock();
+		rwlTables.w.lock();
 		try {
-			Database base = bases.get(directory);
-			if (base != null)
-				return base;
-			base = new Database(directory);
-			bases.put(directory, base);
-			return base;
+			Table table = tables.get(directory);
+			if (table != null)
+				return table;
+			table = new Table(directory);
+			tables.put(directory, table);
+			return table;
 		} finally {
-			rwlBases.w.unlock();
+			rwlTables.w.unlock();
 		}
 	}
 
-	public static void deleteBase(File directory) throws IOException {
-		rwlBases.r.lock();
+	public static void deleteTable(File directory) throws IOException {
+		rwlTables.r.lock();
 		try {
-			Database base = bases.get(directory);
-			if (base == null)
+			Table table = tables.get(directory);
+			if (table == null)
 				return;
 		} finally {
-			rwlBases.r.unlock();
+			rwlTables.r.unlock();
 		}
-		rwlBases.w.lock();
+		rwlTables.w.lock();
 		try {
-			Database base = bases.get(directory);
-			if (base == null)
+			Table table = tables.get(directory);
+			if (table == null)
 				return;
-			bases.remove(directory);
-			base.delete();
+			tables.remove(directory);
+			table.delete();
 		} finally {
-			rwlBases.w.unlock();
+			rwlTables.w.unlock();
 		}
 
 	}
@@ -371,8 +372,8 @@ public class Database implements Closeable {
 		}
 	}
 
-	public Integer getNewPrimaryId(String id) {
-		return primaryKey.getIdOrNew(id, null);
+	public UniqueKey getPrimaryKeyIndex() {
+		return primaryKey;
 	}
 
 	public Map<String, List<String>> getDocument(String key,
@@ -442,6 +443,16 @@ public class Database implements Closeable {
 		}
 	}
 
+	public void collectFieldValues(String fieldName, Iterator<Integer> docIds,
+			FieldValueCollector collector) throws IOException {
+		rwlFields.r.lock();
+		try {
+			getField(fieldName).collectValues(docIds, collector);
+		} finally {
+			rwlFields.r.unlock();
+		}
+	}
+
 	IndexedField getIndexedField(String fieldName) {
 		FieldInterface field = fields.get(fieldName);
 		if (field == null)
@@ -452,33 +463,7 @@ public class Database implements Closeable {
 		return ((IndexedField) field);
 	}
 
-	private RoaringBitmap findDocumentsOr(Map<String, Set<String>> orTermQuery)
-			throws Exception {
-		final RoaringBitmap finalBitmap = new RoaringBitmap();
-		List<ProcedureExceptionCatcher> threads = new ArrayList<ProcedureExceptionCatcher>(
-				orTermQuery.size());
-		for (Map.Entry<String, Set<String>> entry : orTermQuery.entrySet()) {
-			IndexedField field = getIndexedField(entry.getKey());
-
-			threads.add(new ProcedureExceptionCatcher() {
-				@Override
-				public void execute() throws Exception {
-					RoaringBitmap bitmap = field.getTermBitSetOr(entry
-							.getValue());
-					if (bitmap != null) {
-						synchronized (finalBitmap) {
-							finalBitmap.or(bitmap);
-						}
-					}
-				}
-			});
-		}
-		ThreadUtils.invokeAndJoin(readExecutor, threads);
-		return finalBitmap;
-	}
-
-	public int findDocumentsOr(Map<String, Set<String>> orTermQuery,
-			Collection<Integer> documentIds,
+	public RoaringBitmap query(Query query,
 			Map<String, Map<String, LongCounter>> facets) {
 		rwlFields.r.lock();
 		try {
@@ -486,9 +471,9 @@ public class Database implements Closeable {
 			// long lastTime = System.currentTimeMillis();
 
 			// First we search for the document using Bitset
-			RoaringBitmap finalBitmap = findDocumentsOr(orTermQuery);
+			RoaringBitmap finalBitmap = query.execute(this, readExecutor);
 			if (finalBitmap.isEmpty())
-				return 0;
+				return finalBitmap;
 
 			// long newTime = System.currentTimeMillis();
 			// System.out.println("Bitmap : " + (newTime - lastTime));
@@ -496,8 +481,6 @@ public class Database implements Closeable {
 
 			// Build the collector chain
 			CollectorInterface collector = CollectorInterface.build();
-			if (documentIds != null)
-				collector = collector.documents(documentIds);
 
 			// Collector chain for facets
 			final Map<String, Map<Integer, LongCounter>> termIdFacetsMap;
@@ -548,7 +531,7 @@ public class Database implements Closeable {
 			// System.out.println("Facet : " + (newTime - lastTime));
 			// lastTime = newTime;
 
-			return collector.getCount();
+			return finalBitmap;
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		} finally {

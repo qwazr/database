@@ -37,9 +37,15 @@ public class UniqueKey {
 
 	private final RoaringBitmap deletedSet;
 
+	private final File higherIdTempFile;
+
 	private final File higherIdFile;
 
+	private final File trieTempFile;
+
 	private final File trieFile;
+
+	private final File deletedTempFile;
 
 	private final File deletedFile;
 
@@ -67,6 +73,7 @@ public class UniqueKey {
 			keyTrie = SerializationUtils.deserialize(trieFile);
 		else
 			keyTrie = new PatriciaTrie<Integer>();
+		trieTempFile = new File(directory, "." + trieFile.getName());
 
 		// Load delete ids
 		deletedFile = new File(directory, namePrefix + ".deleted");
@@ -74,6 +81,7 @@ public class UniqueKey {
 			deletedSet = SerializationUtils.deserialize(deletedFile);
 		else
 			deletedSet = new RoaringBitmap();
+		deletedTempFile = new File(directory, "." + deletedFile.getName());
 
 		// Load the next key
 		higherIdFile = new File(directory, namePrefix + ".high");
@@ -81,6 +89,7 @@ public class UniqueKey {
 			higherId = SerializationUtils.deserialize(higherIdFile);
 		else
 			higherId = null;
+		higherIdTempFile = new File(directory, "." + higherIdFile.getName());
 
 	}
 
@@ -91,10 +100,13 @@ public class UniqueKey {
 				return;
 			if (logger.isInfoEnabled())
 				logger.info("Commit saved " + namePrefix);
-			SerializationUtils.serialize(keyTrie, trieFile);
-			SerializationUtils.serialize(deletedSet, deletedFile);
+			SerializationUtils.serialize(keyTrie, trieTempFile);
+			SerializationUtils.serialize(deletedSet, deletedTempFile);
 			if (higherId != null)
-				SerializationUtils.serialize(higherId, higherIdFile);
+				SerializationUtils.serialize(higherId, higherIdTempFile);
+			trieTempFile.renameTo(trieFile);
+			deletedTempFile.renameTo(deletedFile);
+			higherIdTempFile.renameTo(higherIdFile);
 			mustBeSaved = false;
 		} finally {
 			rwl.r.unlock();
@@ -122,7 +134,7 @@ public class UniqueKey {
 		}
 	}
 
-	Integer getExistingId(String key) {
+	public Integer getExistingId(String key) {
 		rwl.r.lock();
 		try {
 			return keyTrie.get(key);

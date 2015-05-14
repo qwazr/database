@@ -15,25 +15,22 @@
  */
 package com.qwarz.database;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
 import org.roaringbitmap.RoaringBitmap;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.qwazr.utils.json.JsonMapper;
+import com.qwazr.utils.threads.ThreadUtils;
+import com.qwazr.utils.threads.ThreadUtils.ProcedureExceptionCatcher;
 
 public abstract class Query {
 
-	private static final Logger logger = LoggerFactory.getLogger(Query.class);
-
-	static Query prepare(Database database, JsonNode node)
+	final public static Query prepare(JsonNode node, QueryHook queryHook)
 			throws QueryException {
 		if (!node.isObject())
 			throw new QueryException(
@@ -46,43 +43,64 @@ public abstract class Query {
 			throw new QueryException(
 					"Query error: More than one object has been found. Near: "
 							+ node.asText());
+		Query newQuery = null;
 		if (node.has("$OR"))
-			return new OrGroup(database, node.get("$OR"));
-		if (node.has("$AND"))
-			return new AndGroup(database, node.get("$AND"));
-		return new TermQuery(database, node);
+			newQuery = new OrGroup(node.get("$OR"), queryHook);
+		else if (node.has("$AND"))
+			newQuery = new AndGroup(node.get("$AND"), queryHook);
+		else
+			newQuery = new TermQuery(node);
+		if (queryHook != null)
+			newQuery = queryHook.query(newQuery);
+		return newQuery;
 	}
 
-	private final RoaringBitmap bitmap;
+	abstract RoaringBitmap execute(final Table table,
+			final ExecutorService executor) throws Exception;
 
-	protected Query(Database database) {
-		bitmap = new RoaringBitmap();
-		System.out.println("New QueryClause " + this);
-	}
+	public static class TermQuery extends Query {
 
-	private static class TermQuery extends Query {
-
-		private final FieldInterface field;
+		private final String field;
 		private final String value;
 
-		TermQuery(Database database, JsonNode node) {
-			super(database);
+		TermQuery(JsonNode node) {
+			super();
 			Map.Entry<String, JsonNode> entry = node.fields().next();
-			if (database != null)
-				field = database.getIndexedField(entry.getKey());
-			else
-				field = null;
+			field = entry.getKey();
 			value = entry.getValue().textValue();
+		}
+
+		public TermQuery(String field, String value) {
+			super();
+			this.field = field;
+			this.value = value;
+		}
+
+		@Override
+		final RoaringBitmap execute(final Table table,
+				final ExecutorService executor) {
+			RoaringBitmap bitset = table.getIndexedField(field).getDocBitSet(
+					value);
+			if (bitset == null)
+				bitset = new RoaringBitmap();
+			return bitset;
+		}
+
+		final public String getField() {
+			return field;
+		}
+
+		final public String getValue() {
+			return value;
 		}
 	}
 
-	private static abstract class GroupQuery extends Query {
+	static abstract class GroupQuery extends Query {
 
-		private final List<Query> queries;
+		protected final List<Query> queries;
 
-		protected GroupQuery(Database database, JsonNode node)
+		protected GroupQuery(JsonNode node, QueryHook queryHook)
 				throws QueryException {
-			super(database);
 			if (!node.isArray())
 				throw new QueryException("Array expected, but got "
 						+ node.getNodeType());
@@ -93,26 +111,92 @@ public abstract class Query {
 
 				@Override
 				public void accept(JsonNode node) {
-					queries.add(Query.prepare(database, node));
+					queries.add(Query.prepare(node, queryHook));
 				}
 			});
+
+		}
+
+		protected GroupQuery() {
+			queries = new ArrayList<Query>();
+		}
+
+		final public void add(Query query) {
+			queries.add(query);
 		}
 	}
 
-	private static class OrGroup extends GroupQuery {
+	public static class OrGroup extends GroupQuery {
 
-		protected OrGroup(Database database, JsonNode node) {
-			super(database, node);
+		protected OrGroup(JsonNode node, QueryHook queryHook) {
+			super(node, queryHook);
+		}
+
+		public OrGroup() {
+		}
+
+		@Override
+		final RoaringBitmap execute(final Table table,
+				final ExecutorService executor) throws Exception {
+			List<ProcedureExceptionCatcher> threads = new ArrayList<ProcedureExceptionCatcher>(
+					queries.size());
+			final RoaringBitmap finalBitmap = new RoaringBitmap();
+			for (Query query : queries) {
+
+				threads.add(new ProcedureExceptionCatcher() {
+					@Override
+					public void execute() throws Exception {
+						RoaringBitmap bitmap = query.execute(table, executor);
+						if (bitmap != null) {
+							synchronized (finalBitmap) {
+								finalBitmap.or(bitmap);
+							}
+						}
+					}
+				});
+			}
+			ThreadUtils.invokeAndJoin(executor, threads);
+			return finalBitmap;
 		}
 
 	}
 
-	private static class AndGroup extends GroupQuery {
+	public static class AndGroup extends GroupQuery {
 
-		protected AndGroup(Database database, JsonNode node) {
-			super(database, node);
+		protected AndGroup(JsonNode node, QueryHook queryHook) {
+			super(node, queryHook);
 		}
 
+		public AndGroup() {
+		}
+
+		@Override
+		final RoaringBitmap execute(final Table table,
+				final ExecutorService executor) throws Exception {
+			List<ProcedureExceptionCatcher> threads = new ArrayList<ProcedureExceptionCatcher>(
+					queries.size());
+			final RoaringBitmap finalBitmap = new RoaringBitmap();
+			final AtomicBoolean first = new AtomicBoolean(true);
+			for (Query query : queries) {
+
+				threads.add(new ProcedureExceptionCatcher() {
+					@Override
+					public void execute() throws Exception {
+						RoaringBitmap bitmap = query.execute(table, executor);
+						if (bitmap != null) {
+							synchronized (finalBitmap) {
+								if (first.getAndSet(false))
+									finalBitmap.or(bitmap);
+								else
+									finalBitmap.and(bitmap);
+							}
+						}
+					}
+				});
+			}
+			ThreadUtils.invokeAndJoin(executor, threads);
+			return finalBitmap;
+		}
 	}
 
 	public static class QueryException extends RuntimeException {
@@ -127,9 +211,9 @@ public abstract class Query {
 		}
 	}
 
-	public static void main(String[] argv) throws QueryException,
-			JsonProcessingException, IOException {
-		final String json = "{ \"$OR\": [ { \"$AND\": [ {\"cat\": \"c1\"}, {\"cat\": \"c2\"} ] }, { \"$AND\": [ {\"cat\": \"c3\"}, {\"cat\": \"c4\"} ] }    ] }";
-		Query.prepare(null, JsonMapper.MAPPER.readTree(json));
+	public static interface QueryHook {
+
+		Query query(Query query);
 	}
+
 }

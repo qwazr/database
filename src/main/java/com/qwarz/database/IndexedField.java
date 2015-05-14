@@ -22,8 +22,10 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -242,6 +244,26 @@ public class IndexedField extends FieldAbstract {
 		}
 	}
 
+	@Override
+	public void collectValues(Iterator<Integer> docIds,
+			FieldValueCollector collector) throws IOException {
+		rwl.r.lock();
+		try {
+			Integer docId;
+			while ((docId = docIds.next()) != null) {
+				int[] termIdArray = getIntArrayOrNull(termVectorMap.get(docId));
+				if (termIdArray == null || termIdArray.length == 0)
+					continue;
+				for (int termId : termIdArray)
+					collector.collect(storedInvertedDictionaryMap.get(termId));
+			}
+		} catch (NoSuchElementException | ArrayIndexOutOfBoundsException e) {
+			// Faster use the exception than calling hasNext for each document
+		} finally {
+			rwl.r.unlock();
+		}
+	}
+
 	private RoaringBitmap getDocBitSetNoLock(String term) {
 		Integer termId = indexedDictionary.getExistingId(term);
 		if (termId == null)
@@ -249,7 +271,16 @@ public class IndexedField extends FieldAbstract {
 		return docBitsetsMap.get(termId);
 	}
 
-	RoaringBitmap getTermBitSetOr(Set<String> terms) {
+	RoaringBitmap getDocBitSet(String term) {
+		rwl.r.lock();
+		try {
+			return getDocBitSetNoLock(term);
+		} finally {
+			rwl.r.unlock();
+		}
+	}
+
+	RoaringBitmap getDocBitSetOr(Set<String> terms) {
 		rwl.r.lock();
 		try {
 			RoaringBitmap finalBitMap = null;

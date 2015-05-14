@@ -15,11 +15,14 @@
  */
 package com.qwarz.database;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.mapdb.DB;
@@ -61,5 +64,21 @@ public class StoredField extends FieldAbstract {
 		ArrayList<String> list = new ArrayList<String>(1);
 		list.add(value);
 		return list;
+	}
+
+	@Override
+	public void collectValues(Iterator<Integer> docIds,
+			FieldValueCollector collector) throws IOException {
+		Integer docId;
+		try {
+			while ((docId = docIds.next()) != null) {
+				String value = map.get(docId);
+				if (value == null)
+					continue;
+				collector.collect(value);
+			}
+		} catch (NoSuchElementException | ArrayIndexOutOfBoundsException e) {
+			// Faster use the exception than calling hasNext for each document
+		}
 	}
 }
