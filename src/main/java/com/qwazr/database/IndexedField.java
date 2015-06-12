@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.qwarz.database;
+package com.qwazr.database;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -32,7 +32,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.roaringbitmap.RoaringBitmap;
 import org.xerial.snappy.Snappy;
 
-import com.qwarz.database.CollectorInterface.LongCounter;
+import com.qwazr.database.CollectorInterface.LongCounter;
 import com.qwazr.utils.LockUtils;
 import com.qwazr.utils.SerializationUtils;
 

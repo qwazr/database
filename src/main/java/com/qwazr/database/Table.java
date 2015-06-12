@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.qwarz.database;
+package com.qwazr.database;
 
 import java.io.Closeable;
 import java.io.File;
@@ -37,14 +37,14 @@ import org.roaringbitmap.RoaringBitmap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.qwarz.database.CollectorInterface.LongCounter;
-import com.qwarz.database.FieldInterface.FieldDefinition;
-import com.qwarz.database.IndexedField.IndexedDoubleField;
-import com.qwarz.database.IndexedField.IndexedStringField;
-import com.qwarz.database.StoredField.StoredDoubleField;
-import com.qwarz.database.StoredField.StoredStringField;
-import com.qwarz.database.UniqueKey.UniqueDoubleKey;
-import com.qwarz.database.UniqueKey.UniqueStringKey;
+import com.qwazr.database.CollectorInterface.LongCounter;
+import com.qwazr.database.FieldInterface.FieldDefinition;
+import com.qwazr.database.IndexedField.IndexedDoubleField;
+import com.qwazr.database.IndexedField.IndexedStringField;
+import com.qwazr.database.StoredField.StoredDoubleField;
+import com.qwazr.database.StoredField.StoredStringField;
+import com.qwazr.database.UniqueKey.UniqueDoubleKey;
+import com.qwazr.database.UniqueKey.UniqueStringKey;
 import com.qwazr.utils.LockUtils;
 import com.qwazr.utils.threads.ThreadUtils;
 import com.qwazr.utils.threads.ThreadUtils.FunctionExceptionCatcher;
