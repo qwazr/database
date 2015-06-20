@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,20 +15,19 @@
  */
 package com.qwazr.database;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
-
+import com.qwazr.utils.LockUtils;
+import com.qwazr.utils.SerializationUtils;
 import org.apache.commons.collections4.trie.PatriciaTrie;
 import org.roaringbitmap.RoaringBitmap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.qwazr.utils.LockUtils;
-import com.qwazr.utils.SerializationUtils;
+import java.io.File;
+import java.io.IOException;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public abstract class UniqueKey<T> {
 
@@ -59,7 +58,7 @@ public abstract class UniqueKey<T> {
 
 	private final String namePrefix;
 
-	UniqueKey(File directory, String namePrefix) throws FileNotFoundException {
+	UniqueKey(File directory, String namePrefix) throws IOException {
 
 		if (logger.isInfoEnabled())
 			logger.info("Create UniqueKey " + namePrefix);
@@ -97,11 +96,11 @@ public abstract class UniqueKey<T> {
 	protected abstract Map<T, Integer> getNewKeyMap();
 
 	protected abstract Map<T, Integer> loadKeyMap(File file)
-			throws FileNotFoundException;
+			throws IOException;
 
-	protected abstract void saveKeyMap(File file) throws FileNotFoundException;
+	protected abstract void saveKeyMap(File file) throws IOException;
 
-	void commit() throws FileNotFoundException {
+	void commit() throws IOException {
 		rwl.r.lock();
 		try {
 			if (!mustBeSaved)
@@ -249,7 +248,7 @@ public abstract class UniqueKey<T> {
 		private PatriciaTrie<Integer> map;
 
 		public UniqueStringKey(File directory, String namePrefix)
-				throws FileNotFoundException {
+				throws IOException {
 			super(directory, namePrefix);
 		}
 
@@ -261,13 +260,13 @@ public abstract class UniqueKey<T> {
 
 		@Override
 		protected Map<String, Integer> loadKeyMap(File file)
-				throws FileNotFoundException {
+				throws IOException {
 			map = SerializationUtils.deserialize(file);
 			return map;
 		}
 
 		@Override
-		protected void saveKeyMap(File file) throws FileNotFoundException {
+		protected void saveKeyMap(File file) throws IOException {
 			SerializationUtils.serialize(map, file);
 		}
 
@@ -278,7 +277,7 @@ public abstract class UniqueKey<T> {
 		private HashMap<Double, Integer> map;
 
 		public UniqueDoubleKey(File directory, String namePrefix)
-				throws FileNotFoundException {
+				throws IOException {
 			super(directory, namePrefix);
 		}
 
@@ -290,13 +289,13 @@ public abstract class UniqueKey<T> {
 
 		@Override
 		protected Map<Double, Integer> loadKeyMap(File file)
-				throws FileNotFoundException {
+				throws IOException {
 			map = SerializationUtils.deserialize(file);
 			return map;
 		}
 
 		@Override
-		protected void saveKeyMap(File file) throws FileNotFoundException {
+		protected void saveKeyMap(File file) throws IOException {
 			SerializationUtils.serialize(map, file);
 		}
 

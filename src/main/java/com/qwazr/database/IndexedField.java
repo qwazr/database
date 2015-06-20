@@ -23,7 +23,6 @@ import org.roaringbitmap.RoaringBitmap;
 import org.xerial.snappy.Snappy;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -47,7 +46,7 @@ public abstract class IndexedField<T> extends FieldAbstract<T> {
 	public IndexedField(String name, long fieldId, File directory,
 						UniqueKey<T> indexedDictionary,
 						StoreMap<Integer, T> storedInvertedDictionaryMap,
-						AtomicBoolean wasExisting) throws FileNotFoundException {
+						AtomicBoolean wasExisting) throws IOException {
 		super(name, fieldId);
 		docBitsetsMustBeSaved = false;
 		termVectorMustBeSaved = false;
@@ -376,7 +375,7 @@ public abstract class IndexedField<T> extends FieldAbstract<T> {
 		public IndexedStringField(String name, long fieldId, File directory,
 								  UniqueKey<String> indexedDictionary,
 								  StoreMap<Integer, String> storedInvertedDictionaryMap,
-								  AtomicBoolean wasExisting) throws FileNotFoundException {
+								  AtomicBoolean wasExisting) throws IOException {
 			super(name, fieldId, directory, indexedDictionary,
 					storedInvertedDictionaryMap, wasExisting);
 		}
@@ -394,7 +393,7 @@ public abstract class IndexedField<T> extends FieldAbstract<T> {
 		public IndexedDoubleField(String name, long fieldId, File directory,
 								  UniqueKey<Double> indexedDictionary,
 								  StoreMap<Integer, Double> storedInvertedDictionaryMap,
-								  AtomicBoolean wasExisting) throws FileNotFoundException {
+								  AtomicBoolean wasExisting) throws IOException {
 			super(name, fieldId, directory, indexedDictionary,
 					storedInvertedDictionaryMap, wasExisting);
 		}
