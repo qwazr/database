@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,29 +15,25 @@
  */
 package com.qwazr.database;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.concurrent.atomic.AtomicBoolean;
+import com.qwazr.database.storeDb.ByteConverter;
+import com.qwazr.database.storeDb.StoreInterface;
+import com.qwazr.database.storeDb.StoreMap;
 
-import org.mapdb.DB;
+import java.io.IOException;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public abstract class StoredField<T> extends FieldAbstract<T> {
 
-	private final Map<Integer, T> map;
+	private final StoreMap<Integer, T> map;
 	private final String collectionName;
 
-	protected StoredField(String name, long fieldId, DB storeDb,
-			AtomicBoolean wasExisting) {
+	protected StoredField(String name, long fieldId, StoreInterface storeDb,
+						  AtomicBoolean wasExisting, ByteConverter<T> byteConverter) {
 		super(name, fieldId);
 		collectionName = "store." + fieldId;
 		wasExisting.set(storeDb.exists(collectionName));
-		map = storeDb.getTreeMap(collectionName);
+		map = storeDb.getMap(collectionName, ByteConverter.IntegerByteConverter.INSTANCE, byteConverter);
 	}
 
 	@Override
@@ -73,7 +69,7 @@ public abstract class StoredField<T> extends FieldAbstract<T> {
 
 	@Override
 	public void collectValues(Iterator<Integer> docIds,
-			FieldValueCollector<T> collector) throws IOException {
+							  FieldValueCollector<T> collector) throws IOException {
 		Integer docId;
 		try {
 			while ((docId = docIds.next()) != null) {
@@ -89,9 +85,9 @@ public abstract class StoredField<T> extends FieldAbstract<T> {
 
 	public static class StoredDoubleField extends StoredField<Double> {
 
-		StoredDoubleField(String name, long fieldId, DB storeDb,
-				AtomicBoolean wasExisting) {
-			super(name, fieldId, storeDb, wasExisting);
+		StoredDoubleField(String name, long fieldId, StoreInterface storeDb,
+						  AtomicBoolean wasExisting) {
+			super(name, fieldId, storeDb, wasExisting, ByteConverter.DoubleByteConverter.INSTANCE);
 		}
 
 		@Override
@@ -105,9 +101,9 @@ public abstract class StoredField<T> extends FieldAbstract<T> {
 
 	public static class StoredStringField extends StoredField<String> {
 
-		StoredStringField(String name, long fieldId, DB storeDb,
-				AtomicBoolean wasExisting) {
-			super(name, fieldId, storeDb, wasExisting);
+		StoredStringField(String name, long fieldId, StoreInterface storeDb,
+						  AtomicBoolean wasExisting) {
+			super(name, fieldId, storeDb, wasExisting, ByteConverter.StringByteConverter.INSTANCE);
 		}
 
 		@Override

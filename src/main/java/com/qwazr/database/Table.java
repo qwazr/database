@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,28 +15,6 @@
  */
 package com.qwazr.database;
 
-import java.io.Closeable;
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import org.apache.commons.io.FileUtils;
-import org.mapdb.Atomic;
-import org.mapdb.DB;
-import org.mapdb.DBMaker;
-import org.roaringbitmap.RoaringBitmap;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.qwazr.database.CollectorInterface.LongCounter;
 import com.qwazr.database.FieldInterface.FieldDefinition;
 import com.qwazr.database.IndexedField.IndexedDoubleField;
@@ -45,10 +23,23 @@ import com.qwazr.database.StoredField.StoredDoubleField;
 import com.qwazr.database.StoredField.StoredStringField;
 import com.qwazr.database.UniqueKey.UniqueDoubleKey;
 import com.qwazr.database.UniqueKey.UniqueStringKey;
+import com.qwazr.database.storeDb.*;
 import com.qwazr.utils.LockUtils;
 import com.qwazr.utils.threads.ThreadUtils;
 import com.qwazr.utils.threads.ThreadUtils.FunctionExceptionCatcher;
 import com.qwazr.utils.threads.ThreadUtils.ProcedureExceptionCatcher;
+import org.apache.commons.io.FileUtils;
+import org.roaringbitmap.RoaringBitmap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.Closeable;
+import java.io.File;
+import java.io.IOException;
+import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Table implements Closeable {
 
@@ -64,7 +55,7 @@ public class Table implements Closeable {
 
 	private final File directory;
 
-	private final DB storeDb;
+	private final StoreInterface storeDb;
 
 	private final UniqueStringKey primaryKey;
 
@@ -72,13 +63,13 @@ public class Table implements Closeable {
 
 	private final UniqueDoubleKey indexedDoubleDictionary;
 
-	private final Map<Integer, String> storedInvertedStringDictionaryMap;
+	private final StoreMap<Integer, String> storedInvertedStringDictionaryMap;
 
-	private final Map<Integer, Double> storedInvertedDoubleDictionaryMap;
+	private final StoreMap<Integer, Double> storedInvertedDoubleDictionaryMap;
 
-	private final Map<String, Long> storedFieldIdMap;
+	private final StoreMap<String, Long> storedFieldIdMap;
 
-	private final Atomic.Long fieldIdSequence;
+	private final LongSequence fieldIdSequence;
 
 	private static final ExecutorService readExecutor;
 
@@ -104,10 +95,9 @@ public class Table implements Closeable {
 		// Load the storage database
 		FunctionExceptionCatcher<Object> storeDbLoader = new FunctionExceptionCatcher<Object>() {
 			@Override
-			public DB execute() throws Exception {
-				return DBMaker.newFileDB(new File(directory, "store.mapdb"))
-						.cacheLRUEnable().closeOnJvmShutdown()
-						.compressionEnable().make();
+			public StoreInterface execute() throws Exception {
+				File dbFile = new File(directory, "storedb");
+				return new LevelDBImpl(dbFile);
 			}
 		};
 
@@ -144,21 +134,18 @@ public class Table implements Closeable {
 			throw new IOException(e);
 		}
 
-		storeDb = (DB) storeDbLoader.getResult();
+		storeDb = (StoreInterface) storeDbLoader.getResult();
 		primaryKey = (UniqueStringKey) primaryKeyLoader.getResult();
 		indexedStringDictionary = (UniqueStringKey) indexedStringDictionaryLoader
 				.getResult();
 		storedInvertedStringDictionaryMap = storeDb
-				.getTreeMap("invertedDirectionary");
+				.getMap("invertedDirectionary", ByteConverter.IntegerByteConverter.INSTANCE, ByteConverter.StringByteConverter.INSTANCE);
 		indexedDoubleDictionary = (UniqueDoubleKey) indexedDoubleDictionaryLoader
 				.getResult();
 		storedInvertedDoubleDictionaryMap = storeDb
-				.getTreeMap("invertedDoubleDirectionary");
-		storedFieldIdMap = storeDb.getTreeMap("storedFieldIdMap");
-		Atomic.Long longSequence = storeDb.getAtomicLong("fieldIdSequence");
-		if (longSequence == null)
-			longSequence = storeDb.createAtomicLong("fieldIdSequence", 0);
-		fieldIdSequence = longSequence;
+				.getMap("invertedDoubleDirectionary", ByteConverter.IntegerByteConverter.INSTANCE, ByteConverter.DoubleByteConverter.INSTANCE);
+		storedFieldIdMap = storeDb.getMap("storedFieldIdMap", ByteConverter.StringByteConverter.INSTANCE, ByteConverter.LongByteConverter.INSTANCE);
+		fieldIdSequence = storeDb.getLongSequence("fieldIdSequence");
 	}
 
 	public static Table getInstance(File directory) throws IOException {
@@ -290,7 +277,7 @@ public class Table implements Closeable {
 		private final Set<String> existingFields;
 
 		private LoadOrCreateFieldThread(FieldDefinition fieldDefinition,
-				AtomicBoolean needSave, Set<String> existingFields) {
+										AtomicBoolean needSave, Set<String> existingFields) {
 			this.fieldDefinition = fieldDefinition;
 			this.needSave = needSave;
 			this.existingFields = existingFields;
@@ -308,7 +295,7 @@ public class Table implements Closeable {
 	}
 
 	private void loadOrCreateFieldNoLock(FieldDefinition fieldDefinition,
-			AtomicBoolean needSave) throws IOException {
+										 AtomicBoolean needSave) throws IOException {
 		if (fields.containsKey(fieldDefinition.name))
 			return;
 		Long fieldId = storedFieldIdMap.get(fieldDefinition.name);
@@ -319,34 +306,34 @@ public class Table implements Closeable {
 		FieldInterface<?> field;
 		AtomicBoolean wasExisting = new AtomicBoolean(false);
 		switch (fieldDefinition.mode) {
-		case INDEXED:
-			switch (fieldDefinition.type) {
+			case INDEXED:
+				switch (fieldDefinition.type) {
+					default:
+					case STRING:
+						field = new IndexedStringField(fieldDefinition.name, fieldId,
+								directory, indexedStringDictionary,
+								storedInvertedStringDictionaryMap, wasExisting);
+						break;
+					case DOUBLE:
+						field = new IndexedDoubleField(fieldDefinition.name, fieldId,
+								directory, indexedDoubleDictionary,
+								storedInvertedDoubleDictionaryMap, wasExisting);
+						break;
+				}
+				break;
 			default:
-			case STRING:
-				field = new IndexedStringField(fieldDefinition.name, fieldId,
-						directory, indexedStringDictionary,
-						storedInvertedStringDictionaryMap, wasExisting);
+				switch (fieldDefinition.type) {
+					default:
+					case STRING:
+						field = new StoredStringField(fieldDefinition.name, fieldId,
+								storeDb, wasExisting);
+						break;
+					case DOUBLE:
+						field = new StoredDoubleField(fieldDefinition.name, fieldId,
+								storeDb, wasExisting);
+						break;
+				}
 				break;
-			case DOUBLE:
-				field = new IndexedDoubleField(fieldDefinition.name, fieldId,
-						directory, indexedDoubleDictionary,
-						storedInvertedDoubleDictionaryMap, wasExisting);
-				break;
-			}
-			break;
-		default:
-			switch (fieldDefinition.type) {
-			default:
-			case STRING:
-				field = new StoredStringField(fieldDefinition.name, fieldId,
-						storeDb, wasExisting);
-				break;
-			case DOUBLE:
-				field = new StoredDoubleField(fieldDefinition.name, fieldId,
-						storeDb, wasExisting);
-				break;
-			}
-			break;
 		}
 		if (!wasExisting.get())
 			needSave.set(true);
@@ -354,7 +341,7 @@ public class Table implements Closeable {
 	}
 
 	public void setFields(Collection<FieldDefinition> fieldDefinitions,
-			Set<String> existingFields, AtomicBoolean needCommit)
+						  Set<String> existingFields, AtomicBoolean needCommit)
 			throws Exception {
 		if (fieldDefinitions == null || fieldDefinitions.isEmpty())
 			return;
@@ -412,7 +399,7 @@ public class Table implements Closeable {
 	}
 
 	public Map<String, List<?>> getDocument(String key,
-			Collection<String> returnedFields) throws IOException {
+											Collection<String> returnedFields) throws IOException {
 		if (key == null)
 			return null;
 		Integer id = primaryKey.getExistingId(key);
@@ -450,7 +437,7 @@ public class Table implements Closeable {
 	}
 
 	public List<Map<String, List<?>>> getDocuments(Collection<String> keys,
-			Collection<String> returnedFields) throws IOException {
+												   Collection<String> returnedFields) throws IOException {
 		if (keys == null || keys.isEmpty())
 			return null;
 		ArrayList<Integer> ids = new ArrayList<Integer>(keys.size());
@@ -494,7 +481,7 @@ public class Table implements Closeable {
 	}
 
 	public RoaringBitmap query(Query query,
-			Map<String, Map<String, LongCounter>> facets) {
+							   Map<String, Map<String, LongCounter>> facets) {
 		rwlFields.r.lock();
 		try {
 

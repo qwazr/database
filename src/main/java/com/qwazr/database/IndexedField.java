@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,26 +15,18 @@
  */
 package com.qwazr.database;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
-
+import com.qwazr.database.CollectorInterface.LongCounter;
+import com.qwazr.database.storeDb.StoreMap;
+import com.qwazr.utils.LockUtils;
+import com.qwazr.utils.SerializationUtils;
 import org.roaringbitmap.RoaringBitmap;
 import org.xerial.snappy.Snappy;
 
-import com.qwazr.database.CollectorInterface.LongCounter;
-import com.qwazr.utils.LockUtils;
-import com.qwazr.utils.SerializationUtils;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public abstract class IndexedField<T> extends FieldAbstract<T> {
 
@@ -50,12 +42,12 @@ public abstract class IndexedField<T> extends FieldAbstract<T> {
 	private final File termVectorFile;
 	private boolean termVectorMustBeSaved;
 
-	private final Map<Integer, T> storedInvertedDictionaryMap;
+	private final StoreMap<Integer, T> storedInvertedDictionaryMap;
 
 	public IndexedField(String name, long fieldId, File directory,
-			UniqueKey<T> indexedDictionary,
-			Map<Integer, T> storedInvertedDictionaryMap,
-			AtomicBoolean wasExisting) throws FileNotFoundException {
+						UniqueKey<T> indexedDictionary,
+						StoreMap<Integer, T> storedInvertedDictionaryMap,
+						AtomicBoolean wasExisting) throws FileNotFoundException {
 		super(name, fieldId);
 		docBitsetsMustBeSaved = false;
 		termVectorMustBeSaved = false;
@@ -261,7 +253,7 @@ public abstract class IndexedField<T> extends FieldAbstract<T> {
 
 	@Override
 	public void collectValues(Iterator<Integer> docIds,
-			FieldValueCollector<T> collector) throws IOException {
+							  FieldValueCollector<T> collector) throws IOException {
 		rwl.r.lock();
 		try {
 			Integer docId;
@@ -354,7 +346,7 @@ public abstract class IndexedField<T> extends FieldAbstract<T> {
 	}
 
 	public CollectorInterface newFacetCollector(CollectorInterface collector,
-			Map<Integer, LongCounter> termCounter) {
+												Map<Integer, LongCounter> termCounter) {
 		rwl.r.lock();
 		try {
 			return collector.facets(termVectorMap, termCounter);
@@ -364,7 +356,7 @@ public abstract class IndexedField<T> extends FieldAbstract<T> {
 	}
 
 	public void resolveFacetsIds(Map<Integer, LongCounter> termIdMap,
-			Map<String, LongCounter> termMap) {
+								 Map<String, LongCounter> termMap) {
 		if (termIdMap == null)
 			return;
 		rwl.r.lock();
@@ -382,9 +374,9 @@ public abstract class IndexedField<T> extends FieldAbstract<T> {
 	public static class IndexedStringField extends IndexedField<String> {
 
 		public IndexedStringField(String name, long fieldId, File directory,
-				UniqueKey<String> indexedDictionary,
-				Map<Integer, String> storedInvertedDictionaryMap,
-				AtomicBoolean wasExisting) throws FileNotFoundException {
+								  UniqueKey<String> indexedDictionary,
+								  StoreMap<Integer, String> storedInvertedDictionaryMap,
+								  AtomicBoolean wasExisting) throws FileNotFoundException {
 			super(name, fieldId, directory, indexedDictionary,
 					storedInvertedDictionaryMap, wasExisting);
 		}
@@ -400,9 +392,9 @@ public abstract class IndexedField<T> extends FieldAbstract<T> {
 	public static class IndexedDoubleField extends IndexedField<Double> {
 
 		public IndexedDoubleField(String name, long fieldId, File directory,
-				UniqueKey<Double> indexedDictionary,
-				Map<Integer, Double> storedInvertedDictionaryMap,
-				AtomicBoolean wasExisting) throws FileNotFoundException {
+								  UniqueKey<Double> indexedDictionary,
+								  StoreMap<Integer, Double> storedInvertedDictionaryMap,
+								  AtomicBoolean wasExisting) throws FileNotFoundException {
 			super(name, fieldId, directory, indexedDictionary,
 					storedInvertedDictionaryMap, wasExisting);
 		}
