@@ -69,7 +69,7 @@ public abstract class StoredField<T> extends FieldAbstract<T> {
 
 	@Override
 	public void collectValues(Iterator<Integer> docIds,
-							  FieldValueCollector<T> collector) throws IOException {
+							  ColumnValueCollector<T> collector) throws IOException {
 		Integer docId;
 		try {
 			while ((docId = docIds.next()) != null) {

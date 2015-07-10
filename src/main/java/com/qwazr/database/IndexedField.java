@@ -252,7 +252,7 @@ public abstract class IndexedField<T> extends FieldAbstract<T> {
 
 	@Override
 	public void collectValues(Iterator<Integer> docIds,
-							  FieldValueCollector<T> collector) throws IOException {
+							  ColumnValueCollector<T> collector) throws IOException {
 		rwl.r.lock();
 		try {
 			Integer docId;

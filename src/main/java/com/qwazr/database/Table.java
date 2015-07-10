@@ -16,13 +16,13 @@
 package com.qwazr.database;
 
 import com.qwazr.database.CollectorInterface.LongCounter;
-import com.qwazr.database.FieldInterface.FieldDefinition;
 import com.qwazr.database.IndexedField.IndexedDoubleField;
 import com.qwazr.database.IndexedField.IndexedStringField;
 import com.qwazr.database.StoredField.StoredDoubleField;
 import com.qwazr.database.StoredField.StoredStringField;
 import com.qwazr.database.UniqueKey.UniqueDoubleKey;
 import com.qwazr.database.UniqueKey.UniqueStringKey;
+import com.qwazr.database.model.ColumnDefinition;
 import com.qwazr.database.storeDb.*;
 import com.qwazr.utils.LockUtils;
 import com.qwazr.utils.threads.ThreadUtils;
@@ -49,9 +49,9 @@ public class Table implements Closeable {
 
 	private final static Map<File, Table> tables = new HashMap<File, Table>();
 
-	private final LockUtils.ReadWriteLock rwlFields = new LockUtils.ReadWriteLock();
+	private final LockUtils.ReadWriteLock rwlColumns = new LockUtils.ReadWriteLock();
 
-	private final Map<String, FieldInterface<?>> fields = new HashMap<String, FieldInterface<?>>();
+	private final Map<String, ColumnInterface<?>> columns = new HashMap<String, ColumnInterface<?>>();
 
 	private final File directory;
 
@@ -67,9 +67,9 @@ public class Table implements Closeable {
 
 	private final StoreMap<Integer, Double> storedInvertedDoubleDictionaryMap;
 
-	private final StoreMap<String, Long> storedFieldIdMap;
+	private final StoreMap<String, Long> storedColumnIdMap;
 
-	private final LongSequence fieldIdSequence;
+	private final LongSequence columnIdSequence;
 
 	private static final ExecutorService readExecutor;
 
@@ -144,8 +144,8 @@ public class Table implements Closeable {
 				.getResult();
 		storedInvertedDoubleDictionaryMap = storeDb
 				.getMap("invertedDoubleDirectionary", ByteConverter.IntegerByteConverter.INSTANCE, ByteConverter.DoubleByteConverter.INSTANCE);
-		storedFieldIdMap = storeDb.getMap("storedFieldIdMap", ByteConverter.StringByteConverter.INSTANCE, ByteConverter.LongByteConverter.INSTANCE);
-		fieldIdSequence = storeDb.getLongSequence("fieldIdSequence");
+		storedColumnIdMap = storeDb.getMap("storedColumnIdMap", ByteConverter.StringByteConverter.INSTANCE, ByteConverter.LongByteConverter.INSTANCE);
+		columnIdSequence = storeDb.getLongSequence("columnIdSequence");
 	}
 
 	public static Table getInstance(File directory) throws IOException {
@@ -226,7 +226,7 @@ public class Table implements Closeable {
 			}
 		});
 
-		for (FieldInterface<?> field : fields.values()) {
+		for (ColumnInterface<?> field : columns.values()) {
 			threads.add(new ProcedureExceptionCatcher() {
 				@Override
 				public void execute() throws Exception {
@@ -261,75 +261,77 @@ public class Table implements Closeable {
 		FileUtils.deleteDirectory(directory);
 	}
 
-	public void collectExistingFields(final Collection<String> existingFields) {
-		rwlFields.r.lock();
+	public void collectExistingColumns(final Collection<String> existingColumns) {
+		rwlColumns.r.lock();
 		try {
-			existingFields.addAll(fields.keySet());
+			existingColumns.addAll(columns.keySet());
 		} finally {
-			rwlFields.r.unlock();
+			rwlColumns.r.unlock();
 		}
 	}
 
 	private class LoadOrCreateFieldThread extends ProcedureExceptionCatcher {
 
-		private final FieldDefinition fieldDefinition;
+		private final String columnName;
+		private final ColumnDefinition columnDefinition;
 		private final AtomicBoolean needSave;
 		private final Set<String> existingFields;
 
-		private LoadOrCreateFieldThread(FieldDefinition fieldDefinition,
+		private LoadOrCreateFieldThread(String columnName, ColumnDefinition columnDefinition,
 										AtomicBoolean needSave, Set<String> existingFields) {
-			this.fieldDefinition = fieldDefinition;
+			this.columnName = columnName;
+			this.columnDefinition = columnDefinition;
 			this.needSave = needSave;
 			this.existingFields = existingFields;
 		}
 
 		@Override
 		public void execute() throws Exception {
-			loadOrCreateFieldNoLock(fieldDefinition, needSave);
+			loadOrCreateFieldNoLock(columnName, columnDefinition, needSave);
 			if (existingFields != null) {
 				synchronized (existingFields) {
-					existingFields.remove(fieldDefinition.name);
+					existingFields.remove(columnName);
 				}
 			}
 		}
 	}
 
-	private void loadOrCreateFieldNoLock(FieldDefinition fieldDefinition,
+	private void loadOrCreateFieldNoLock(String columnName, ColumnDefinition columnDefinition,
 										 AtomicBoolean needSave) throws IOException {
-		if (fields.containsKey(fieldDefinition.name))
+		if (columns.containsKey(columnName))
 			return;
-		Long fieldId = storedFieldIdMap.get(fieldDefinition.name);
-		if (fieldId == null) {
-			fieldId = fieldIdSequence.incrementAndGet();
-			storedFieldIdMap.put(fieldDefinition.name, fieldId);
+		Long columnId = storedColumnIdMap.get(columnName);
+		if (columnId == null) {
+			columnId = columnIdSequence.incrementAndGet();
+			storedColumnIdMap.put(columnName, columnId);
 		}
-		FieldInterface<?> field;
+		ColumnInterface<?> field;
 		AtomicBoolean wasExisting = new AtomicBoolean(false);
-		switch (fieldDefinition.mode) {
+		switch (columnDefinition.mode) {
 			case INDEXED:
-				switch (fieldDefinition.type) {
+				switch (columnDefinition.type) {
 					default:
 					case STRING:
-						field = new IndexedStringField(fieldDefinition.name, fieldId,
+						field = new IndexedStringField(columnName, columnId,
 								directory, indexedStringDictionary,
 								storedInvertedStringDictionaryMap, wasExisting);
 						break;
 					case DOUBLE:
-						field = new IndexedDoubleField(fieldDefinition.name, fieldId,
+						field = new IndexedDoubleField(columnName, columnId,
 								directory, indexedDoubleDictionary,
 								storedInvertedDoubleDictionaryMap, wasExisting);
 						break;
 				}
 				break;
 			default:
-				switch (fieldDefinition.type) {
+				switch (columnDefinition.type) {
 					default:
 					case STRING:
-						field = new StoredStringField(fieldDefinition.name, fieldId,
+						field = new StoredStringField(columnName, columnId,
 								storeDb, wasExisting);
 						break;
 					case DOUBLE:
-						field = new StoredDoubleField(fieldDefinition.name, fieldId,
+						field = new StoredDoubleField(columnName, columnId,
 								storeDb, wasExisting);
 						break;
 				}
@@ -337,60 +339,60 @@ public class Table implements Closeable {
 		}
 		if (!wasExisting.get())
 			needSave.set(true);
-		fields.put(fieldDefinition.name, field);
+		columns.put(columnName, field);
 	}
 
-	public void setFields(Collection<FieldDefinition> fieldDefinitions,
-						  Set<String> existingFields, AtomicBoolean needCommit)
+	public void setColumns(Map<String, ColumnDefinition> columnDefinitions,
+						   Set<String> existingFields, AtomicBoolean needCommit)
 			throws Exception {
-		if (fieldDefinitions == null || fieldDefinitions.isEmpty())
+		if (columnDefinitions == null || columnDefinitions.isEmpty())
 			return;
-		rwlFields.w.lock();
+		rwlColumns.w.lock();
 		try {
 			List<LoadOrCreateFieldThread> threads = new ArrayList<LoadOrCreateFieldThread>(
-					fieldDefinitions.size());
-			for (FieldDefinition fieldDefinition : fieldDefinitions)
-				threads.add(new LoadOrCreateFieldThread(fieldDefinition,
+					columnDefinitions.size());
+			for (Map.Entry<String, ColumnDefinition> entry : columnDefinitions.entrySet())
+				threads.add(new LoadOrCreateFieldThread(entry.getKey(), entry.getValue(),
 						needCommit, existingFields));
 			ThreadUtils.invokeAndJoin(writeExecutor, threads);
 		} finally {
-			rwlFields.w.unlock();
+			rwlColumns.w.unlock();
 		}
 	}
 
-	public void removeField(String fieldName) throws IOException {
-		rwlFields.w.lock();
+	public void removeColumn(String columnName) throws IOException {
+		rwlColumns.w.lock();
 		try {
-			storeDb.delete(fieldName);
-			FieldInterface<?> field = fields.get(fieldName);
-			if (field != null) {
-				field.delete();
-				fields.remove(fieldName);
+			storeDb.delete(columnName);
+			ColumnInterface<?> column = columns.get(columnName);
+			if (column != null) {
+				column.delete();
+				columns.remove(columnName);
 			}
 		} finally {
-			rwlFields.w.unlock();
+			rwlColumns.w.unlock();
 		}
 	}
 
 	void deleteDocument(final Integer id) throws IOException {
-		rwlFields.r.lock();
+		rwlColumns.r.lock();
 		try {
-			for (FieldInterface<?> field : fields.values())
-				field.deleteDocument(id);
+			for (ColumnInterface<?> column : columns.values())
+				column.deleteDocument(id);
 		} finally {
-			rwlFields.r.unlock();
+			rwlColumns.r.unlock();
 		}
 	}
 
-	public FieldInterface<?> getField(String field) throws IOException {
-		rwlFields.r.lock();
+	public ColumnInterface<?> getColumn(String column) throws IOException {
+		rwlColumns.r.lock();
 		try {
-			FieldInterface<?> fieldInterface = fields.get(field);
-			if (fieldInterface != null)
-				return fieldInterface;
-			throw new IOException("Field not found: " + field);
+			ColumnInterface<?> columnInterface = columns.get(column);
+			if (columnInterface != null)
+				return columnInterface;
+			throw new IOException("Column not found: " + column);
 		} finally {
-			rwlFields.r.unlock();
+			rwlColumns.r.unlock();
 		}
 	}
 
@@ -399,25 +401,25 @@ public class Table implements Closeable {
 	}
 
 	public Map<String, List<?>> getDocument(String key,
-											Collection<String> returnedFields) throws IOException {
+											Collection<String> returnedColumns) throws IOException {
 		if (key == null)
 			return null;
 		Integer id = primaryKey.getExistingId(key);
 		if (id == null)
 			return null;
 		Map<String, List<?>> document = new HashMap<String, List<?>>();
-		rwlFields.r.lock();
+		rwlColumns.r.lock();
 		try {
-			for (String returnedField : returnedFields) {
-				FieldInterface<?> field = fields.get(returnedField);
+			for (String returnedColumn : returnedColumns) {
+				ColumnInterface<?> field = columns.get(returnedColumn);
 				if (field == null)
-					throw new IllegalArgumentException("Field not found: "
-							+ returnedField);
-				document.put(returnedField, field.getValues(id));
+					throw new IllegalArgumentException("Column not found: "
+							+ returnedColumn);
+				document.put(returnedColumn, field.getValues(id));
 			}
 			return document;
 		} finally {
-			rwlFields.r.unlock();
+			rwlColumns.r.unlock();
 		}
 	}
 
@@ -446,7 +448,7 @@ public class Table implements Closeable {
 			return null;
 		List<Map<String, List<?>>> documents = new ArrayList<Map<String, List<?>>>(
 				ids.size());
-		rwlFields.r.lock();
+		rwlColumns.r.lock();
 		try {
 			for (Integer id : ids) {
 				Map<String, List<?>> document = null;
@@ -454,35 +456,35 @@ public class Table implements Closeable {
 				if (id != null) {
 					document = new HashMap<String, List<?>>();
 					for (String returnedField : returnedFields) {
-						FieldInterface<?> field = fields.get(returnedField);
-						if (field == null)
+						ColumnInterface<?> column = columns.get(returnedField);
+						if (column == null)
 							throw new IllegalArgumentException(
-									"Field not found: " + returnedField);
-						document.put(returnedField, field.getValues(id));
+									"Column not found: " + returnedField);
+						document.put(returnedField, column.getValues(id));
 					}
 				}
 				documents.add(document);
 			}
 			return documents;
 		} finally {
-			rwlFields.r.unlock();
+			rwlColumns.r.unlock();
 		}
 	}
 
 	@SuppressWarnings("unchecked")
-	<T> IndexedField<T> getIndexedField(String fieldName) {
-		FieldInterface<?> field = fields.get(fieldName);
-		if (field == null)
-			throw new IllegalArgumentException("Field not found: " + fieldName);
-		if (!(field instanceof IndexedField))
-			throw new IllegalArgumentException("The field is not indexed: "
-					+ fieldName);
-		return ((IndexedField<T>) field);
+	<T> IndexedField<T> getIndexedColumn(String columnName) {
+		ColumnInterface<?> column = columns.get(columnName);
+		if (column == null)
+			throw new IllegalArgumentException("Column not found: " + columnName);
+		if (!(column instanceof IndexedField))
+			throw new IllegalArgumentException("The column is not indexed: "
+					+ columnName);
+		return ((IndexedField<T>) column);
 	}
 
 	public RoaringBitmap query(Query query,
 							   Map<String, Map<String, LongCounter>> facets) {
-		rwlFields.r.lock();
+		rwlColumns.r.lock();
 		try {
 
 			// long lastTime = System.currentTimeMillis();
@@ -513,7 +515,7 @@ public class Table implements Closeable {
 					String facetField = entry.getKey();
 					Map<Integer, LongCounter> termIdFacetMap = new HashMap<Integer, LongCounter>();
 					termIdFacetsMap.put(facetField, termIdFacetMap);
-					collector = getIndexedField(facetField).newFacetCollector(
+					collector = getIndexedColumn(facetField).newFacetCollector(
 							collector, termIdFacetMap);
 				}
 			} else
@@ -540,7 +542,7 @@ public class Table implements Closeable {
 					threads.add(new ProcedureExceptionCatcher() {
 						@Override
 						public void execute() throws Exception {
-							getIndexedField(facetField).resolveFacetsIds(
+							getIndexedColumn(facetField).resolveFacetsIds(
 									termIdFacetsMap.get(facetField),
 									entry.getValue());
 						}
@@ -557,7 +559,7 @@ public class Table implements Closeable {
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		} finally {
-			rwlFields.r.unlock();
+			rwlColumns.r.unlock();
 		}
 	}
 }

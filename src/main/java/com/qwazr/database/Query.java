@@ -15,18 +15,17 @@
  */
 package com.qwazr.database;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.qwazr.utils.threads.ThreadUtils;
+import com.qwazr.utils.threads.ThreadUtils.ProcedureExceptionCatcher;
+import org.roaringbitmap.RoaringBitmap;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
-
-import org.roaringbitmap.RoaringBitmap;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.qwazr.utils.threads.ThreadUtils;
-import com.qwazr.utils.threads.ThreadUtils.ProcedureExceptionCatcher;
 
 public abstract class Query {
 
@@ -81,7 +80,7 @@ public abstract class Query {
 		@Override
 		final RoaringBitmap execute(final Table table,
 				final ExecutorService executor) {
-			RoaringBitmap bitset = table.getIndexedField(field).getDocBitSet(
+			RoaringBitmap bitset = table.getIndexedColumn(field).getDocBitSet(
 					value);
 			if (bitset == null)
 				bitset = new RoaringBitmap();
