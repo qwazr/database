@@ -20,18 +20,18 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
-abstract class FieldAbstract<T> implements ColumnInterface<T> {
+abstract class ColumnAbstract<T> implements ColumnInterface<T> {
 
 	protected static final Logger logger = LoggerFactory
-			.getLogger(FieldAbstract.class);
+			.getLogger(ColumnAbstract.class);
 
 	protected final String name;
-	protected final long fieldId;
+	protected final long columnId;
 
-	FieldAbstract(String name, long fieldId) {
+	ColumnAbstract(String name, long columnId) {
 		this.name = name;
-		this.fieldId = fieldId;
-		logger.info("Create field (" + fieldId + "): " + name + " "
+		this.columnId = columnId;
+		logger.info("Load column (" + columnId + "): " + name + " "
 				+ this.getClass().getName());
 	}
 

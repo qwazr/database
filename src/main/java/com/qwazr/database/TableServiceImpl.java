@@ -15,20 +15,20 @@
  */
 package com.qwazr.database;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.qwazr.database.model.TableDefinition;
 import com.qwazr.database.model.TableRequest;
+import com.qwazr.utils.json.JsonMapper;
 import com.qwazr.utils.server.ServerException;
+import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.ws.rs.PathParam;
-import javax.ws.rs.core.Response.Status;
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URISyntaxException;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Set;
+import java.io.InputStreamReader;
+import java.util.*;
 
 public class TableServiceImpl implements TableServiceInterface {
 
@@ -38,9 +38,7 @@ public class TableServiceImpl implements TableServiceInterface {
 
 	@Override
 	public Set<String> list(Integer msTimeOut, Boolean local) {
-
-		return TableManager.INSTANCE.nameSet();
-
+		return TableManager.INSTANCE.getNameSet();
 	}
 
 	@Override
@@ -55,34 +53,81 @@ public class TableServiceImpl implements TableServiceInterface {
 		}
 	}
 
-	private TableDefinition getTableOrNotFound(String tableName)
-			throws ServerException {
-		TableDefinition tableDef = TableManager.INSTANCE.get(tableName);
-		if (tableDef == null)
-			throw new ServerException(Status.NOT_FOUND, "Table not found: "
-					+ tableName);
-		return tableDef;
-	}
-
 	@Override
 	public TableDefinition getTable(String tableName, Integer msTimeOut,
 									Boolean local) {
-		return TableManager.INSTANCE
-				.get(tableName);
-	}
-
-	private TableDefinition deleteTableLocal(String tableName)
-			throws IOException, URISyntaxException, ServerException {
-		TableDefinition tableDefinition = getTableOrNotFound(tableName);
-		TableManager.INSTANCE.delete(tableName);
-		return tableDefinition;
+		try {
+			return TableManager.INSTANCE.getTableDefinition(tableName);
+		} catch (IOException | ServerException e) {
+			logger.warn(e.getMessage(), e);
+			throw ServerException.getJsonException(e);
+		}
 	}
 
 	@Override
-	public TableDefinition deleteTable(String tableName, Integer msTimeOut,
-									   Boolean local) {
+	public Boolean deleteTable(String tableName, Integer msTimeOut,
+							   Boolean local) {
 		try {
-			return deleteTableLocal(tableName);
+			TableManager.INSTANCE.delete(tableName);
+			return true;
+		} catch (IOException | ServerException e) {
+			logger.warn(e.getMessage(), e);
+			throw ServerException.getJsonException(e);
+		}
+	}
+
+	@Override
+	public Long upsertRows(String table_name, LinkedHashMap<String, Object> rows) {
+		return null;
+	}
+
+	public final static TypeReference<Map<String, Object>> MapStringColumnValueTypeRef =
+			new TypeReference<Map<String, Object>>() {
+			};
+
+	private final int flushBuffer(String table_name, List<Map<String, Object>> buffer)
+			throws IOException, ServerException, DatabaseException {
+		try {
+			if (buffer == null || buffer.isEmpty())
+				return 0;
+			TableManager.INSTANCE.upsertRows(table_name, buffer);
+			return buffer.size();
+		} finally {
+			buffer.clear();
+		}
+	}
+
+	@Override
+	public Long upsertRows(String table_name, Integer bufferSize, InputStream inputStream) {
+		if (bufferSize == null || bufferSize < 0)
+			bufferSize = 50;
+		try {
+			InputStreamReader irs = null;
+			BufferedReader br = null;
+			try {
+				irs = new InputStreamReader(inputStream, "UTF-8");
+				br = new BufferedReader(irs);
+				long count = 0;
+				String line;
+				List<Map<String, Object>> buffer = new ArrayList<Map<String, Object>>(bufferSize);
+				while ((line = br.readLine()) != null) {
+					line = line.trim();
+					if (line.isEmpty())
+						continue;
+					Map<String, Object> nodeMap = JsonMapper.MAPPER
+							.readValue(line, MapStringColumnValueTypeRef);
+					buffer.add(nodeMap);
+					if (buffer.size() == 50)
+						count += flushBuffer(table_name, buffer);
+				}
+				count += flushBuffer(table_name, buffer);
+				return count;
+			} finally {
+				if (br != null)
+					IOUtils.closeQuietly(br);
+				if (irs != null)
+					IOUtils.closeQuietly(irs);
+			}
 		} catch (Exception e) {
 			logger.warn(e.getMessage(), e);
 			throw ServerException.getJsonException(e);
@@ -90,32 +135,40 @@ public class TableServiceImpl implements TableServiceInterface {
 	}
 
 	@Override
-	public Long upsertRows(@PathParam("table_name") String table_name, LinkedHashMap<String, Object> rows) {
-		return null;
+	public LinkedHashMap<String, Object> upsertRow(String table_name,
+												   String row_id,
+												   LinkedHashMap<String, Object> node) {
+		try {
+			TableManager.INSTANCE.upsertRow(table_name, row_id, node);
+			return node;
+		} catch (ServerException | IOException | DatabaseException e) {
+			logger.warn(e.getMessage(), e);
+			throw ServerException.getJsonException(e);
+		}
 	}
 
 	@Override
-	public Long upsertRows(@PathParam("table_name") String table_name, InputStream inpustStream) {
-		return null;
+	public LinkedHashMap<String, Object> getRow(String table_name, String row_id, Set<String> columns) {
+		try {
+			return TableManager.INSTANCE.getRow(table_name, row_id, columns);
+		} catch (ServerException | IOException | DatabaseException e) {
+			logger.warn(e.getMessage(), e);
+			throw ServerException.getJsonException(e);
+		}
 	}
 
 	@Override
-	public LinkedHashMap<String, Object> upsertRow(@PathParam("table_name") String table_name, @PathParam("row_id") String row_id, LinkedHashMap<String, Object> node) {
-		return null;
+	public Boolean deleteRow(String table_name, String row_id) {
+		try {
+			return TableManager.INSTANCE.deleteRow(table_name, row_id);
+		} catch (ServerException | IOException e) {
+			logger.warn(e.getMessage(), e);
+			throw ServerException.getJsonException(e);
+		}
 	}
 
 	@Override
-	public LinkedHashMap<String, Object> getRow(@PathParam("table_name") String table_name, @PathParam("node_id") String row_id) {
-		return null;
-	}
-
-	@Override
-	public LinkedHashMap<String, Object> deleteRow(@PathParam("table_name") String table_name, @PathParam("row_id") String row_id) {
-		return null;
-	}
-
-	@Override
-	public List<LinkedHashMap<String, Object>> requestNodes(@PathParam("table_name") String graph_name, TableRequest request) {
+	public List<LinkedHashMap<String, Object>> requestNodes(String graph_name, TableRequest request) {
 		return null;
 	}
 

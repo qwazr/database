@@ -55,7 +55,7 @@ public interface TableServiceInterface {
 	@DELETE
 	@Path("/{table_name}")
 	@Produces(RestApplication.APPLICATION_JSON_UTF8)
-	public TableDefinition deleteTable(
+	public Boolean deleteTable(
 			@PathParam("table_name") String table_name,
 			@QueryParam("timeout") Integer msTimeOut,
 			@QueryParam("local") Boolean local);
@@ -75,33 +75,35 @@ public interface TableServiceInterface {
 	@Consumes(MediaType.TEXT_PLAIN)
 	@Produces(RestApplication.APPLICATION_JSON_UTF8)
 	public Long upsertRows(@PathParam("table_name") String table_name,
+						   @QueryParam("buffer") Integer buffer,
 						   InputStream inpustStream);
 
 	@PUT
 	@Path("/{table_name}/row/{row_id}")
 	@Consumes(RestApplication.APPLICATION_JSON_UTF8)
 	@Produces(RestApplication.APPLICATION_JSON_UTF8)
-	public LinkedHashMap<String, Object> upsertRow(
-			@PathParam("table_name") String table_name,
-			@PathParam("row_id") String row_id, LinkedHashMap<String, Object> node);
+	public LinkedHashMap<String, Object> upsertRow(@PathParam("table_name") String table_name,
+												   @PathParam("row_id") String row_id,
+												   LinkedHashMap<String, Object> node);
 
 	@GET
 	@Path("/{table_name}/row/{row_id}")
 	@Produces(RestApplication.APPLICATION_JSON_UTF8)
 	public LinkedHashMap<String, Object> getRow(@PathParam("table_name") String table_name,
-												@PathParam("node_id") String row_id);
+												@PathParam("row_id") String row_id,
+												@QueryParam("column") Set<String> columns);
 
 	@DELETE
 	@Path("/{table_name}/row/{row_id}")
 	@Produces(RestApplication.APPLICATION_JSON_UTF8)
-	public LinkedHashMap<String, Object> deleteRow(@PathParam("table_name") String table_name,
-												   @PathParam("row_id") String row_id);
+	public Boolean deleteRow(@PathParam("table_name") String table_name,
+							 @PathParam("row_id") String row_id);
 
 	@POST
 	@Path("/{table_name}/request")
 	@Consumes(RestApplication.APPLICATION_JSON_UTF8)
 	@Produces(RestApplication.APPLICATION_JSON_UTF8)
-	public List<LinkedHashMap<String, Object>> requestNodes(
-			@PathParam("table_name") String graph_name, TableRequest request);
+	public List<LinkedHashMap<String, Object>> requestNodes(@PathParam("table_name") String graph_name,
+															TableRequest request);
 
 }

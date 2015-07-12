@@ -15,15 +15,13 @@
  */
 package com.qwazr.database;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.qwazr.database.CollectorInterface.LongCounter;
-import com.qwazr.database.IndexedField.IndexedDoubleField;
-import com.qwazr.database.IndexedField.IndexedStringField;
-import com.qwazr.database.StoredField.StoredDoubleField;
-import com.qwazr.database.StoredField.StoredStringField;
 import com.qwazr.database.UniqueKey.UniqueDoubleKey;
 import com.qwazr.database.UniqueKey.UniqueStringKey;
 import com.qwazr.database.model.ColumnDefinition;
-import com.qwazr.database.storeDb.*;
+import com.qwazr.database.model.TableDefinition;
+import com.qwazr.database.store.*;
 import com.qwazr.utils.LockUtils;
 import com.qwazr.utils.threads.ThreadUtils;
 import com.qwazr.utils.threads.ThreadUtils.FunctionExceptionCatcher;
@@ -35,6 +33,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
@@ -42,6 +41,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Table implements Closeable {
+
+	public static final String ID_COLUMN_NAME = "_id";
 
 	private static final Logger logger = LoggerFactory.getLogger(Table.class);
 
@@ -63,13 +64,15 @@ public class Table implements Closeable {
 
 	private final UniqueDoubleKey indexedDoubleDictionary;
 
-	private final StoreMap<Integer, String> storedInvertedStringDictionaryMap;
+	private final StoreMapInterface<Integer, String> storedInvertedStringDictionaryMap;
 
-	private final StoreMap<Integer, Double> storedInvertedDoubleDictionaryMap;
+	private final StoreMapInterface<Integer, Double> storedInvertedDoubleDictionaryMap;
 
-	private final StoreMap<String, Long> storedColumnIdMap;
+	private final StoreMapInterface<String, ColumnDefinition> storedColumnDefinitionMap;
 
-	private final LongSequence columnIdSequence;
+	private final StoreMapInterface<String, Integer> storedColumnIdMap;
+
+	private final SequenceInterface<Integer> columnIdSequence;
 
 	private static final ExecutorService readExecutor;
 
@@ -87,6 +90,17 @@ public class Table implements Closeable {
 		});
 	}
 
+	private static final ByteConverter.JsonByteConverter<ColumnDefinition> ColumnDefinitionByteConverter =
+			new ByteConverter.JsonByteConverter<ColumnDefinition>(ColumnDefinition.class);
+
+	public final static TypeReference<Map<String, Integer>> MapStringIntegerTypeRef =
+			new TypeReference<Map<String, Integer>>() {
+			};
+
+
+	private static final ByteConverter.JsonTypeByteConverter MapStringIntegerByteConverter =
+			new ByteConverter.JsonTypeByteConverter(MapStringIntegerTypeRef);
+
 	private Table(File directory) throws IOException {
 		this.directory = directory;
 
@@ -97,7 +111,7 @@ public class Table implements Closeable {
 			@Override
 			public StoreInterface execute() throws Exception {
 				File dbFile = new File(directory, "storedb");
-				return new LevelDBImpl(dbFile);
+				return new StoreImpl(dbFile);
 			}
 		};
 
@@ -139,16 +153,24 @@ public class Table implements Closeable {
 		indexedStringDictionary = (UniqueStringKey) indexedStringDictionaryLoader
 				.getResult();
 		storedInvertedStringDictionaryMap = storeDb
-				.getMap("invertedDirectionary", ByteConverter.IntegerByteConverter.INSTANCE, ByteConverter.StringByteConverter.INSTANCE);
+				.getMap("invertedDirectionary", ByteConverter.IntegerByteConverter.INSTANCE,
+						ByteConverter.StringByteConverter.INSTANCE);
 		indexedDoubleDictionary = (UniqueDoubleKey) indexedDoubleDictionaryLoader
 				.getResult();
 		storedInvertedDoubleDictionaryMap = storeDb
-				.getMap("invertedDoubleDirectionary", ByteConverter.IntegerByteConverter.INSTANCE, ByteConverter.DoubleByteConverter.INSTANCE);
-		storedColumnIdMap = storeDb.getMap("storedColumnIdMap", ByteConverter.StringByteConverter.INSTANCE, ByteConverter.LongByteConverter.INSTANCE);
-		columnIdSequence = storeDb.getLongSequence("columnIdSequence");
+				.getMap("invertedDoubleDirectionary", ByteConverter.IntegerByteConverter.INSTANCE,
+						ByteConverter.DoubleByteConverter.INSTANCE);
+		storedColumnIdMap = storeDb.getMap("storedColumnIdMap", ByteConverter.StringByteConverter.INSTANCE,
+				ByteConverter.IntegerByteConverter.INSTANCE);
+		storedColumnDefinitionMap = storeDb.getMap("storedColumnMap", ByteConverter.StringByteConverter.INSTANCE,
+				ColumnDefinitionByteConverter);
+		columnIdSequence = storeDb.getSequence("columnIdSequence", Integer.class);
+		for (Map.Entry<String, ColumnDefinition> entry : storedColumnDefinitionMap)
+			loadOrCreateColumnNoLock(entry.getKey(), entry.getValue());
+
 	}
 
-	public static Table getInstance(File directory) throws IOException {
+	public static Table getInstance(File directory, boolean createIfNotExist) throws IOException {
 		rwlTables.r.lock();
 		try {
 			Table table = tables.get(directory);
@@ -157,6 +179,8 @@ public class Table implements Closeable {
 		} finally {
 			rwlTables.r.unlock();
 		}
+		if (!createIfNotExist)
+			return null;
 		rwlTables.w.lock();
 		try {
 			Table table = tables.get(directory);
@@ -175,7 +199,7 @@ public class Table implements Closeable {
 		try {
 			Table table = tables.get(directory);
 			if (table == null)
-				return;
+				throw new FileNotFoundException("Table not found: " + directory.getAbsolutePath());
 		} finally {
 			rwlTables.r.unlock();
 		}
@@ -192,7 +216,7 @@ public class Table implements Closeable {
 
 	}
 
-	public void commit() throws IOException {
+	private void commit() throws IOException {
 
 		logger.info("Commit " + directory);
 
@@ -261,63 +285,51 @@ public class Table implements Closeable {
 		FileUtils.deleteDirectory(directory);
 	}
 
-	public void collectExistingColumns(final Collection<String> existingColumns) {
-		rwlColumns.r.lock();
-		try {
-			existingColumns.addAll(columns.keySet());
-		} finally {
-			rwlColumns.r.unlock();
-		}
-	}
-
-	private class LoadOrCreateFieldThread extends ProcedureExceptionCatcher {
+	private class LoadOrCreateColumnThread extends ProcedureExceptionCatcher {
 
 		private final String columnName;
 		private final ColumnDefinition columnDefinition;
-		private final AtomicBoolean needSave;
-		private final Set<String> existingFields;
+		private final Set<String> existingColumns;
 
-		private LoadOrCreateFieldThread(String columnName, ColumnDefinition columnDefinition,
-										AtomicBoolean needSave, Set<String> existingFields) {
+		private LoadOrCreateColumnThread(String columnName, ColumnDefinition columnDefinition,
+										 Set<String> existingColumns) {
 			this.columnName = columnName;
 			this.columnDefinition = columnDefinition;
-			this.needSave = needSave;
-			this.existingFields = existingFields;
+			this.existingColumns = existingColumns;
 		}
 
 		@Override
 		public void execute() throws Exception {
-			loadOrCreateFieldNoLock(columnName, columnDefinition, needSave);
-			if (existingFields != null) {
-				synchronized (existingFields) {
-					existingFields.remove(columnName);
+			loadOrCreateColumnNoLock(columnName, columnDefinition);
+			if (existingColumns != null) {
+				synchronized (existingColumns) {
+					existingColumns.remove(columnName);
 				}
 			}
 		}
 	}
 
-	private void loadOrCreateFieldNoLock(String columnName, ColumnDefinition columnDefinition,
-										 AtomicBoolean needSave) throws IOException {
+	private void loadOrCreateColumnNoLock(String columnName, ColumnDefinition columnDefinition) throws IOException {
 		if (columns.containsKey(columnName))
 			return;
-		Long columnId = storedColumnIdMap.get(columnName);
+		Integer columnId = storedColumnIdMap.get(columnName);
 		if (columnId == null) {
 			columnId = columnIdSequence.incrementAndGet();
 			storedColumnIdMap.put(columnName, columnId);
 		}
-		ColumnInterface<?> field;
+		ColumnInterface<?> columnInterface;
 		AtomicBoolean wasExisting = new AtomicBoolean(false);
 		switch (columnDefinition.mode) {
 			case INDEXED:
 				switch (columnDefinition.type) {
 					default:
 					case STRING:
-						field = new IndexedStringField(columnName, columnId,
+						columnInterface = new IndexedColumn.IndexedStringColumn(columnName, columnId,
 								directory, indexedStringDictionary,
 								storedInvertedStringDictionaryMap, wasExisting);
 						break;
 					case DOUBLE:
-						field = new IndexedDoubleField(columnName, columnId,
+						columnInterface = new IndexedColumn.IndexedDoubleColumn(columnName, columnId,
 								directory, indexedDoubleDictionary,
 								storedInvertedDoubleDictionaryMap, wasExisting);
 						break;
@@ -327,37 +339,52 @@ public class Table implements Closeable {
 				switch (columnDefinition.type) {
 					default:
 					case STRING:
-						field = new StoredStringField(columnName, columnId,
+						columnInterface = new StoredColumn.StoredStringColumn(columnName, columnId,
 								storeDb, wasExisting);
 						break;
 					case DOUBLE:
-						field = new StoredDoubleField(columnName, columnId,
+						columnInterface = new StoredColumn.StoredDoubleColumn(columnName, columnId,
 								storeDb, wasExisting);
 						break;
 				}
 				break;
 		}
-		if (!wasExisting.get())
-			needSave.set(true);
-		columns.put(columnName, field);
+		storedColumnDefinitionMap.put(columnName, columnDefinition);
+		columns.put(columnName, columnInterface);
 	}
 
-	public void setColumns(Map<String, ColumnDefinition> columnDefinitions,
-						   Set<String> existingFields, AtomicBoolean needCommit)
+	public TableDefinition getTableDefinition() {
+		Map<String, ColumnDefinition> columnsDef = new LinkedHashMap<String, ColumnDefinition>();
+		rwlColumns.r.lock();
+		try {
+			for (Map.Entry<String, ColumnDefinition> entry : storedColumnDefinitionMap)
+				columnsDef.put(entry.getKey(), entry.getValue());
+		} finally {
+			rwlColumns.r.unlock();
+		}
+		return new TableDefinition(columnsDef);
+	}
+
+	public void setColumns(Map<String, ColumnDefinition> columnDefinitions)
 			throws Exception {
-		if (columnDefinitions == null || columnDefinitions.isEmpty())
-			return;
+
+		Set<String> columnLeft = new HashSet<String>(columns.keySet());
+
 		rwlColumns.w.lock();
 		try {
-			List<LoadOrCreateFieldThread> threads = new ArrayList<LoadOrCreateFieldThread>(
+			List<LoadOrCreateColumnThread> threads = new ArrayList<LoadOrCreateColumnThread>(
 					columnDefinitions.size());
 			for (Map.Entry<String, ColumnDefinition> entry : columnDefinitions.entrySet())
-				threads.add(new LoadOrCreateFieldThread(entry.getKey(), entry.getValue(),
-						needCommit, existingFields));
+				threads.add(new LoadOrCreateColumnThread(entry.getKey(), entry.getValue(),
+						columnLeft));
 			ThreadUtils.invokeAndJoin(writeExecutor, threads);
 		} finally {
 			rwlColumns.w.unlock();
 		}
+
+		for (String columnName : columnLeft)
+			removeColumn(columnName);
+
 	}
 
 	public void removeColumn(String columnName) throws IOException {
@@ -374,11 +401,11 @@ public class Table implements Closeable {
 		}
 	}
 
-	void deleteDocument(final Integer id) throws IOException {
+	void deleteRow(final Integer id) throws IOException {
 		rwlColumns.r.lock();
 		try {
 			for (ColumnInterface<?> column : columns.values())
-				column.deleteDocument(id);
+				column.deleteRow(id);
 		} finally {
 			rwlColumns.r.unlock();
 		}
@@ -400,86 +427,143 @@ public class Table implements Closeable {
 		return primaryKey;
 	}
 
-	public Map<String, List<?>> getDocument(String key,
-											Collection<String> returnedColumns) throws IOException {
+	private ColumnInterface<?> getColumnNoLock(String columnName) throws DatabaseException {
+		ColumnInterface<?> column = columns.get(columnName);
+		if (column == null)
+			throw new DatabaseException("Column not found: "
+					+ columnName);
+		return column;
+	}
+
+	public LinkedHashMap<String, Object> getRow(String key, Set<String> columns) throws IOException, DatabaseException {
 		if (key == null)
 			return null;
 		Integer id = primaryKey.getExistingId(key);
 		if (id == null)
 			return null;
-		Map<String, List<?>> document = new HashMap<String, List<?>>();
+		LinkedHashMap<String, Object> row = new LinkedHashMap<String, Object>();
 		rwlColumns.r.lock();
 		try {
-			for (String returnedColumn : returnedColumns) {
-				ColumnInterface<?> field = columns.get(returnedColumn);
-				if (field == null)
-					throw new IllegalArgumentException("Column not found: "
-							+ returnedColumn);
-				document.put(returnedColumn, field.getValues(id));
+			for (String column : columns) {
+				ColumnInterface<?> field = getColumnNoLock(column);
+				row.put(column, field.getValues(id));
 			}
-			return document;
+			return row;
 		} finally {
 			rwlColumns.r.unlock();
 		}
 	}
 
-	public boolean deleteDocument(String key) throws IOException {
+	public boolean deleteRow(String key) throws IOException {
 		if (key == null)
 			return false;
 		Integer id = primaryKey.getExistingId(key);
 		if (id == null)
 			return false;
-		deleteDocument(id);
+		deleteRow(id);
 		primaryKey.deleteKey(key);
 		return true;
+	}
+
+	private boolean upsertRowNoCommit(String key, Map<String, Object> row) throws IOException, DatabaseException {
+		if (row == null)
+			return false;
+		// Check if the primary key is present
+		if (key == null) {
+			Object o = row.get(ID_COLUMN_NAME);
+			if (o != null)
+				key = o.toString();
+			if (key == null)
+				throw new IllegalArgumentException(
+						"The primary key is missing (" + ID_COLUMN_NAME + ")");
+		}
+		AtomicBoolean isNew = new AtomicBoolean();
+		Integer docId = primaryKey.getIdOrNew(key, isNew);
+		if (docId == null)
+			return false;
+		rwlColumns.r.lock();
+		try {
+			for (Map.Entry<String, Object> entry : row.entrySet()) {
+				String colName = entry.getKey();
+				if (ID_COLUMN_NAME.equals(colName))
+					continue;
+				ColumnInterface<?> column = getColumnNoLock(colName);
+				Object object = entry.getValue();
+				if (object instanceof Collection)
+					column.setValues(docId, (Collection) object);
+				else
+					column.setValue(docId, object);
+			}
+			key = null;
+			return true;
+		} finally {
+			rwlColumns.r.unlock();
+			if (key != null && isNew.get())
+				primaryKey.deleteKey(key);
+		}
+	}
+
+	public boolean upsertRow(String key, Map<String, Object> row) throws IOException, DatabaseException {
+		boolean res = upsertRowNoCommit(key, row);
+		commit();
+		return res;
+	}
+
+	public int upsertRows(Collection<Map<String, Object>> rows) throws IOException, DatabaseException {
+		int count = 0;
+		for (Map<String, Object> row : rows)
+			if (upsertRowNoCommit(null, row))
+				count++;
+		commit();
+		return count;
 	}
 
 	public int getSize() {
 		return primaryKey.size();
 	}
 
-	public List<Map<String, List<?>>> getDocuments(Collection<String> keys,
-												   Collection<String> returnedFields) throws IOException {
+	public List<LinkedHashMap<String, Object>> getRows(Set<String> keys,
+													   Set<String> columnNames) throws IOException {
 		if (keys == null || keys.isEmpty())
 			return null;
 		ArrayList<Integer> ids = new ArrayList<Integer>(keys.size());
 		primaryKey.fillExistingIds(keys, ids);
 		if (ids == null || ids.isEmpty())
 			return null;
-		List<Map<String, List<?>>> documents = new ArrayList<Map<String, List<?>>>(
+		List<LinkedHashMap<String, Object>> rows = new ArrayList<LinkedHashMap<String, Object>>(
 				ids.size());
 		rwlColumns.r.lock();
 		try {
 			for (Integer id : ids) {
-				Map<String, List<?>> document = null;
+				LinkedHashMap<String, Object> row = null;
 				// Id can be null if the document did not exists
 				if (id != null) {
-					document = new HashMap<String, List<?>>();
-					for (String returnedField : returnedFields) {
-						ColumnInterface<?> column = columns.get(returnedField);
+					row = new LinkedHashMap<String, Object>();
+					for (String columnName : columnNames) {
+						ColumnInterface<?> column = columns.get(columnName);
 						if (column == null)
 							throw new IllegalArgumentException(
-									"Column not found: " + returnedField);
-						document.put(returnedField, column.getValues(id));
+									"Column not found: " + columnName);
+						row.put(columnName, column.getValues(id));
 					}
 				}
-				documents.add(document);
+				rows.add(row);
 			}
-			return documents;
+			return rows;
 		} finally {
 			rwlColumns.r.unlock();
 		}
 	}
 
 	@SuppressWarnings("unchecked")
-	<T> IndexedField<T> getIndexedColumn(String columnName) {
+	<T> IndexedColumn<T> getIndexedColumn(String columnName) {
 		ColumnInterface<?> column = columns.get(columnName);
 		if (column == null)
 			throw new IllegalArgumentException("Column not found: " + columnName);
-		if (!(column instanceof IndexedField))
+		if (!(column instanceof IndexedColumn))
 			throw new IllegalArgumentException("The column is not indexed: "
 					+ columnName);
-		return ((IndexedField<T>) column);
+		return ((IndexedColumn<T>) column);
 	}
 
 	public RoaringBitmap query(Query query,

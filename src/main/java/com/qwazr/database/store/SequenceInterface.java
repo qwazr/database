@@ -12,30 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */
-package com.qwazr.database.model;
+ **/
+package com.qwazr.database.store;
 
-public class ColumnDefinition {
+public interface SequenceInterface<T> {
 
-
-	public static enum Type {
-		STRING, DOUBLE;
-	}
-
-	public static enum Mode {
-		INDEXED, STORED;
-	}
-
-	public final Type type;
-	public final Mode mode;
-
-	public ColumnDefinition() {
-		this(null, null);
-	}
-
-	public ColumnDefinition(Type type, Mode mode) {
-		this.type = type;
-		this.mode = mode;
-	}
-
+	T incrementAndGet();
 }

@@ -17,19 +17,19 @@ package com.qwazr.database;
 
 import com.qwazr.database.model.TableDefinition;
 import com.qwazr.utils.LockUtils;
-import com.qwazr.utils.json.DirectoryJsonManager;
 import com.qwazr.utils.server.ServerException;
+import org.apache.commons.io.filefilter.FileFilterUtils;
 
+import javax.ws.rs.core.Response;
 import java.io.File;
+import java.io.FileFilter;
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicBoolean;
 
-public class TableManager extends DirectoryJsonManager<TableDefinition> {
+public class TableManager {
 
 	private final LockUtils.ReadWriteLock rwl = new LockUtils.ReadWriteLock();
 
@@ -47,7 +47,6 @@ public class TableManager extends DirectoryJsonManager<TableDefinition> {
 	}
 
 	private TableManager(File directory) throws ServerException, IOException {
-		super(directory, TableDefinition.class);
 		this.directory = directory;
 		executor = Executors.newFixedThreadPool(8);
 		Runtime.getRuntime().addShutdownHook(new Thread() {
@@ -58,46 +57,39 @@ public class TableManager extends DirectoryJsonManager<TableDefinition> {
 		});
 	}
 
-	private Table getTable(String tableName) throws IOException, ServerException {
+	private Table getTable(String tableName, boolean createIfNotExist) throws IOException, ServerException {
 		File dbDirectory = new File(directory, tableName);
-		if (!dbDirectory.exists())
+		if (!dbDirectory.exists()) {
+			if (!createIfNotExist)
+				throw new ServerException(Response.Status.NOT_FOUND, "Table not found: " + tableName);
 			dbDirectory.mkdir();
-		return Table.getInstance(dbDirectory);
+			if (!dbDirectory.exists())
+				throw new ServerException(Response.Status.INTERNAL_SERVER_ERROR,
+						"The directory cannot be created: " + dbDirectory.getAbsolutePath());
+
+		}
+		return Table.getInstance(dbDirectory, true);
 	}
 
-	@Override
-	public Set<String> nameSet() {
-		return super.nameSet();
-	}
-
-	@Override
-	public TableDefinition get(String name) {
-		return super.get(name);
+	public Set<String> getNameSet() {
+		rwl.r.lock();
+		try {
+			LinkedHashSet<String> names = new LinkedHashSet<String>();
+			for (File file : directory.listFiles((FileFilter) FileFilterUtils.directoryFileFilter()))
+				if (!file.isHidden())
+					names.add(file.getName());
+			return names;
+		} finally {
+			rwl.r.unlock();
+		}
 	}
 
 	public void createUpdateTable(String tableName, TableDefinition tableDefinition)
 			throws IOException, ServerException {
 		rwl.w.lock();
 		try {
-			super.set(tableName, tableDefinition);
-			Table table = getTable(tableName);
-
-			Set<String> columnLeft = new HashSet<String>();
-			table.collectExistingColumns(columnLeft);
-			AtomicBoolean needCommit = new AtomicBoolean(false);
-
-			if (tableDefinition.columns != null)
-				table.setColumns(tableDefinition.columns, columnLeft, needCommit);
-
-			if (columnLeft.size() > 0) {
-				needCommit.set(true);
-				for (String columnName : columnLeft)
-					table.removeColumn(columnName);
-			}
-
-			if (needCommit.get())
-				table.commit();
-
+			Table table = getTable(tableName, true);
+			table.setColumns(tableDefinition.columns);
 		} catch (Exception e) {
 			throw ServerException.getServerException(e);
 		} finally {
@@ -105,17 +97,71 @@ public class TableManager extends DirectoryJsonManager<TableDefinition> {
 		}
 	}
 
-	@Override
-	public TableDefinition delete(String tableName) throws ServerException,
+	public TableDefinition getTableDefinition(String tableName) throws IOException, ServerException {
+		rwl.r.lock();
+		try {
+			return getTable(tableName, false).getTableDefinition();
+		} finally {
+			rwl.r.unlock();
+		}
+	}
+
+	public void delete(String tableName) throws ServerException,
 			IOException {
 		rwl.w.lock();
 		try {
-			TableDefinition tableDef = super.delete(tableName);
 			Table.deleteTable(new File(directory, tableName));
-			return tableDef;
 		} finally {
 			rwl.w.unlock();
 		}
 	}
+
+	public void upsertRow(String tableName, String row_id, Map<String, Object> nodeMap)
+			throws IOException, ServerException, DatabaseException {
+		rwl.r.lock();
+		try {
+			Table table = getTable(tableName, false);
+			table.upsertRow(row_id, nodeMap);
+		} finally {
+			rwl.r.unlock();
+		}
+	}
+
+	public void upsertRows(String tableName, List<Map<String, Object>> rows)
+			throws IOException, ServerException, DatabaseException {
+		rwl.r.lock();
+		try {
+			Table table = getTable(tableName, false);
+			for (Map<String, Object> row : rows)
+				table.upsertRow(null, row);
+		} finally {
+			rwl.r.unlock();
+		}
+	}
+
+	public LinkedHashMap<String, Object> getRow(String tableName, String key, Set<String> columns)
+			throws IOException, ServerException, DatabaseException {
+		rwl.r.lock();
+		try {
+			Table table = getTable(tableName, false);
+			LinkedHashMap<String, Object> row = table.getRow(key, columns);
+			if (row == null)
+				throw new ServerException("Row not found: " + key);
+			return row;
+		} finally {
+			rwl.r.unlock();
+		}
+	}
+
+	public boolean deleteRow(String tableName, String key) throws IOException, ServerException {
+		rwl.r.lock();
+		try {
+			Table table = getTable(tableName, false);
+			return table.deleteRow(key);
+		} finally {
+			rwl.r.unlock();
+		}
+	}
+
 
 }

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
-package com.qwazr.database.storeDb;
+package com.qwazr.database.store;
 
 import java.io.Closeable;
 
@@ -27,13 +27,14 @@ public interface StoreInterface extends Closeable {
 	 * @param <V>     the type of the value of the map
 	 * @return a persistent Map
 	 */
-	<K, V> StoreMap<K, V> getMap(String mapName, ByteConverter<K> keyConverter, ByteConverter<V> valueConverter);
+	<K, V> StoreMapInterface<K, V> getMap(String mapName, ByteConverter<K> keyConverter,
+										  ByteConverter<V> valueConverter);
 
-	LongSequence getLongSequence(String sequenceName);
+	<T> SequenceInterface<T> getSequence(String sequenceName, Class<T> clazz);
 
 	void commit();
 
-	void delete(String fieldName);
+	void delete(String collectionName);
 
 	boolean exists(String collectionName);
 

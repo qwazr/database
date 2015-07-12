@@ -13,16 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
-package com.qwazr.database.storeDb;
+package com.qwazr.database.store;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.qwazr.utils.json.JsonMapper;
+
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
 public interface ByteConverter<T> {
 
-	byte[] toBytes(T value);
+	byte[] toBytes(T value) throws JsonProcessingException;
 
-	T toValue(byte[] bytes);
+	T toValue(byte[] bytes) throws IOException;
 
 	public class IntegerByteConverter implements ByteConverter<Integer> {
 
@@ -81,6 +86,44 @@ public interface ByteConverter<T> {
 		@Override
 		final public String toValue(byte[] bytes) {
 			return StandardCharsets.UTF_8.decode(ByteBuffer.wrap(bytes)).toString();
+		}
+	}
+
+	public class JsonByteConverter<T> implements ByteConverter<T> {
+
+		private final Class<T> objectClass;
+
+		public JsonByteConverter(Class<T> objectClass) {
+			this.objectClass = objectClass;
+		}
+
+		@Override
+		final public byte[] toBytes(T value) throws JsonProcessingException {
+			return JsonMapper.MAPPER.writeValueAsBytes(value);
+		}
+
+		@Override
+		final public T toValue(byte[] bytes) throws IOException {
+			return JsonMapper.MAPPER.readValue(bytes, objectClass);
+		}
+	}
+
+	public class JsonTypeByteConverter<T> implements ByteConverter<T> {
+
+		private final TypeReference<T> typeReference;
+
+		public JsonTypeByteConverter(TypeReference<T> typeReference) {
+			this.typeReference = typeReference;
+		}
+
+		@Override
+		final public byte[] toBytes(T value) throws JsonProcessingException {
+			return JsonMapper.MAPPER.writeValueAsBytes(value);
+		}
+
+		@Override
+		final public T toValue(byte[] bytes) throws IOException {
+			return JsonMapper.MAPPER.readValue(bytes, typeReference);
 		}
 	}
 }

@@ -16,7 +16,7 @@
 package com.qwazr.database;
 
 import com.qwazr.database.CollectorInterface.LongCounter;
-import com.qwazr.database.storeDb.StoreMap;
+import com.qwazr.database.store.StoreMapInterface;
 import com.qwazr.utils.LockUtils;
 import com.qwazr.utils.SerializationUtils;
 import org.roaringbitmap.RoaringBitmap;
@@ -27,7 +27,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public abstract class IndexedField<T> extends FieldAbstract<T> {
+public abstract class IndexedColumn<T> extends ColumnAbstract<T> {
 
 	private final LockUtils.ReadWriteLock rwl = new LockUtils.ReadWriteLock();
 
@@ -41,23 +41,23 @@ public abstract class IndexedField<T> extends FieldAbstract<T> {
 	private final File termVectorFile;
 	private boolean termVectorMustBeSaved;
 
-	private final StoreMap<Integer, T> storedInvertedDictionaryMap;
+	private final StoreMapInterface<Integer, T> storedInvertedDictionaryMap;
 
-	public IndexedField(String name, long fieldId, File directory,
-						UniqueKey<T> indexedDictionary,
-						StoreMap<Integer, T> storedInvertedDictionaryMap,
-						AtomicBoolean wasExisting) throws IOException {
-		super(name, fieldId);
+	public IndexedColumn(String name, long columnId, File directory,
+						 UniqueKey<T> indexedDictionary,
+						 StoreMapInterface<Integer, T> storedInvertedDictionaryMap,
+						 AtomicBoolean wasExisting) throws IOException {
+		super(name, columnId);
 		docBitsetsMustBeSaved = false;
 		termVectorMustBeSaved = false;
 		this.indexedDictionary = indexedDictionary;
 		this.storedInvertedDictionaryMap = storedInvertedDictionaryMap;
-		docBitsetsFile = new File(directory, "field." + fieldId + ".idx");
+		docBitsetsFile = new File(directory, "column." + columnId + ".idx");
 		if (docBitsetsFile.exists())
 			docBitsetsMap = SerializationUtils.deserialize(docBitsetsFile);
 		else
 			docBitsetsMap = new HashMap<Integer, RoaringBitmap>();
-		termVectorFile = new File(directory, "field." + fieldId + ".tv");
+		termVectorFile = new File(directory, "column." + columnId + ".tv");
 		if (termVectorFile.exists())
 			termVectorMap = SerializationUtils.deserialize(termVectorFile);
 		else
@@ -102,7 +102,7 @@ public abstract class IndexedField<T> extends FieldAbstract<T> {
 		}
 	}
 
-	private Integer getTermIdOrNew(T term) {
+	private Integer getTermIdOrNew(T term) throws IOException {
 		AtomicBoolean isNewTerm = new AtomicBoolean();
 		Integer termId = indexedDictionary.getIdOrNew(term, isNewTerm);
 		// Its a new term, we store it in the dictionary
@@ -325,7 +325,7 @@ public abstract class IndexedField<T> extends FieldAbstract<T> {
 	}
 
 	@Override
-	public void deleteDocument(Integer docId) throws IOException {
+	public void deleteRow(Integer docId) throws IOException {
 		rwl.r.lock();
 		try {
 			int[] termIdArray = getIntArrayOrNull(termVectorMap.remove(docId));
@@ -355,7 +355,7 @@ public abstract class IndexedField<T> extends FieldAbstract<T> {
 	}
 
 	public void resolveFacetsIds(Map<Integer, LongCounter> termIdMap,
-								 Map<String, LongCounter> termMap) {
+								 Map<String, LongCounter> termMap) throws IOException {
 		if (termIdMap == null)
 			return;
 		rwl.r.lock();
@@ -370,12 +370,12 @@ public abstract class IndexedField<T> extends FieldAbstract<T> {
 		}
 	}
 
-	public static class IndexedStringField extends IndexedField<String> {
+	public static class IndexedStringColumn extends IndexedColumn<String> {
 
-		public IndexedStringField(String name, long fieldId, File directory,
-								  UniqueKey<String> indexedDictionary,
-								  StoreMap<Integer, String> storedInvertedDictionaryMap,
-								  AtomicBoolean wasExisting) throws IOException {
+		public IndexedStringColumn(String name, long fieldId, File directory,
+								   UniqueKey<String> indexedDictionary,
+								   StoreMapInterface<Integer, String> storedInvertedDictionaryMap,
+								   AtomicBoolean wasExisting) throws IOException {
 			super(name, fieldId, directory, indexedDictionary,
 					storedInvertedDictionaryMap, wasExisting);
 		}
@@ -388,12 +388,12 @@ public abstract class IndexedField<T> extends FieldAbstract<T> {
 		}
 	}
 
-	public static class IndexedDoubleField extends IndexedField<Double> {
+	public static class IndexedDoubleColumn extends IndexedColumn<Double> {
 
-		public IndexedDoubleField(String name, long fieldId, File directory,
-								  UniqueKey<Double> indexedDictionary,
-								  StoreMap<Integer, Double> storedInvertedDictionaryMap,
-								  AtomicBoolean wasExisting) throws IOException {
+		public IndexedDoubleColumn(String name, long fieldId, File directory,
+								   UniqueKey<Double> indexedDictionary,
+								   StoreMapInterface<Integer, Double> storedInvertedDictionaryMap,
+								   AtomicBoolean wasExisting) throws IOException {
 			super(name, fieldId, directory, indexedDictionary,
 					storedInvertedDictionaryMap, wasExisting);
 		}

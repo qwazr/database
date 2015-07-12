@@ -35,7 +35,7 @@ public interface ColumnInterface<T> {
 	void collectValues(Iterator<Integer> docIds,
 					   ColumnValueCollector<T> collector) throws IOException;
 
-	void deleteDocument(Integer id) throws IOException;
+	void deleteRow(Integer id) throws IOException;
 
 	void commit() throws IOException;
 

@@ -15,34 +15,34 @@
  */
 package com.qwazr.database;
 
-import com.qwazr.database.storeDb.ByteConverter;
-import com.qwazr.database.storeDb.StoreInterface;
-import com.qwazr.database.storeDb.StoreMap;
+import com.qwazr.database.store.ByteConverter;
+import com.qwazr.database.store.StoreInterface;
+import com.qwazr.database.store.StoreMapInterface;
 
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public abstract class StoredField<T> extends FieldAbstract<T> {
+public abstract class StoredColumn<T> extends ColumnAbstract<T> {
 
-	private final StoreMap<Integer, T> map;
+	private final StoreMapInterface<Integer, T> map;
 	private final String collectionName;
 
-	protected StoredField(String name, long fieldId, StoreInterface storeDb,
-						  AtomicBoolean wasExisting, ByteConverter<T> byteConverter) {
-		super(name, fieldId);
-		collectionName = "store." + fieldId;
+	protected StoredColumn(String name, long columnId, StoreInterface storeDb,
+						   AtomicBoolean wasExisting, ByteConverter<T> byteConverter) {
+		super(name, columnId);
+		collectionName = "store." + columnId;
 		wasExisting.set(storeDb.exists(collectionName));
 		map = storeDb.getMap(collectionName, ByteConverter.IntegerByteConverter.INSTANCE, byteConverter);
 	}
 
 	@Override
-	public void deleteDocument(Integer id) {
+	public void deleteRow(Integer id) {
 		map.remove(id);
 	}
 
 	@Override
-	public void setValue(Integer id, Object value) {
+	public void setValue(Integer id, Object value) throws IOException {
 		map.put(id, convertValue(value));
 	}
 
@@ -53,7 +53,7 @@ public abstract class StoredField<T> extends FieldAbstract<T> {
 	}
 
 	@Override
-	public List<T> getValues(Integer docId) {
+	public List<T> getValues(Integer docId) throws IOException {
 		T value = map.get(docId);
 		if (value == null)
 			return Collections.emptyList();
@@ -63,7 +63,7 @@ public abstract class StoredField<T> extends FieldAbstract<T> {
 	}
 
 	@Override
-	public T getValue(Integer docId) {
+	public T getValue(Integer docId) throws IOException {
 		return map.get(docId);
 	}
 
@@ -83,11 +83,11 @@ public abstract class StoredField<T> extends FieldAbstract<T> {
 		}
 	}
 
-	public static class StoredDoubleField extends StoredField<Double> {
+	public static class StoredDoubleColumn extends StoredColumn<Double> {
 
-		StoredDoubleField(String name, long fieldId, StoreInterface storeDb,
-						  AtomicBoolean wasExisting) {
-			super(name, fieldId, storeDb, wasExisting, ByteConverter.DoubleByteConverter.INSTANCE);
+		StoredDoubleColumn(String name, long columnId, StoreInterface storeDb,
+						   AtomicBoolean wasExisting) {
+			super(name, columnId, storeDb, wasExisting, ByteConverter.DoubleByteConverter.INSTANCE);
 		}
 
 		@Override
@@ -99,11 +99,11 @@ public abstract class StoredField<T> extends FieldAbstract<T> {
 
 	}
 
-	public static class StoredStringField extends StoredField<String> {
+	public static class StoredStringColumn extends StoredColumn<String> {
 
-		StoredStringField(String name, long fieldId, StoreInterface storeDb,
-						  AtomicBoolean wasExisting) {
-			super(name, fieldId, storeDb, wasExisting, ByteConverter.StringByteConverter.INSTANCE);
+		StoredStringColumn(String name, long columnId, StoreInterface storeDb,
+						   AtomicBoolean wasExisting) {
+			super(name, columnId, storeDb, wasExisting, ByteConverter.StringByteConverter.INSTANCE);
 		}
 
 		@Override

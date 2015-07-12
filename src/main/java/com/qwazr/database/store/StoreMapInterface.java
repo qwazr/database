@@ -13,13 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
-package com.qwazr.database.storeDb;
+package com.qwazr.database.store;
 
-public interface StoreMap<K, V> {
+import java.io.IOException;
+import java.util.Iterator;
+import java.util.Map;
 
-	V get(K key);
+public interface StoreMapInterface<K, V> extends Iterable<Map.Entry<K, V>> {
 
-	void put(K key, V value);
+	V get(K key) throws IOException;
+
+	void put(K key, V value) throws IOException;
 
 	void remove(K key);
+
+	Iterator<Map.Entry<K, V>> iterator();
 }

@@ -24,23 +24,18 @@ import java.util.Map;
 @JsonInclude(Include.NON_EMPTY)
 public class TableDefinition {
 
-	final public String primary_key;
-
 	final public Map<String, ColumnDefinition> columns;
 
 	public TableDefinition() {
 		columns = null;
-		primary_key = null;
 	}
 
 	public TableDefinition(Map<String, ColumnDefinition> columns) {
 		this.columns = columns;
-		this.primary_key = null;
 	}
 
 	protected TableDefinition(TableDefinition tableDefinition) {
 		this.columns = new LinkedHashMap<String, ColumnDefinition>(tableDefinition.columns);
-		this.primary_key = tableDefinition.primary_key;
 	}
 
 }

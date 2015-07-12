@@ -13,9 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
-package com.qwazr.database.storeDb;
+package com.qwazr.database;
 
-public interface LongSequence {
+public class DatabaseException extends Exception {
 
-	Long incrementAndGet();
+	public DatabaseException(String msg) {
+		super(msg);
+	}
+
+	public DatabaseException(String msg, Throwable cause) {
+		super(msg, cause);
+	}
+
+	public DatabaseException(Throwable cause) {
+		super(cause);
+	}
 }
