@@ -13,20 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.qwazr.database;
+package com.qwazr.database.store;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.qwazr.database.CollectorInterface.LongCounter;
-import com.qwazr.database.UniqueKey.UniqueDoubleKey;
-import com.qwazr.database.UniqueKey.UniqueStringKey;
-import com.qwazr.database.UniqueKey.UniqueLongKey;
 import com.qwazr.database.model.ColumnDefinition;
 import com.qwazr.database.model.TableDefinition;
-import com.qwazr.database.store.*;
+import com.qwazr.database.store.CollectorInterface.LongCounter;
 import com.qwazr.utils.LockUtils;
 import com.qwazr.utils.threads.ThreadUtils;
-import com.qwazr.utils.threads.ThreadUtils.FunctionExceptionCatcher;
 import com.qwazr.utils.threads.ThreadUtils.ProcedureExceptionCatcher;
+import org.apache.commons.collections4.trie.PatriciaTrie;
 import org.apache.commons.io.FileUtils;
 import org.roaringbitmap.RoaringBitmap;
 import org.slf4j.Logger;
@@ -57,15 +53,35 @@ public class Table implements Closeable {
 
 	final File directory;
 
-	final StoreInterface storeDb;
+	final StoreImpl storeDb;
 
-	private final UniqueStringKey primaryKey;
+	private final UniqueKey<String> primaryKey;
 
-	final UniqueKey.UniqueStringKey indexedStringDictionary;
+	final UniqueKey<String> indexedStringDictionary;
 
-	final UniqueKey.UniqueDoubleKey indexedDoubleDictionary;
+	final UniqueKey<Double> indexedDoubleDictionary;
 
-	final UniqueKey.UniqueLongKey indexedLongDictionary;
+	final UniqueKey<Long> indexedLongDictionary;
+
+	final StoreMapInterface<String, Integer> storedPrimaryKeyMap;
+
+	final PatriciaTrie<Integer> memoryPrimaryKeyTermMap;
+
+	final StoreMapInterface<String, Integer> storedStringKeyMap;
+
+	final PatriciaTrie<Integer> memoryStringKeyTermMap;
+
+	final StoreMapInterface<Double, Integer> storedDoubleKeyMap;
+
+	final PatriciaTrie<Integer> memoryDoubleKeyTermMap;
+
+	final StoreMapInterface<Long, Integer> storedLongKeyMap;
+
+	final PatriciaTrie<Integer> memoryLongKeyTermMap;
+
+	final StoreMapInterface<String, Integer> storedKeyHigherMap;
+
+	final StoreMapInterface<String, RoaringBitmap> storedKeyDeletedSetMap;
 
 	final StoreMapInterface<Integer, String> storedInvertedStringDictionaryMap;
 
@@ -111,73 +127,47 @@ public class Table implements Closeable {
 
 		logger.info("Load GraphDB (MapDB): " + directory);
 
-		// Load the storage database
-		FunctionExceptionCatcher<Object> storeDbLoader = new FunctionExceptionCatcher<Object>() {
-			@Override
-			public StoreInterface execute() throws Exception {
-				File dbFile = new File(directory, "storedb");
-				return new StoreImpl(dbFile);
-			}
-		};
+		File dbFile = new File(directory, "storedb");
+		storeDb = new StoreImpl(dbFile);
 
-		// Load the primary key
-		FunctionExceptionCatcher<Object> primaryKeyLoader = new FunctionExceptionCatcher<Object>() {
-			@Override
-			public UniqueStringKey execute() throws Exception {
-				return new UniqueStringKey(directory, "pkey");
-			}
-		};
+		// Index structures
+		storedKeyDeletedSetMap =
+				storeDb.getMap("uniqueKeyDeletedSet", ByteConverter.StringByteConverter.INSTANCE,
+						ByteConverter.RoaringBitmapConverter);
+		storedPrimaryKeyMap = storeDb.getMap("storedPrimaryKeyMap", ByteConverter.StringByteConverter.INSTANCE,
+				ByteConverter.IntegerByteConverter.INSTANCE);
+		storedKeyHigherMap = storeDb.getMap("storedKeyHigherMap", ByteConverter.StringByteConverter.INSTANCE,
+				ByteConverter.IntegerByteConverter.INSTANCE);
+		storedStringKeyMap = storeDb.getMap("storedStringKeyMap", ByteConverter.StringByteConverter.INSTANCE,
+				ByteConverter.IntegerByteConverter.INSTANCE);
+		storedLongKeyMap = storeDb.getMap("storedLongKeyMap", ByteConverter.LongByteConverter.INSTANCE,
+				ByteConverter.IntegerByteConverter.INSTANCE);
+		storedDoubleKeyMap = storeDb.getMap("storedDoubleKeyMap", ByteConverter.DoubleByteConverter.INSTANCE,
+				ByteConverter.IntegerByteConverter.INSTANCE);
 
-		// Load the indexed dictionary
-		FunctionExceptionCatcher<Object> indexedStringDictionaryLoader = new FunctionExceptionCatcher<Object>() {
-			@Override
-			public UniqueStringKey execute() throws Exception {
-				return new UniqueStringKey(directory, "dict");
-			}
-		};
+		// Index memory structure
+		memoryPrimaryKeyTermMap = new PatriciaTrie<Integer>();
+		memoryStringKeyTermMap = new PatriciaTrie<Integer>();
+		memoryDoubleKeyTermMap = new PatriciaTrie<Integer>();
+		memoryLongKeyTermMap = new PatriciaTrie<Integer>();
 
-		// Load the indexed dictionary
-		FunctionExceptionCatcher<Object> indexedDoubleDictionaryLoader = new FunctionExceptionCatcher<Object>() {
-			@Override
-			public UniqueDoubleKey execute() throws Exception {
-				return new UniqueDoubleKey(directory, "dict.double");
-			}
-		};
-
-		// Load the indexed dictionary
-		FunctionExceptionCatcher<Object> indexedLongDictionaryLoader = new FunctionExceptionCatcher<Object>() {
-			@Override
-			public UniqueLongKey execute() throws Exception {
-				return new UniqueLongKey(directory, "dict.long");
-			}
-		};
-
-		try {
-			ThreadUtils.invokeAndJoin(writeExecutor, Arrays.asList(
-					storeDbLoader, primaryKeyLoader,
-					indexedStringDictionaryLoader,
-					indexedDoubleDictionaryLoader));
-		} catch (Exception e) {
-			throw new IOException(e);
-		}
-
-		storeDb = (StoreInterface) storeDbLoader.getResult();
-		primaryKey = (UniqueStringKey) primaryKeyLoader.getResult();
-		indexedStringDictionary = (UniqueStringKey) indexedStringDictionaryLoader
-				.getResult();
 		storedInvertedStringDictionaryMap = storeDb
 				.getMap("invertedDirectionary", ByteConverter.IntegerByteConverter.INSTANCE,
 						ByteConverter.StringByteConverter.INSTANCE);
-		indexedDoubleDictionary = (UniqueDoubleKey) indexedDoubleDictionaryLoader
-				.getResult();
 		storedInvertedDoubleDictionaryMap = storeDb
 				.getMap("invertedDoubleDirectionary", ByteConverter.IntegerByteConverter.INSTANCE,
 						ByteConverter.DoubleByteConverter.INSTANCE);
-		indexedLongDictionary = (UniqueLongKey) indexedLongDictionaryLoader
-				.getResult();
 		storedInvertedLongDictionaryMap = storeDb
 				.getMap("invertedLongDirectionary", ByteConverter.IntegerByteConverter.INSTANCE,
 						ByteConverter.LongByteConverter.INSTANCE);
+
+		indexedStringDictionary = UniqueKey.newStringKey(this, "dict.string");
+		indexedDoubleDictionary = UniqueKey.newDoubleKey(this, "dict.double");
+		indexedLongDictionary = UniqueKey.newLongKey(this, "dict.long");
+		primaryKey = UniqueKey.newPrimaryKey(this, "dict.pkey");
+
+
+		// Columns structures
 		storedColumnIdMap = storeDb.getMap("storedColumnIdMap", ByteConverter.StringByteConverter.INSTANCE,
 				ByteConverter.IntegerByteConverter.INSTANCE);
 		storedColumnDefinitionMap = storeDb.getMap("storedColumnMap", ByteConverter.StringByteConverter.INSTANCE,
@@ -232,64 +222,6 @@ public class Table implements Closeable {
 			rwlTables.w.unlock();
 		}
 
-	}
-
-	private void commit() throws IOException {
-
-		logger.info("Commit " + directory);
-
-		List<ProcedureExceptionCatcher> threads = new ArrayList<ProcedureExceptionCatcher>();
-
-		threads.add(new ProcedureExceptionCatcher() {
-			@Override
-			public void execute() throws Exception {
-				primaryKey.commit();
-			}
-		});
-
-		threads.add(new ProcedureExceptionCatcher() {
-			@Override
-			public void execute() throws Exception {
-				indexedStringDictionary.commit();
-			}
-		});
-
-		threads.add(new ProcedureExceptionCatcher() {
-			@Override
-			public void execute() throws Exception {
-				indexedDoubleDictionary.commit();
-			}
-		});
-
-		threads.add(new ProcedureExceptionCatcher() {
-			@Override
-			public void execute() throws Exception {
-				storeDb.commit();
-			}
-		});
-
-		for (ColumnInterface<?> field : columns.values()) {
-			threads.add(new ProcedureExceptionCatcher() {
-				@Override
-				public void execute() throws Exception {
-					field.commit();
-				}
-			});
-		}
-
-		try {
-			ThreadUtils.invokeAndJoin(writeExecutor, threads);
-		} catch (IOException e) {
-			throw e;
-		} catch (Exception e) {
-			throw new IOException(e);
-		}
-
-	}
-
-	public void rollback() {
-		logger.info("Rollback " + directory);
-		storeDb.rollback();
 	}
 
 	@Override
@@ -420,7 +352,7 @@ public class Table implements Closeable {
 		}
 	}
 
-	public UniqueStringKey getPrimaryKeyIndex() {
+	public UniqueKey<String> getPrimaryKeyIndex() {
 		return primaryKey;
 	}
 
@@ -502,7 +434,6 @@ public class Table implements Closeable {
 
 	public boolean upsertRow(String key, Map<String, Object> row) throws IOException, DatabaseException {
 		boolean res = upsertRowNoCommit(key, row);
-		commit();
 		return res;
 	}
 
@@ -511,7 +442,6 @@ public class Table implements Closeable {
 		for (Map<String, Object> row : rows)
 			if (upsertRowNoCommit(null, row))
 				count++;
-		commit();
 		return count;
 	}
 

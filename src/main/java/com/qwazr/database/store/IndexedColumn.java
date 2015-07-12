@@ -13,17 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.qwazr.database;
+package com.qwazr.database.store;
 
-import com.qwazr.database.CollectorInterface.LongCounter;
+import com.qwazr.database.store.CollectorInterface.LongCounter;
 import com.qwazr.database.model.ColumnDefinition;
-import com.qwazr.database.store.StoreMapInterface;
 import com.qwazr.utils.LockUtils;
-import com.qwazr.utils.SerializationUtils;
 import org.roaringbitmap.RoaringBitmap;
-import org.xerial.snappy.Snappy;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -34,70 +30,38 @@ public abstract class IndexedColumn<T> extends ColumnAbstract<T> {
 
 	private final UniqueKey<T> indexedDictionary;
 
-	private final HashMap<Integer, RoaringBitmap> docBitsetsMap;
-	private final File docBitsetsFile;
-	private boolean docBitsetsMustBeSaved;
+	private final StoreMapInterface<Integer, RoaringBitmap> docBitsetsMap;
 
-	private final HashMap<Integer, byte[]> termVectorMap;
-	private final File termVectorFile;
-	private boolean termVectorMustBeSaved;
+	private final StoreMapInterface<Integer, int[]> termVectorMap;
 
 	private final StoreMapInterface<Integer, T> storedInvertedDictionaryMap;
 
-	protected IndexedColumn(String name, long columnId, File directory, UniqueKey<T> indexedDictionary,
+	protected IndexedColumn(Table table, String name, long columnId, UniqueKey<T> indexedDictionary,
 							StoreMapInterface<Integer, T> storedInvertedDictionaryMap) throws IOException {
 		super(name, columnId);
-		docBitsetsMustBeSaved = false;
-		termVectorMustBeSaved = false;
 		this.indexedDictionary = indexedDictionary;
 		this.storedInvertedDictionaryMap = storedInvertedDictionaryMap;
-		docBitsetsFile = new File(directory, "column." + columnId + ".idx");
-		if (docBitsetsFile.exists())
-			docBitsetsMap = SerializationUtils.deserialize(docBitsetsFile);
-		else
-			docBitsetsMap = new HashMap<Integer, RoaringBitmap>();
-		termVectorFile = new File(directory, "column." + columnId + ".tv");
-		if (termVectorFile.exists())
-			termVectorMap = SerializationUtils.deserialize(termVectorFile);
-		else
-			termVectorMap = new HashMap<Integer, byte[]>();
-	}
-
-	@Override
-	public void commit() throws IOException {
-		rwl.r.lock();
-		try {
-			if (termVectorMustBeSaved) {
-				SerializationUtils.serialize(docBitsetsMap, docBitsetsFile);
-				termVectorMustBeSaved = false;
-			}
-			if (docBitsetsMustBeSaved) {
-				SerializationUtils.serialize(termVectorMap, termVectorFile);
-				docBitsetsMustBeSaved = false;
-			}
-		} finally {
-			rwl.r.unlock();
-		}
+		this.docBitsetsMap = table.storeDb.getMap("column." + columnId + ".idx.",
+				ByteConverter.IntegerByteConverter.INSTANCE,
+				ByteConverter.RoaringBitmapConverter);
+		this.termVectorMap =
+				table.storeDb.getMap("column." + columnId + ".tv", ByteConverter.IntegerByteConverter.INSTANCE,
+						ByteConverter.IntArrayByteConverter.INSTANCE);
 	}
 
 	@Override
 	public void delete() {
-		if (docBitsetsFile.exists())
-			docBitsetsFile.delete();
-		if (termVectorFile.exists())
-			termVectorFile.delete();
+		//TODO delete keys
 	}
 
-	private void setTermDocNoLock(Integer docId, Integer termId) {
+	private void setTermDocNoLock(Integer docId, Integer termId) throws IOException {
 		RoaringBitmap docBitSet = docBitsetsMap.get(termId);
 		if (docBitSet == null) {
 			docBitSet = new RoaringBitmap();
-			docBitsetsMap.put(termId, docBitSet);
-			docBitsetsMustBeSaved = true;
 		}
 		if (!docBitSet.contains(docId)) {
 			docBitSet.add(docId);
-			docBitsetsMustBeSaved = true;
+			docBitsetsMap.put(termId, docBitSet);
 		}
 	}
 
@@ -110,16 +74,10 @@ public abstract class IndexedColumn<T> extends ColumnAbstract<T> {
 		return termId;
 	}
 
-	final static int[] getIntArrayOrNull(byte[] compressedByteArray)
-			throws IOException {
-		if (compressedByteArray == null)
-			return null;
-		return Snappy.uncompressIntArray(compressedByteArray);
-	}
 
 	private Set<Integer> getTermVectorIdSet(Integer docId) throws IOException {
 		Set<Integer> idSet = new HashSet<Integer>();
-		int[] idArray = getIntArrayOrNull(termVectorMap.get(docId));
+		int[] idArray = termVectorMap.get(docId);
 		if (idArray != null)
 			for (int id : idArray)
 				idSet.add(id);
@@ -128,7 +86,6 @@ public abstract class IndexedColumn<T> extends ColumnAbstract<T> {
 
 	private void putTermVectorIdSet(Integer docId, Set<Integer> termIdSet)
 			throws IOException {
-		termVectorMustBeSaved = true;
 		if (termIdSet.isEmpty()) {
 			termVectorMap.remove(docId);
 			return;
@@ -137,7 +94,7 @@ public abstract class IndexedColumn<T> extends ColumnAbstract<T> {
 		int i = 0;
 		for (Integer termId : termIdSet)
 			idArray[i++] = termId;
-		termVectorMap.put(docId, Snappy.compress(idArray));
+		termVectorMap.put(docId, idArray);
 	}
 
 	private void setTerms(Integer docId, Set<Integer> newTermIdSet)
@@ -215,7 +172,7 @@ public abstract class IndexedColumn<T> extends ColumnAbstract<T> {
 	public T getValue(final Integer docId) throws IOException {
 		rwl.r.lock();
 		try {
-			int[] termIdArray = getIntArrayOrNull(termVectorMap.get(docId));
+			int[] termIdArray = termVectorMap.get(docId);
 			if (termIdArray == null || termIdArray.length == 0)
 				return null;
 			return storedInvertedDictionaryMap.get(termIdArray[0]);
@@ -227,7 +184,7 @@ public abstract class IndexedColumn<T> extends ColumnAbstract<T> {
 	public int[] getTerms(Integer docId) throws IOException {
 		rwl.r.lock();
 		try {
-			return getIntArrayOrNull(termVectorMap.get(docId));
+			return termVectorMap.get(docId);
 		} finally {
 			rwl.r.unlock();
 		}
@@ -237,7 +194,7 @@ public abstract class IndexedColumn<T> extends ColumnAbstract<T> {
 	public List<T> getValues(Integer docId) throws IOException {
 		rwl.r.lock();
 		try {
-			int[] termIdArray = getIntArrayOrNull(termVectorMap.get(docId));
+			int[] termIdArray = termVectorMap.get(docId);
 			if (termIdArray == null || termIdArray.length == 0)
 				return null;
 			List<T> list = new ArrayList<T>(termIdArray.length);
@@ -256,7 +213,7 @@ public abstract class IndexedColumn<T> extends ColumnAbstract<T> {
 		try {
 			Integer docId;
 			while ((docId = docIds.next()) != null) {
-				int[] termIdArray = getIntArrayOrNull(termVectorMap.get(docId));
+				int[] termIdArray = termVectorMap.get(docId);
 				if (termIdArray == null || termIdArray.length == 0)
 					continue;
 				for (int termId : termIdArray)
@@ -269,14 +226,14 @@ public abstract class IndexedColumn<T> extends ColumnAbstract<T> {
 		}
 	}
 
-	private RoaringBitmap getDocBitSetNoLock(T term) {
+	private RoaringBitmap getDocBitSetNoLock(T term) throws IOException {
 		Integer termId = indexedDictionary.getExistingId(term);
 		if (termId == null)
 			return null;
 		return docBitsetsMap.get(termId);
 	}
 
-	RoaringBitmap getDocBitSet(T term) {
+	RoaringBitmap getDocBitSet(T term) throws IOException {
 		rwl.r.lock();
 		try {
 			return getDocBitSetNoLock(term);
@@ -285,7 +242,7 @@ public abstract class IndexedColumn<T> extends ColumnAbstract<T> {
 		}
 	}
 
-	RoaringBitmap getDocBitSetOr(Set<T> terms) {
+	RoaringBitmap getDocBitSetOr(Set<T> terms) throws IOException {
 		rwl.r.lock();
 		try {
 			RoaringBitmap finalBitMap = null;
@@ -304,7 +261,7 @@ public abstract class IndexedColumn<T> extends ColumnAbstract<T> {
 		}
 	}
 
-	RoaringBitmap getDocBitSetAnd(Set<T> terms) {
+	RoaringBitmap getDocBitSetAnd(Set<T> terms) throws IOException {
 		rwl.r.lock();
 		try {
 			RoaringBitmap finalBitMap = null;
@@ -327,17 +284,17 @@ public abstract class IndexedColumn<T> extends ColumnAbstract<T> {
 	public void deleteRow(Integer docId) throws IOException {
 		rwl.r.lock();
 		try {
-			int[] termIdArray = getIntArrayOrNull(termVectorMap.remove(docId));
+			int[] termIdArray = termVectorMap.get(docId);
 			if (termIdArray == null)
 				return;
-			termVectorMustBeSaved = true;
 			for (int termId : termIdArray) {
 				RoaringBitmap bitSet = docBitsetsMap.get(termId);
 				if (bitSet != null && bitSet.contains(docId)) {
 					bitSet.remove(docId);
-					docBitsetsMustBeSaved = true;
+					docBitsetsMap.put(termId, bitSet);
 				}
 			}
+			termVectorMap.remove(docId);
 		} finally {
 			rwl.r.unlock();
 		}
@@ -371,9 +328,8 @@ public abstract class IndexedColumn<T> extends ColumnAbstract<T> {
 
 	private static class IndexedStringColumn extends IndexedColumn<String> {
 
-		private IndexedStringColumn(String name, long fieldId, File directory, UniqueKey<String> indexedDictionary,
-									StoreMapInterface<Integer, String> storedInvertedDictionaryMap) throws IOException {
-			super(name, fieldId, directory, indexedDictionary, storedInvertedDictionaryMap);
+		private IndexedStringColumn(Table table, String name, long columnId) throws IOException {
+			super(table, name, columnId, table.indexedStringDictionary, table.storedInvertedStringDictionaryMap);
 		}
 
 		@Override
@@ -386,9 +342,8 @@ public abstract class IndexedColumn<T> extends ColumnAbstract<T> {
 
 	private static class IndexedDoubleColumn extends IndexedColumn<Double> {
 
-		private IndexedDoubleColumn(String name, long fieldId, File directory, UniqueKey<Double> indexedDictionary,
-									StoreMapInterface<Integer, Double> storedInvertedDictionaryMap) throws IOException {
-			super(name, fieldId, directory, indexedDictionary, storedInvertedDictionaryMap);
+		private IndexedDoubleColumn(Table table, String name, long columnId) throws IOException {
+			super(table, name, columnId, table.indexedDoubleDictionary, table.storedInvertedDoubleDictionaryMap);
 		}
 
 		@Override
@@ -401,9 +356,8 @@ public abstract class IndexedColumn<T> extends ColumnAbstract<T> {
 
 	private static class IndexedLongColumn extends IndexedColumn<Long> {
 
-		private IndexedLongColumn(String name, long fieldId, File directory, UniqueKey<Long> indexedDictionary,
-								  StoreMapInterface<Integer, Long> storedInvertedDictionaryMap) throws IOException {
-			super(name, fieldId, directory, indexedDictionary, storedInvertedDictionaryMap);
+		private IndexedLongColumn(Table table, String name, long columnId) throws IOException {
+			super(table, name, columnId, table.indexedLongDictionary, table.storedInvertedLongDictionaryMap);
 		}
 
 		@Override
@@ -414,35 +368,16 @@ public abstract class IndexedColumn<T> extends ColumnAbstract<T> {
 		}
 	}
 
-	private static class IndexedIntegerColumn extends IndexedColumn<Integer> {
-
-		private IndexedIntegerColumn(String name, long fieldId, File directory, UniqueKey<Integer> indexedDictionary,
-									 StoreMapInterface<Integer, Integer> storedInvertedDictionaryMap)
-				throws IOException {
-			super(name, fieldId, directory, indexedDictionary, storedInvertedDictionaryMap);
-		}
-
-		@Override
-		final public Integer convertValue(final Object value) {
-			if (value instanceof Integer)
-				return (Integer) value;
-			return Integer.valueOf(value.toString());
-		}
-	}
-
 	static IndexedColumn<?> newInstance(Table table, String columnName, Integer columnId,
 										ColumnDefinition.Type columnType) throws IOException, DatabaseException {
 
 		switch (columnType) {
 			case STRING:
-				return new IndexedStringColumn(columnName, columnId, table.directory, table.indexedStringDictionary,
-						table.storedInvertedStringDictionaryMap);
+				return new IndexedStringColumn(table, columnName, columnId);
 			case DOUBLE:
-				return new IndexedDoubleColumn(columnName, columnId, table.directory, table.indexedDoubleDictionary,
-						table.storedInvertedDoubleDictionaryMap);
+				return new IndexedDoubleColumn(table, columnName, columnId);
 			case LONG:
-				return new IndexedLongColumn(columnName, columnId, table.directory, table.indexedLongDictionary,
-						table.storedInvertedLongDictionaryMap);
+				return new IndexedLongColumn(table, columnName, columnId);
 			default:
 				throw new DatabaseException("Unsupported type: " + columnType);
 		}

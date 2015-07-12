@@ -32,13 +32,8 @@ public interface StoreInterface extends Closeable {
 
 	<T> SequenceInterface<T> getSequence(String sequenceName, Class<T> clazz);
 
-	void commit();
-
 	void delete(String collectionName);
 
 	boolean exists(String collectionName);
-
-	void rollback();
-
 
 }

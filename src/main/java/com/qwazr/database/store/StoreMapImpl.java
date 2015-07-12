@@ -64,7 +64,12 @@ class StoreMapImpl<K, V> implements StoreMapInterface<K, V> {
 	final public void put(K key, V value) throws IOException {
 		if (logger.isDebugEnabled())
 			logger.debug("Put key: " + keyPrefix + key);
-		db.put(getKey(key), valueConverter.toBytes(value));
+		byte[] keyBytes = getKey(key);
+		byte[] bytes = valueConverter.toBytes(value);
+		if (bytes == null)
+			db.delete(keyBytes);
+		else
+			db.put(keyBytes, bytes);
 	}
 
 	@Override

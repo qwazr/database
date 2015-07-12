@@ -18,6 +18,7 @@ package com.qwazr.database;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.qwazr.database.model.TableDefinition;
 import com.qwazr.database.model.TableRequest;
+import com.qwazr.database.store.DatabaseException;
 import com.qwazr.utils.json.JsonMapper;
 import com.qwazr.utils.server.ServerException;
 import org.apache.commons.io.IOUtils;

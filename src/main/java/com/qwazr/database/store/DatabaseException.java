@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
-package com.qwazr.database;
+package com.qwazr.database.store;
 
 public class DatabaseException extends Exception {
 

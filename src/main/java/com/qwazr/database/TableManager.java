@@ -16,6 +16,8 @@
 package com.qwazr.database;
 
 import com.qwazr.database.model.TableDefinition;
+import com.qwazr.database.store.DatabaseException;
+import com.qwazr.database.store.Table;
 import com.qwazr.utils.LockUtils;
 import com.qwazr.utils.server.ServerException;
 import org.apache.commons.io.filefilter.FileFilterUtils;

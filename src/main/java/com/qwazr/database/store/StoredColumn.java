@@ -13,12 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.qwazr.database;
+package com.qwazr.database.store;
 
 import com.qwazr.database.model.ColumnDefinition;
-import com.qwazr.database.store.ByteConverter;
-import com.qwazr.database.store.StoreInterface;
-import com.qwazr.database.store.StoreMapInterface;
 
 import java.io.IOException;
 import java.util.*;

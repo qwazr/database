@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
-package com.qwazr.database;
+package com.qwazr.database.store;
 
 import org.roaringbitmap.RoaringBitmap;
 
@@ -35,7 +35,7 @@ public interface CollectorInterface {
 
 	DocumentsCollector documents(Collection<Integer> documentIds);
 
-	FacetsCollector facets(Map<Integer, byte[]> termVectorMap,
+	FacetsCollector facets(StoreMapInterface<Integer, int[]> termVectorMap,
 						   Map<Integer, LongCounter> termCounter);
 
 	ScoresCollector scores();
@@ -55,7 +55,7 @@ public interface CollectorInterface {
 		}
 
 		@Override
-		final public FacetsCollector facets(Map<Integer, byte[]> termVectorMap,
+		final public FacetsCollector facets(StoreMapInterface<Integer, int[]> termVectorMap,
 											Map<Integer, LongCounter> termCounter) {
 			return new FacetsCollector(this, termVectorMap, termCounter);
 		}
@@ -121,11 +121,11 @@ public interface CollectorInterface {
 
 	static class FacetsCollector extends CollectorAbstract {
 
-		private Map<Integer, byte[]> termVectorMap;
+		private StoreMapInterface<Integer, int[]> termVectorMap;
 		private final Map<Integer, LongCounter> termCounter;
 
 		private FacetsCollector(CollectorInterface parent,
-								Map<Integer, byte[]> termVectorMap,
+								StoreMapInterface<Integer, int[]> termVectorMap,
 								Map<Integer, LongCounter> termCounter) {
 			super(parent);
 			this.termVectorMap = termVectorMap;
@@ -135,8 +135,7 @@ public interface CollectorInterface {
 		@Override
 		final public void collect(int docId) throws IOException {
 			parent.collect(docId);
-			int[] termIdArray = IndexedColumn.getIntArrayOrNull(termVectorMap
-					.get(docId));
+			int[] termIdArray = termVectorMap.get(docId);
 			if (termIdArray == null)
 				return;
 			for (int termId : termIdArray) {

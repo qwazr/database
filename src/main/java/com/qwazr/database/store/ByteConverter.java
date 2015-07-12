@@ -17,9 +17,13 @@ package com.qwazr.database.store;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.qwazr.utils.SerializationUtils;
 import com.qwazr.utils.json.JsonMapper;
+import org.roaringbitmap.RoaringBitmap;
+import org.xerial.snappy.Snappy;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.nio.ByteBuffer;
 
 import static org.fusesource.leveldbjni.JniDBFactory.asString;
@@ -27,7 +31,7 @@ import static org.fusesource.leveldbjni.JniDBFactory.bytes;
 
 public interface ByteConverter<T> {
 
-	byte[] toBytes(T value) throws JsonProcessingException;
+	byte[] toBytes(T value) throws IOException;
 
 	T toValue(byte[] bytes) throws IOException;
 
@@ -128,4 +132,38 @@ public interface ByteConverter<T> {
 			return JsonMapper.MAPPER.readValue(bytes, typeReference);
 		}
 	}
+
+	public class SerializableByteConverter<T extends Serializable> implements ByteConverter<T> {
+
+		@Override
+		final public byte[] toBytes(T value) {
+			return SerializationUtils.serialize(value);
+		}
+
+		@Override
+		final public T toValue(byte[] bytes) {
+			return SerializationUtils.deserialize(bytes);
+		}
+	}
+
+	public class IntArrayByteConverter implements ByteConverter<int[]> {
+
+		public final static IntArrayByteConverter INSTANCE = new IntArrayByteConverter();
+
+		@Override
+		final public byte[] toBytes(int[] intArray) throws IOException {
+			return Snappy.compress(intArray);
+		}
+
+		@Override
+		final public int[] toValue(byte[] compressedByteArray) throws IOException {
+			if (compressedByteArray == null)
+				return null;
+			return Snappy.uncompressIntArray(compressedByteArray);
+		}
+	}
+
+	public final static ByteConverter.SerializableByteConverter<RoaringBitmap> RoaringBitmapConverter =
+			new ByteConverter.SerializableByteConverter<RoaringBitmap>();
+
 }

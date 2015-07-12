@@ -15,7 +15,6 @@
  **/
 package com.qwazr.database.store;
 
-
 import org.fusesource.leveldbjni.JniDBFactory;
 import org.iq80.leveldb.DB;
 import org.iq80.leveldb.Options;
@@ -82,10 +81,6 @@ public class StoreImpl implements StoreInterface {
 	}
 
 	@Override
-	public void commit() {
-	}
-
-	@Override
 	public void delete(String collectionName) {
 		synchronized (maps) {
 			if (maps.remove(collectionName) == null)
@@ -98,10 +93,6 @@ public class StoreImpl implements StoreInterface {
 	@Override
 	public boolean exists(String collectionName) {
 		return mapsCache.containsKey(collectionName);
-	}
-
-	@Override
-	public void rollback() {
 	}
 
 }
