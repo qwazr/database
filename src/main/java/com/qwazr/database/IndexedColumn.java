@@ -16,6 +16,7 @@
 package com.qwazr.database;
 
 import com.qwazr.database.CollectorInterface.LongCounter;
+import com.qwazr.database.model.ColumnDefinition;
 import com.qwazr.database.store.StoreMapInterface;
 import com.qwazr.utils.LockUtils;
 import com.qwazr.utils.SerializationUtils;
@@ -43,10 +44,8 @@ public abstract class IndexedColumn<T> extends ColumnAbstract<T> {
 
 	private final StoreMapInterface<Integer, T> storedInvertedDictionaryMap;
 
-	public IndexedColumn(String name, long columnId, File directory,
-						 UniqueKey<T> indexedDictionary,
-						 StoreMapInterface<Integer, T> storedInvertedDictionaryMap,
-						 AtomicBoolean wasExisting) throws IOException {
+	protected IndexedColumn(String name, long columnId, File directory, UniqueKey<T> indexedDictionary,
+							StoreMapInterface<Integer, T> storedInvertedDictionaryMap) throws IOException {
 		super(name, columnId);
 		docBitsetsMustBeSaved = false;
 		termVectorMustBeSaved = false;
@@ -370,14 +369,11 @@ public abstract class IndexedColumn<T> extends ColumnAbstract<T> {
 		}
 	}
 
-	public static class IndexedStringColumn extends IndexedColumn<String> {
+	private static class IndexedStringColumn extends IndexedColumn<String> {
 
-		public IndexedStringColumn(String name, long fieldId, File directory,
-								   UniqueKey<String> indexedDictionary,
-								   StoreMapInterface<Integer, String> storedInvertedDictionaryMap,
-								   AtomicBoolean wasExisting) throws IOException {
-			super(name, fieldId, directory, indexedDictionary,
-					storedInvertedDictionaryMap, wasExisting);
+		private IndexedStringColumn(String name, long fieldId, File directory, UniqueKey<String> indexedDictionary,
+									StoreMapInterface<Integer, String> storedInvertedDictionaryMap) throws IOException {
+			super(name, fieldId, directory, indexedDictionary, storedInvertedDictionaryMap);
 		}
 
 		@Override
@@ -388,14 +384,11 @@ public abstract class IndexedColumn<T> extends ColumnAbstract<T> {
 		}
 	}
 
-	public static class IndexedDoubleColumn extends IndexedColumn<Double> {
+	private static class IndexedDoubleColumn extends IndexedColumn<Double> {
 
-		public IndexedDoubleColumn(String name, long fieldId, File directory,
-								   UniqueKey<Double> indexedDictionary,
-								   StoreMapInterface<Integer, Double> storedInvertedDictionaryMap,
-								   AtomicBoolean wasExisting) throws IOException {
-			super(name, fieldId, directory, indexedDictionary,
-					storedInvertedDictionaryMap, wasExisting);
+		private IndexedDoubleColumn(String name, long fieldId, File directory, UniqueKey<Double> indexedDictionary,
+									StoreMapInterface<Integer, Double> storedInvertedDictionaryMap) throws IOException {
+			super(name, fieldId, directory, indexedDictionary, storedInvertedDictionaryMap);
 		}
 
 		@Override
@@ -403,6 +396,55 @@ public abstract class IndexedColumn<T> extends ColumnAbstract<T> {
 			if (value instanceof Double)
 				return (Double) value;
 			return Double.valueOf(value.toString());
+		}
+	}
+
+	private static class IndexedLongColumn extends IndexedColumn<Long> {
+
+		private IndexedLongColumn(String name, long fieldId, File directory, UniqueKey<Long> indexedDictionary,
+								  StoreMapInterface<Integer, Long> storedInvertedDictionaryMap) throws IOException {
+			super(name, fieldId, directory, indexedDictionary, storedInvertedDictionaryMap);
+		}
+
+		@Override
+		final public Long convertValue(final Object value) {
+			if (value instanceof Long)
+				return (Long) value;
+			return Long.valueOf(value.toString());
+		}
+	}
+
+	private static class IndexedIntegerColumn extends IndexedColumn<Integer> {
+
+		private IndexedIntegerColumn(String name, long fieldId, File directory, UniqueKey<Integer> indexedDictionary,
+									 StoreMapInterface<Integer, Integer> storedInvertedDictionaryMap)
+				throws IOException {
+			super(name, fieldId, directory, indexedDictionary, storedInvertedDictionaryMap);
+		}
+
+		@Override
+		final public Integer convertValue(final Object value) {
+			if (value instanceof Integer)
+				return (Integer) value;
+			return Integer.valueOf(value.toString());
+		}
+	}
+
+	static IndexedColumn<?> newInstance(Table table, String columnName, Integer columnId,
+										ColumnDefinition.Type columnType) throws IOException, DatabaseException {
+
+		switch (columnType) {
+			case STRING:
+				return new IndexedStringColumn(columnName, columnId, table.directory, table.indexedStringDictionary,
+						table.storedInvertedStringDictionaryMap);
+			case DOUBLE:
+				return new IndexedDoubleColumn(columnName, columnId, table.directory, table.indexedDoubleDictionary,
+						table.storedInvertedDoubleDictionaryMap);
+			case LONG:
+				return new IndexedLongColumn(columnName, columnId, table.directory, table.indexedLongDictionary,
+						table.storedInvertedLongDictionaryMap);
+			default:
+				throw new DatabaseException("Unsupported type: " + columnType);
 		}
 	}
 }

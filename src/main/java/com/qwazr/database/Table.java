@@ -19,6 +19,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.qwazr.database.CollectorInterface.LongCounter;
 import com.qwazr.database.UniqueKey.UniqueDoubleKey;
 import com.qwazr.database.UniqueKey.UniqueStringKey;
+import com.qwazr.database.UniqueKey.UniqueLongKey;
 import com.qwazr.database.model.ColumnDefinition;
 import com.qwazr.database.model.TableDefinition;
 import com.qwazr.database.store.*;
@@ -54,19 +55,23 @@ public class Table implements Closeable {
 
 	private final Map<String, ColumnInterface<?>> columns = new HashMap<String, ColumnInterface<?>>();
 
-	private final File directory;
+	final File directory;
 
-	private final StoreInterface storeDb;
+	final StoreInterface storeDb;
 
 	private final UniqueStringKey primaryKey;
 
-	private final UniqueStringKey indexedStringDictionary;
+	final UniqueKey.UniqueStringKey indexedStringDictionary;
 
-	private final UniqueDoubleKey indexedDoubleDictionary;
+	final UniqueKey.UniqueDoubleKey indexedDoubleDictionary;
 
-	private final StoreMapInterface<Integer, String> storedInvertedStringDictionaryMap;
+	final UniqueKey.UniqueLongKey indexedLongDictionary;
 
-	private final StoreMapInterface<Integer, Double> storedInvertedDoubleDictionaryMap;
+	final StoreMapInterface<Integer, String> storedInvertedStringDictionaryMap;
+
+	final StoreMapInterface<Integer, Double> storedInvertedDoubleDictionaryMap;
+
+	final StoreMapInterface<Integer, Long> storedInvertedLongDictionaryMap;
 
 	private final StoreMapInterface<String, ColumnDefinition> storedColumnDefinitionMap;
 
@@ -101,7 +106,7 @@ public class Table implements Closeable {
 	private static final ByteConverter.JsonTypeByteConverter MapStringIntegerByteConverter =
 			new ByteConverter.JsonTypeByteConverter(MapStringIntegerTypeRef);
 
-	private Table(File directory) throws IOException {
+	private Table(File directory) throws IOException, DatabaseException {
 		this.directory = directory;
 
 		logger.info("Load GraphDB (MapDB): " + directory);
@@ -139,6 +144,14 @@ public class Table implements Closeable {
 			}
 		};
 
+		// Load the indexed dictionary
+		FunctionExceptionCatcher<Object> indexedLongDictionaryLoader = new FunctionExceptionCatcher<Object>() {
+			@Override
+			public UniqueLongKey execute() throws Exception {
+				return new UniqueLongKey(directory, "dict.long");
+			}
+		};
+
 		try {
 			ThreadUtils.invokeAndJoin(writeExecutor, Arrays.asList(
 					storeDbLoader, primaryKeyLoader,
@@ -160,6 +173,11 @@ public class Table implements Closeable {
 		storedInvertedDoubleDictionaryMap = storeDb
 				.getMap("invertedDoubleDirectionary", ByteConverter.IntegerByteConverter.INSTANCE,
 						ByteConverter.DoubleByteConverter.INSTANCE);
+		indexedLongDictionary = (UniqueLongKey) indexedLongDictionaryLoader
+				.getResult();
+		storedInvertedLongDictionaryMap = storeDb
+				.getMap("invertedLongDirectionary", ByteConverter.IntegerByteConverter.INSTANCE,
+						ByteConverter.LongByteConverter.INSTANCE);
 		storedColumnIdMap = storeDb.getMap("storedColumnIdMap", ByteConverter.StringByteConverter.INSTANCE,
 				ByteConverter.IntegerByteConverter.INSTANCE);
 		storedColumnDefinitionMap = storeDb.getMap("storedColumnMap", ByteConverter.StringByteConverter.INSTANCE,
@@ -170,7 +188,7 @@ public class Table implements Closeable {
 
 	}
 
-	public static Table getInstance(File directory, boolean createIfNotExist) throws IOException {
+	public static Table getInstance(File directory, boolean createIfNotExist) throws IOException, DatabaseException {
 		rwlTables.r.lock();
 		try {
 			Table table = tables.get(directory);
@@ -309,7 +327,8 @@ public class Table implements Closeable {
 		}
 	}
 
-	private void loadOrCreateColumnNoLock(String columnName, ColumnDefinition columnDefinition) throws IOException {
+	private void loadOrCreateColumnNoLock(String columnName, ColumnDefinition columnDefinition)
+			throws IOException, DatabaseException {
 		if (columns.containsKey(columnName))
 			return;
 		Integer columnId = storedColumnIdMap.get(columnName);
@@ -321,32 +340,10 @@ public class Table implements Closeable {
 		AtomicBoolean wasExisting = new AtomicBoolean(false);
 		switch (columnDefinition.mode) {
 			case INDEXED:
-				switch (columnDefinition.type) {
-					default:
-					case STRING:
-						columnInterface = new IndexedColumn.IndexedStringColumn(columnName, columnId,
-								directory, indexedStringDictionary,
-								storedInvertedStringDictionaryMap, wasExisting);
-						break;
-					case DOUBLE:
-						columnInterface = new IndexedColumn.IndexedDoubleColumn(columnName, columnId,
-								directory, indexedDoubleDictionary,
-								storedInvertedDoubleDictionaryMap, wasExisting);
-						break;
-				}
+				columnInterface = IndexedColumn.newInstance(this, columnName, columnId, columnDefinition.type);
 				break;
 			default:
-				switch (columnDefinition.type) {
-					default:
-					case STRING:
-						columnInterface = new StoredColumn.StoredStringColumn(columnName, columnId,
-								storeDb, wasExisting);
-						break;
-					case DOUBLE:
-						columnInterface = new StoredColumn.StoredDoubleColumn(columnName, columnId,
-								storeDb, wasExisting);
-						break;
-				}
+				columnInterface = StoredColumn.newInstance(storeDb, columnName, columnId, columnDefinition.type);
 				break;
 		}
 		storedColumnDefinitionMap.put(columnName, columnDefinition);

@@ -301,4 +301,32 @@ public abstract class UniqueKey<T> {
 
 	}
 
+	public static class UniqueLongKey extends UniqueKey<Long> {
+
+		private HashMap<Long, Integer> map;
+
+		public UniqueLongKey(File directory, String namePrefix)
+				throws IOException {
+			super(directory, namePrefix);
+		}
+
+		@Override
+		protected Map<Long, Integer> getNewKeyMap() {
+			map = new HashMap<Long, Integer>();
+			return map;
+		}
+
+		@Override
+		protected Map<Long, Integer> loadKeyMap(File file)
+				throws IOException {
+			map = SerializationUtils.deserialize(file);
+			return map;
+		}
+
+		@Override
+		protected void saveKeyMap(File file) throws IOException {
+			SerializationUtils.serialize(map, file);
+		}
+
+	}
 }

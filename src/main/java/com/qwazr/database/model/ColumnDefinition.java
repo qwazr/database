@@ -19,7 +19,7 @@ public class ColumnDefinition {
 
 
 	public static enum Type {
-		STRING, DOUBLE;
+		STRING, DOUBLE, LONG, INTEGER;
 	}
 
 	public static enum Mode {

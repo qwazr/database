@@ -57,7 +57,8 @@ public class TableManager {
 		});
 	}
 
-	private Table getTable(String tableName, boolean createIfNotExist) throws IOException, ServerException {
+	private Table getTable(String tableName, boolean createIfNotExist)
+			throws IOException, ServerException, DatabaseException {
 		File dbDirectory = new File(directory, tableName);
 		if (!dbDirectory.exists()) {
 			if (!createIfNotExist)
@@ -97,7 +98,7 @@ public class TableManager {
 		}
 	}
 
-	public TableDefinition getTableDefinition(String tableName) throws IOException, ServerException {
+	public TableDefinition getTableDefinition(String tableName) throws IOException, ServerException, DatabaseException {
 		rwl.r.lock();
 		try {
 			return getTable(tableName, false).getTableDefinition();
@@ -153,7 +154,7 @@ public class TableManager {
 		}
 	}
 
-	public boolean deleteRow(String tableName, String key) throws IOException, ServerException {
+	public boolean deleteRow(String tableName, String key) throws IOException, ServerException, DatabaseException {
 		rwl.r.lock();
 		try {
 			Table table = getTable(tableName, false);

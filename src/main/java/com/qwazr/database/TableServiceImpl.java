@@ -58,7 +58,7 @@ public class TableServiceImpl implements TableServiceInterface {
 									Boolean local) {
 		try {
 			return TableManager.INSTANCE.getTableDefinition(tableName);
-		} catch (IOException | ServerException e) {
+		} catch (IOException | ServerException | DatabaseException e) {
 			logger.warn(e.getMessage(), e);
 			throw ServerException.getJsonException(e);
 		}
@@ -161,7 +161,7 @@ public class TableServiceImpl implements TableServiceInterface {
 	public Boolean deleteRow(String table_name, String row_id) {
 		try {
 			return TableManager.INSTANCE.deleteRow(table_name, row_id);
-		} catch (ServerException | IOException e) {
+		} catch (ServerException | IOException | DatabaseException e) {
 			logger.warn(e.getMessage(), e);
 			throw ServerException.getJsonException(e);
 		}

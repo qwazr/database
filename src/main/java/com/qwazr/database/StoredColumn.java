@@ -15,24 +15,22 @@
  */
 package com.qwazr.database;
 
+import com.qwazr.database.model.ColumnDefinition;
 import com.qwazr.database.store.ByteConverter;
 import com.qwazr.database.store.StoreInterface;
 import com.qwazr.database.store.StoreMapInterface;
 
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public abstract class StoredColumn<T> extends ColumnAbstract<T> {
 
 	private final StoreMapInterface<Integer, T> map;
 	private final String collectionName;
 
-	protected StoredColumn(String name, long columnId, StoreInterface storeDb,
-						   AtomicBoolean wasExisting, ByteConverter<T> byteConverter) {
+	protected StoredColumn(String name, long columnId, StoreInterface storeDb, ByteConverter<T> byteConverter) {
 		super(name, columnId);
 		collectionName = "store." + columnId;
-		wasExisting.set(storeDb.exists(collectionName));
 		map = storeDb.getMap(collectionName, ByteConverter.IntegerByteConverter.INSTANCE, byteConverter);
 	}
 
@@ -68,8 +66,7 @@ public abstract class StoredColumn<T> extends ColumnAbstract<T> {
 	}
 
 	@Override
-	public void collectValues(Iterator<Integer> docIds,
-							  ColumnValueCollector<T> collector) throws IOException {
+	public void collectValues(Iterator<Integer> docIds, ColumnValueCollector<T> collector) throws IOException {
 		Integer docId;
 		try {
 			while ((docId = docIds.next()) != null) {
@@ -83,11 +80,10 @@ public abstract class StoredColumn<T> extends ColumnAbstract<T> {
 		}
 	}
 
-	public static class StoredDoubleColumn extends StoredColumn<Double> {
+	private static class StoredDoubleColumn extends StoredColumn<Double> {
 
-		StoredDoubleColumn(String name, long columnId, StoreInterface storeDb,
-						   AtomicBoolean wasExisting) {
-			super(name, columnId, storeDb, wasExisting, ByteConverter.DoubleByteConverter.INSTANCE);
+		private StoredDoubleColumn(String name, long columnId, StoreInterface storeDb) {
+			super(name, columnId, storeDb, ByteConverter.DoubleByteConverter.INSTANCE);
 		}
 
 		@Override
@@ -99,20 +95,67 @@ public abstract class StoredColumn<T> extends ColumnAbstract<T> {
 
 	}
 
-	public static class StoredStringColumn extends StoredColumn<String> {
+	private static class StoredStringColumn extends StoredColumn<String> {
 
-		StoredStringColumn(String name, long columnId, StoreInterface storeDb,
-						   AtomicBoolean wasExisting) {
-			super(name, columnId, storeDb, wasExisting, ByteConverter.StringByteConverter.INSTANCE);
+		private StoredStringColumn(String name, long columnId, StoreInterface storeDb) {
+			super(name, columnId, storeDb, ByteConverter.StringByteConverter.INSTANCE);
 		}
 
 		@Override
 		final public String convertValue(final Object value) {
 			if (value instanceof String)
 				return (String) value;
+			System.out.println("CONVERT VALUE: " + value.getClass());
 			return value.toString();
 		}
 
+	}
+
+	private static class StoredIntegerColumn extends StoredColumn<Integer> {
+
+		private StoredIntegerColumn(String name, long columnId, StoreInterface storeDb) {
+			super(name, columnId, storeDb, ByteConverter.IntegerByteConverter.INSTANCE);
+		}
+
+		@Override
+		final public Integer convertValue(final Object value) {
+			if (value instanceof Integer)
+				return (Integer) value;
+			return Integer.valueOf(value.toString());
+		}
+
+	}
+
+	private static class StoredLongColumn extends StoredColumn<Long> {
+
+		private StoredLongColumn(String name, long columnId, StoreInterface storeDb) {
+			super(name, columnId, storeDb, ByteConverter.LongByteConverter.INSTANCE);
+		}
+
+		@Override
+		final public Long convertValue(final Object value) {
+			if (value instanceof Long)
+				return (Long) value;
+			return Long.valueOf(value.toString());
+		}
+
+	}
+
+	static StoredColumn<?> newInstance(StoreInterface storeDb, String columnName,
+									   Integer columnId, ColumnDefinition.Type columnType)
+			throws DatabaseException {
+		switch (columnType) {
+			case STRING:
+				return new StoredStringColumn(columnName, columnId, storeDb);
+			case DOUBLE:
+				return new StoredDoubleColumn(columnName, columnId, storeDb);
+			case LONG:
+				return new StoredLongColumn(columnName, columnId, storeDb);
+			case INTEGER:
+				return new StoredIntegerColumn(columnName, columnId, storeDb);
+			default:
+				throw new DatabaseException("Unsupported type: " + columnType);
+		}
 	}
 
 }

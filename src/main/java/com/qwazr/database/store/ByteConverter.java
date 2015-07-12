@@ -21,7 +21,9 @@ import com.qwazr.utils.json.JsonMapper;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
+
+import static org.fusesource.leveldbjni.JniDBFactory.asString;
+import static org.fusesource.leveldbjni.JniDBFactory.bytes;
 
 public interface ByteConverter<T> {
 
@@ -80,12 +82,12 @@ public interface ByteConverter<T> {
 
 		@Override
 		final public byte[] toBytes(String value) {
-			return StandardCharsets.UTF_8.encode(value).array();
+			return bytes(value);
 		}
 
 		@Override
 		final public String toValue(byte[] bytes) {
-			return StandardCharsets.UTF_8.decode(ByteBuffer.wrap(bytes)).toString();
+			return asString(bytes);
 		}
 	}
 
