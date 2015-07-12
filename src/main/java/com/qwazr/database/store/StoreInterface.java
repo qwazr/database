@@ -32,7 +32,7 @@ public interface StoreInterface extends Closeable {
 
 	<T> SequenceInterface<T> getSequence(String sequenceName, Class<T> clazz);
 
-	void delete(String collectionName);
+	void deleteCollection(String collectionName);
 
 	boolean exists(String collectionName);
 

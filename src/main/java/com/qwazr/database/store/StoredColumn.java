@@ -25,15 +25,15 @@ public abstract class StoredColumn<T> extends ColumnAbstract<T> {
 	private final StoreMapInterface<Integer, T> map;
 	private final String collectionName;
 
-	protected StoredColumn(String name, long columnId, StoreInterface storeDb, ByteConverter<T> byteConverter) {
+	protected StoredColumn(String name, long columnId, StoreInterface store, ByteConverter<T> byteConverter) {
 		super(name, columnId);
 		collectionName = "store." + columnId;
-		map = storeDb.getMap(collectionName, ByteConverter.IntegerByteConverter.INSTANCE, byteConverter);
+		map = store.getMap(collectionName, ByteConverter.IntegerByteConverter.INSTANCE, byteConverter);
 	}
 
 	@Override
-	public void deleteRow(Integer id) {
-		map.remove(id);
+	public void deleteRow(Integer id) throws IOException {
+		map.delete(id);
 	}
 
 	@Override
@@ -79,8 +79,8 @@ public abstract class StoredColumn<T> extends ColumnAbstract<T> {
 
 	private static class StoredDoubleColumn extends StoredColumn<Double> {
 
-		private StoredDoubleColumn(String name, long columnId, StoreInterface storeDb) {
-			super(name, columnId, storeDb, ByteConverter.DoubleByteConverter.INSTANCE);
+		private StoredDoubleColumn(String name, long columnId, StoreInterface store) {
+			super(name, columnId, store, ByteConverter.DoubleByteConverter.INSTANCE);
 		}
 
 		@Override
@@ -94,8 +94,8 @@ public abstract class StoredColumn<T> extends ColumnAbstract<T> {
 
 	private static class StoredStringColumn extends StoredColumn<String> {
 
-		private StoredStringColumn(String name, long columnId, StoreInterface storeDb) {
-			super(name, columnId, storeDb, ByteConverter.StringByteConverter.INSTANCE);
+		private StoredStringColumn(String name, long columnId, StoreInterface store) {
+			super(name, columnId, store, ByteConverter.StringByteConverter.INSTANCE);
 		}
 
 		@Override
@@ -110,8 +110,8 @@ public abstract class StoredColumn<T> extends ColumnAbstract<T> {
 
 	private static class StoredIntegerColumn extends StoredColumn<Integer> {
 
-		private StoredIntegerColumn(String name, long columnId, StoreInterface storeDb) {
-			super(name, columnId, storeDb, ByteConverter.IntegerByteConverter.INSTANCE);
+		private StoredIntegerColumn(String name, long columnId, StoreInterface store) {
+			super(name, columnId, store, ByteConverter.IntegerByteConverter.INSTANCE);
 		}
 
 		@Override
@@ -125,8 +125,8 @@ public abstract class StoredColumn<T> extends ColumnAbstract<T> {
 
 	private static class StoredLongColumn extends StoredColumn<Long> {
 
-		private StoredLongColumn(String name, long columnId, StoreInterface storeDb) {
-			super(name, columnId, storeDb, ByteConverter.LongByteConverter.INSTANCE);
+		private StoredLongColumn(String name, long columnId, StoreInterface store) {
+			super(name, columnId, store, ByteConverter.LongByteConverter.INSTANCE);
 		}
 
 		@Override
@@ -138,18 +138,18 @@ public abstract class StoredColumn<T> extends ColumnAbstract<T> {
 
 	}
 
-	static StoredColumn<?> newInstance(StoreInterface storeDb, String columnName,
+	static StoredColumn<?> newInstance(StoreInterface store, String columnName,
 									   Integer columnId, ColumnDefinition.Type columnType)
 			throws DatabaseException {
 		switch (columnType) {
 			case STRING:
-				return new StoredStringColumn(columnName, columnId, storeDb);
+				return new StoredStringColumn(columnName, columnId, store);
 			case DOUBLE:
-				return new StoredDoubleColumn(columnName, columnId, storeDb);
+				return new StoredDoubleColumn(columnName, columnId, store);
 			case LONG:
-				return new StoredLongColumn(columnName, columnId, storeDb);
+				return new StoredLongColumn(columnName, columnId, store);
 			case INTEGER:
-				return new StoredIntegerColumn(columnName, columnId, storeDb);
+				return new StoredIntegerColumn(columnName, columnId, store);
 			default:
 				throw new DatabaseException("Unsupported type: " + columnType);
 		}

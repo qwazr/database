@@ -15,22 +15,36 @@
  **/
 package com.qwazr.database.store;
 
+import com.qwazr.utils.LockUtils;
 import org.fusesource.leveldbjni.JniDBFactory;
 import org.iq80.leveldb.DB;
+import org.iq80.leveldb.DBIterator;
 import org.iq80.leveldb.Options;
+import org.iq80.leveldb.WriteBatch;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class StoreImpl implements StoreInterface {
+
+	public static final int MAX_WRITE_CACHE_SIZE = 50000;
+
+	private static final Logger logger = LoggerFactory.getLogger(StoreImpl.class);
 
 	private final DB db;
 	private volatile Map<String, StoreMapInterface> mapsCache;
 	private final Map<String, StoreMapInterface> maps;
 	private volatile Map<String, SequenceInterface> sequencesCache;
 	private final Map<String, SequenceInterface> sequences;
+
+	private static final byte[] deletedKey = new byte[0];
+	private final LockUtils.ReadWriteLock rwlMemory = new LockUtils.ReadWriteLock();
+	private final ConcurrentHashMap<byte[], byte[]> memoryTemp = new ConcurrentHashMap<byte[], byte[]>();
 
 	public StoreImpl(File file) throws IOException {
 		Options options = new Options();
@@ -42,8 +56,33 @@ public class StoreImpl implements StoreInterface {
 		sequencesCache = new HashMap<String, SequenceInterface>();
 	}
 
+	public void commit() throws IOException {
+
+		rwlMemory.r.lock();
+		try {
+			if (logger.isDebugEnabled())
+				logger.debug("Write batch: " + memoryTemp.size());
+			WriteBatch batch = db.createWriteBatch();
+			try {
+				memoryTemp.forEach((key, value) -> {
+					if (key == deletedKey)
+						batch.delete(key);
+					else
+						batch.put(key, value);
+				});
+				memoryTemp.clear();
+				db.write(batch);
+			} finally {
+				batch.close();
+			}
+		} finally {
+			rwlMemory.r.unlock();
+		}
+	}
+
 	@Override
 	public void close() throws IOException {
+		commit();
 		db.close();
 	}
 
@@ -57,7 +96,7 @@ public class StoreImpl implements StoreInterface {
 			map = maps.get(mapName);
 			if (map != null)
 				return map;
-			map = new StoreMapImpl<K, V>(db, mapName, keyConverter, valueConverter);
+			map = new StoreMapImpl<K, V>(this, mapName, keyConverter, valueConverter);
 			maps.put(mapName, map);
 			mapsCache = new HashMap<String, StoreMapInterface>(maps);
 			return map;
@@ -73,7 +112,7 @@ public class StoreImpl implements StoreInterface {
 			sequence = sequences.get(sequenceName);
 			if (sequence != null)
 				return sequence;
-			sequence = (SequenceInterface<T>) SequenceImpl.newSequence(db, sequenceName, clazz);
+			sequence = (SequenceInterface<T>) SequenceImpl.newSequence(this, sequenceName, clazz);
 			sequences.put(sequenceName, sequence);
 			sequencesCache = new HashMap<String, SequenceInterface>(sequences);
 			return sequence;
@@ -81,7 +120,7 @@ public class StoreImpl implements StoreInterface {
 	}
 
 	@Override
-	public void delete(String collectionName) {
+	public void deleteCollection(String collectionName) {
 		synchronized (maps) {
 			if (maps.remove(collectionName) == null)
 				return;
@@ -95,4 +134,45 @@ public class StoreImpl implements StoreInterface {
 		return mapsCache.containsKey(collectionName);
 	}
 
+	public byte[] get(byte[] key) {
+		rwlMemory.r.lock();
+		try {
+			byte[] value = memoryTemp.get(key);
+			if (value == deletedKey)
+				return null;
+			if (value != null)
+				return value;
+			return db.get(key);
+		} finally {
+			rwlMemory.r.unlock();
+		}
+	}
+
+	public void put(byte[] key, byte[] value) throws IOException {
+		rwlMemory.w.lock();
+		try {
+			if (value == null || value.length == 0)
+				value = deletedKey;
+			memoryTemp.put(key, value);
+		} finally {
+			rwlMemory.w.unlock();
+		}
+		if (memoryTemp.size() >= MAX_WRITE_CACHE_SIZE)
+			commit();
+	}
+
+	public void delete(byte[] key) throws IOException {
+		rwlMemory.w.lock();
+		try {
+			memoryTemp.put(key, deletedKey);
+		} finally {
+			rwlMemory.w.unlock();
+		}
+		if (memoryTemp.size() >= MAX_WRITE_CACHE_SIZE)
+			commit();
+	}
+
+	public DBIterator iterator() {
+		return db.iterator();
+	}
 }

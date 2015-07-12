@@ -25,7 +25,7 @@ public interface StoreMapInterface<K, V> extends Iterable<Map.Entry<K, V>> {
 
 	void put(K key, V value) throws IOException;
 
-	void remove(K key);
+	void delete(K key) throws IOException;
 
 	Iterator<Map.Entry<K, V>> iterator();
 }

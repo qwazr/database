@@ -18,41 +18,42 @@ package com.qwazr.database.store;
 import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
 import org.apache.commons.lang3.NotImplementedException;
-import org.iq80.leveldb.DB;
+
+import java.io.IOException;
 
 import static org.fusesource.leveldbjni.JniDBFactory.bytes;
 
 public abstract class SequenceImpl<T> implements SequenceInterface<T> {
 
-	protected final DB db;
+	protected final StoreImpl store;
 
 	protected final byte[] bytesKey;
 
-	private SequenceImpl(DB db, String sequenceName) {
-		this.db = db;
+	private SequenceImpl(StoreImpl store, String sequenceName) {
+		this.store = store;
 		this.bytesKey = bytes("seq." + sequenceName);
 	}
 
-	static <T> SequenceInterface<?> newSequence(DB db, String sequenceName, Class<T> clazz) {
+	static <T> SequenceInterface<?> newSequence(StoreImpl store, String sequenceName, Class<T> clazz) {
 		if (Long.class == clazz)
-			return new LongSequence(db, sequenceName);
+			return new LongSequence(store, sequenceName);
 		if (Integer.class == clazz)
-			return new IntegerSequence(db, sequenceName);
+			return new IntegerSequence(store, sequenceName);
 		throw new NotImplementedException("Sequence type is not implemented: " + clazz.getSimpleName());
 	}
 
 	public static class LongSequence extends SequenceImpl<Long> {
 
-		LongSequence(DB db, String sequenceName) {
-			super(db, sequenceName);
+		LongSequence(StoreImpl store, String sequenceName) {
+			super(store, sequenceName);
 		}
 
 		@Override
-		public Long incrementAndGet() {
+		public Long incrementAndGet() throws IOException {
 			synchronized (this) {
-				byte[] bytes = db.get(bytesKey);
+				byte[] bytes = store.get(bytesKey);
 				long value = bytes == null ? 0 : Longs.fromByteArray(bytes);
-				db.put(bytesKey, Longs.toByteArray(++value));
+				store.put(bytesKey, Longs.toByteArray(++value));
 				return value;
 			}
 		}
@@ -60,16 +61,16 @@ public abstract class SequenceImpl<T> implements SequenceInterface<T> {
 
 	public static class IntegerSequence extends SequenceImpl<Integer> {
 
-		IntegerSequence(DB db, String sequenceName) {
-			super(db, sequenceName);
+		IntegerSequence(StoreImpl store, String sequenceName) {
+			super(store, sequenceName);
 		}
 
 		@Override
-		public Integer incrementAndGet() {
+		public Integer incrementAndGet() throws IOException {
 			synchronized (this) {
-				byte[] bytes = db.get(bytesKey);
+				byte[] bytes = store.get(bytesKey);
 				int value = bytes == null ? 0 : Ints.fromByteArray(bytes);
-				db.put(bytesKey, Ints.toByteArray(++value));
+				store.put(bytesKey, Ints.toByteArray(++value));
 				return value;
 			}
 		}

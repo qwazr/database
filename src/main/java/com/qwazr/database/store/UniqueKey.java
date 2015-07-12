@@ -86,7 +86,7 @@ public class UniqueKey<T> {
 			if (id == null)
 				return;
 			memoryUniqueKeyTermMap.remove(keyString);
-			storedUniqueKeyTermMap.remove(key);
+			storedUniqueKeyTermMap.delete(key);
 			deletedSet.add(id);
 			saveDeletedSet();
 		} finally {

@@ -17,14 +17,16 @@ package com.qwazr.database.store;
 
 
 import com.qwazr.utils.ArrayUtils;
-import org.iq80.leveldb.DB;
 import org.iq80.leveldb.DBIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.*;
+import java.util.AbstractMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.NoSuchElementException;
 
 import static org.fusesource.leveldbjni.JniDBFactory.bytes;
 
@@ -32,14 +34,14 @@ class StoreMapImpl<K, V> implements StoreMapInterface<K, V> {
 
 	private static final Logger logger = LoggerFactory.getLogger(StoreMapImpl.class);
 
-	private final DB db;
+	private final StoreImpl store;
 	private final String keyPrefix;
 	private final byte[] keyPrefixBytes;
 	private final ByteConverter<K> keyConverter;
 	private final ByteConverter<V> valueConverter;
 
-	StoreMapImpl(DB db, String mapName, ByteConverter<K> keyConverter, ByteConverter<V> valueConverter) {
-		this.db = db;
+	StoreMapImpl(StoreImpl store, String mapName, ByteConverter<K> keyConverter, ByteConverter<V> valueConverter) {
+		this.store = store;
 		this.keyPrefix = "map." + mapName + ".";
 		this.keyPrefixBytes = bytes(keyPrefix);
 		this.keyConverter = keyConverter;
@@ -54,7 +56,7 @@ class StoreMapImpl<K, V> implements StoreMapInterface<K, V> {
 
 	@Override
 	final public V get(K key) throws IOException {
-		byte[] bytes = db.get(getKey(key));
+		byte[] bytes = store.get(getKey(key));
 		if (bytes == null)
 			return null;
 		return valueConverter.toValue(bytes);
@@ -67,14 +69,14 @@ class StoreMapImpl<K, V> implements StoreMapInterface<K, V> {
 		byte[] keyBytes = getKey(key);
 		byte[] bytes = valueConverter.toBytes(value);
 		if (bytes == null)
-			db.delete(keyBytes);
+			store.delete(keyBytes);
 		else
-			db.put(keyBytes, bytes);
+			store.put(keyBytes, bytes);
 	}
 
 	@Override
-	final public void remove(K key) {
-		db.delete(getKey(key));
+	final public void delete(K key) throws IOException {
+		store.delete(getKey(key));
 	}
 
 	final public Iterator<Map.Entry<K, V>> iterator() {
@@ -91,7 +93,7 @@ class StoreMapImpl<K, V> implements StoreMapInterface<K, V> {
 		private Map.Entry<K, V> nextEntry;
 
 		private KeyIterator() throws IOException {
-			dbIterator = db.iterator();
+			dbIterator = store.iterator();
 			dbIterator.seek(keyPrefixBytes);
 			nextEntry = forward();
 		}

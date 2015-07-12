@@ -53,7 +53,7 @@ public class Table implements Closeable {
 
 	final File directory;
 
-	final StoreImpl storeDb;
+	final StoreImpl store;
 
 	private final UniqueKey<String> primaryKey;
 
@@ -128,21 +128,21 @@ public class Table implements Closeable {
 		logger.info("Load GraphDB (MapDB): " + directory);
 
 		File dbFile = new File(directory, "storedb");
-		storeDb = new StoreImpl(dbFile);
+		store = new StoreImpl(dbFile);
 
 		// Index structures
 		storedKeyDeletedSetMap =
-				storeDb.getMap("uniqueKeyDeletedSet", ByteConverter.StringByteConverter.INSTANCE,
+				store.getMap("uniqueKeyDeletedSet", ByteConverter.StringByteConverter.INSTANCE,
 						ByteConverter.RoaringBitmapConverter);
-		storedPrimaryKeyMap = storeDb.getMap("storedPrimaryKeyMap", ByteConverter.StringByteConverter.INSTANCE,
+		storedPrimaryKeyMap = store.getMap("storedPrimaryKeyMap", ByteConverter.StringByteConverter.INSTANCE,
 				ByteConverter.IntegerByteConverter.INSTANCE);
-		storedKeyHigherMap = storeDb.getMap("storedKeyHigherMap", ByteConverter.StringByteConverter.INSTANCE,
+		storedKeyHigherMap = store.getMap("storedKeyHigherMap", ByteConverter.StringByteConverter.INSTANCE,
 				ByteConverter.IntegerByteConverter.INSTANCE);
-		storedStringKeyMap = storeDb.getMap("storedStringKeyMap", ByteConverter.StringByteConverter.INSTANCE,
+		storedStringKeyMap = store.getMap("storedStringKeyMap", ByteConverter.StringByteConverter.INSTANCE,
 				ByteConverter.IntegerByteConverter.INSTANCE);
-		storedLongKeyMap = storeDb.getMap("storedLongKeyMap", ByteConverter.LongByteConverter.INSTANCE,
+		storedLongKeyMap = store.getMap("storedLongKeyMap", ByteConverter.LongByteConverter.INSTANCE,
 				ByteConverter.IntegerByteConverter.INSTANCE);
-		storedDoubleKeyMap = storeDb.getMap("storedDoubleKeyMap", ByteConverter.DoubleByteConverter.INSTANCE,
+		storedDoubleKeyMap = store.getMap("storedDoubleKeyMap", ByteConverter.DoubleByteConverter.INSTANCE,
 				ByteConverter.IntegerByteConverter.INSTANCE);
 
 		// Index memory structure
@@ -151,13 +151,13 @@ public class Table implements Closeable {
 		memoryDoubleKeyTermMap = new PatriciaTrie<Integer>();
 		memoryLongKeyTermMap = new PatriciaTrie<Integer>();
 
-		storedInvertedStringDictionaryMap = storeDb
-				.getMap("invertedDirectionary", ByteConverter.IntegerByteConverter.INSTANCE,
+		storedInvertedStringDictionaryMap = store
+				.getMap("invertedStringDirectionary", ByteConverter.IntegerByteConverter.INSTANCE,
 						ByteConverter.StringByteConverter.INSTANCE);
-		storedInvertedDoubleDictionaryMap = storeDb
+		storedInvertedDoubleDictionaryMap = store
 				.getMap("invertedDoubleDirectionary", ByteConverter.IntegerByteConverter.INSTANCE,
 						ByteConverter.DoubleByteConverter.INSTANCE);
-		storedInvertedLongDictionaryMap = storeDb
+		storedInvertedLongDictionaryMap = store
 				.getMap("invertedLongDirectionary", ByteConverter.IntegerByteConverter.INSTANCE,
 						ByteConverter.LongByteConverter.INSTANCE);
 
@@ -168,11 +168,11 @@ public class Table implements Closeable {
 
 
 		// Columns structures
-		storedColumnIdMap = storeDb.getMap("storedColumnIdMap", ByteConverter.StringByteConverter.INSTANCE,
+		storedColumnIdMap = store.getMap("storedColumnIdMap", ByteConverter.StringByteConverter.INSTANCE,
 				ByteConverter.IntegerByteConverter.INSTANCE);
-		storedColumnDefinitionMap = storeDb.getMap("storedColumnMap", ByteConverter.StringByteConverter.INSTANCE,
+		storedColumnDefinitionMap = store.getMap("storedColumnMap", ByteConverter.StringByteConverter.INSTANCE,
 				ColumnDefinitionByteConverter);
-		columnIdSequence = storeDb.getSequence("columnIdSequence", Integer.class);
+		columnIdSequence = store.getSequence("columnIdSequence", Integer.class);
 		for (Map.Entry<String, ColumnDefinition> entry : storedColumnDefinitionMap)
 			loadOrCreateColumnNoLock(entry.getKey(), entry.getValue());
 
@@ -224,9 +224,13 @@ public class Table implements Closeable {
 
 	}
 
+	public void commit() throws IOException {
+		store.commit();
+	}
+
 	@Override
 	public void close() throws IOException {
-		storeDb.close();
+		store.close();
 	}
 
 	private void delete() throws IOException {
@@ -275,7 +279,7 @@ public class Table implements Closeable {
 				columnInterface = IndexedColumn.newInstance(this, columnName, columnId, columnDefinition.type);
 				break;
 			default:
-				columnInterface = StoredColumn.newInstance(storeDb, columnName, columnId, columnDefinition.type);
+				columnInterface = StoredColumn.newInstance(store, columnName, columnId, columnDefinition.type);
 				break;
 		}
 		storedColumnDefinitionMap.put(columnName, columnDefinition);
@@ -307,6 +311,7 @@ public class Table implements Closeable {
 				threads.add(new LoadOrCreateColumnThread(entry.getKey(), entry.getValue(),
 						columnLeft));
 			ThreadUtils.invokeAndJoin(writeExecutor, threads);
+			store.commit();
 		} finally {
 			rwlColumns.w.unlock();
 		}
@@ -319,18 +324,20 @@ public class Table implements Closeable {
 	public void removeColumn(String columnName) throws IOException {
 		rwlColumns.w.lock();
 		try {
-			storeDb.delete(columnName);
+			//TODO wrong collection name
+			store.deleteCollection(columnName);
 			ColumnInterface<?> column = columns.get(columnName);
 			if (column != null) {
 				column.delete();
 				columns.remove(columnName);
 			}
+			store.commit();
 		} finally {
 			rwlColumns.w.unlock();
 		}
 	}
 
-	void deleteRow(final Integer id) throws IOException {
+	private void deleteRow(final Integer id) throws IOException {
 		rwlColumns.r.lock();
 		try {
 			for (ColumnInterface<?> column : columns.values())
@@ -391,6 +398,7 @@ public class Table implements Closeable {
 			return false;
 		deleteRow(id);
 		primaryKey.deleteKey(key);
+		store.commit();
 		return true;
 	}
 
@@ -434,6 +442,7 @@ public class Table implements Closeable {
 
 	public boolean upsertRow(String key, Map<String, Object> row) throws IOException, DatabaseException {
 		boolean res = upsertRowNoCommit(key, row);
+		store.commit();
 		return res;
 	}
 
@@ -442,6 +451,7 @@ public class Table implements Closeable {
 		for (Map<String, Object> row : rows)
 			if (upsertRowNoCommit(null, row))
 				count++;
+		store.commit();
 		return count;
 	}
 

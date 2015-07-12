@@ -35,8 +35,7 @@ public interface CollectorInterface {
 
 	DocumentsCollector documents(Collection<Integer> documentIds);
 
-	FacetsCollector facets(StoreMapInterface<Integer, int[]> termVectorMap,
-						   Map<Integer, LongCounter> termCounter);
+	FacetsCollector facets(IndexedColumn indexedColumn, Map<Integer, LongCounter> termCounter);
 
 	ScoresCollector scores();
 
@@ -55,9 +54,8 @@ public interface CollectorInterface {
 		}
 
 		@Override
-		final public FacetsCollector facets(StoreMapInterface<Integer, int[]> termVectorMap,
-											Map<Integer, LongCounter> termCounter) {
-			return new FacetsCollector(this, termVectorMap, termCounter);
+		final public FacetsCollector facets(IndexedColumn indexedColumn, Map<Integer, LongCounter> termCounter) {
+			return new FacetsCollector(this, indexedColumn, termCounter);
 		}
 
 		@Override
@@ -102,8 +100,7 @@ public interface CollectorInterface {
 
 		private final Collection<Integer> documentIds;
 
-		private DocumentsCollector(CollectorInterface parent,
-								   Collection<Integer> documentIds) {
+		private DocumentsCollector(CollectorInterface parent, Collection<Integer> documentIds) {
 			super(parent);
 			this.documentIds = documentIds;
 		}
@@ -121,21 +118,20 @@ public interface CollectorInterface {
 
 	static class FacetsCollector extends CollectorAbstract {
 
-		private StoreMapInterface<Integer, int[]> termVectorMap;
+		private final IndexedColumn indexedColumn;
 		private final Map<Integer, LongCounter> termCounter;
 
-		private FacetsCollector(CollectorInterface parent,
-								StoreMapInterface<Integer, int[]> termVectorMap,
+		private FacetsCollector(CollectorInterface parent, IndexedColumn indexedColumn,
 								Map<Integer, LongCounter> termCounter) {
 			super(parent);
-			this.termVectorMap = termVectorMap;
+			this.indexedColumn = indexedColumn;
 			this.termCounter = termCounter;
 		}
 
 		@Override
 		final public void collect(int docId) throws IOException {
 			parent.collect(docId);
-			int[] termIdArray = termVectorMap.get(docId);
+			int[] termIdArray = indexedColumn.getTermIds(docId);
 			if (termIdArray == null)
 				return;
 			for (int termId : termIdArray) {

@@ -15,7 +15,9 @@
  **/
 package com.qwazr.database.store;
 
+import java.io.IOException;
+
 public interface SequenceInterface<T> {
 
-	T incrementAndGet();
+	T incrementAndGet() throws IOException;
 }
