@@ -25,6 +25,7 @@ import org.apache.commons.io.filefilter.FileFilterUtils;
 import javax.ws.rs.core.Response;
 import java.io.File;
 import java.io.FileFilter;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.*;
@@ -114,6 +115,8 @@ public class TableManager {
 		rwl.w.lock();
 		try {
 			Table.deleteTable(new File(directory, tableName));
+		} catch (FileNotFoundException e) {
+			throw new ServerException(Response.Status.NOT_FOUND, e.getMessage());
 		} finally {
 			rwl.w.unlock();
 		}
@@ -149,7 +152,7 @@ public class TableManager {
 			Table table = getTable(tableName, false);
 			LinkedHashMap<String, Object> row = table.getRow(key, columns);
 			if (row == null)
-				throw new ServerException("Row not found: " + key);
+				throw new ServerException(Response.Status.NOT_FOUND, "Row not found: " + key);
 			return row;
 		} finally {
 			rwl.r.unlock();

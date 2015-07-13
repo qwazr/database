@@ -76,6 +76,8 @@ class StoreMapImpl<K, V> implements StoreMapInterface<K, V> {
 
 	@Override
 	final public void delete(K key) throws IOException {
+		if (logger.isDebugEnabled())
+			logger.debug("Delete key: " + keyPrefix + key);
 		store.delete(getKey(key));
 	}
 

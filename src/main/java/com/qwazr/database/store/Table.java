@@ -371,7 +371,8 @@ public class Table implements Closeable {
 		return column;
 	}
 
-	public LinkedHashMap<String, Object> getRow(String key, Set<String> columns) throws IOException, DatabaseException {
+	public LinkedHashMap<String, Object> getRow(String key, Set<String> columnNames)
+			throws IOException, DatabaseException {
 		if (key == null)
 			return null;
 		Integer id = primaryKey.getExistingId(key);
@@ -380,9 +381,9 @@ public class Table implements Closeable {
 		LinkedHashMap<String, Object> row = new LinkedHashMap<String, Object>();
 		rwlColumns.r.lock();
 		try {
-			for (String column : columns) {
-				ColumnInterface<?> field = getColumnNoLock(column);
-				row.put(column, field.getValues(id));
+			for (String columnName : columnNames) {
+				ColumnInterface<?> column = getColumnNoLock(columnName);
+				row.put(columnName, column.getValues(id));
 			}
 			return row;
 		} finally {
