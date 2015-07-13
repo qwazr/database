@@ -16,11 +16,16 @@
 package com.qwazr.database;
 
 import com.qwazr.database.model.TableDefinition;
+import com.qwazr.database.model.TableRequest;
+import com.qwazr.database.model.TableRequestResult;
+import com.qwazr.database.store.CollectorInterface;
 import com.qwazr.database.store.DatabaseException;
+import com.qwazr.database.store.Query;
 import com.qwazr.database.store.Table;
 import com.qwazr.utils.LockUtils;
 import com.qwazr.utils.server.ServerException;
 import org.apache.commons.io.filefilter.FileFilterUtils;
+import org.roaringbitmap.RoaringBitmap;
 
 import javax.ws.rs.core.Response;
 import java.io.File;
@@ -167,6 +172,59 @@ public class TableManager {
 		} finally {
 			rwl.r.unlock();
 		}
+	}
+
+	public TableRequestResult query(String tableName, TableRequest request)
+			throws ServerException, DatabaseException, IOException {
+		rwl.r.lock();
+		try {
+
+			long start = request.start == null ? 0 : request.start;
+			long rows = request.rows == null ? Long.MAX_VALUE : request.rows;
+
+			Table table = getTable(tableName, false);
+
+			if (request.query == null)
+				throw new ServerException(Response.Status.NOT_ACCEPTABLE, "The query part is missing");
+
+			Map<String, Map<String, CollectorInterface.LongCounter>> counters = null;
+			if (request.counters != null && !request.counters.isEmpty()) {
+				counters = new LinkedHashMap<String, Map<String, CollectorInterface.LongCounter>>();
+				for (String col : request.counters) {
+					Map<String, CollectorInterface.LongCounter> termCount =
+							new HashMap<String, CollectorInterface.LongCounter>();
+					counters.put(col, termCount);
+				}
+			}
+
+			Query query = Query.prepare(request.query, null);
+
+			RoaringBitmap docBitset = table.query(query, counters);
+
+			if (docBitset == null || docBitset.isEmpty())
+				return new TableRequestResult(null);
+
+			long count = docBitset.getCardinality();
+			TableRequestResult result = new TableRequestResult(count);
+
+			table.getRows(docBitset, request.columns, start, rows, result.rows);
+
+			if (counters != null) {
+				for (Map.Entry<String, Map<String, CollectorInterface.LongCounter>> countersEntry : counters
+						.entrySet()) {
+					LinkedHashMap<String, Long> counter = new LinkedHashMap<String, Long>();
+					for (Map.Entry<String, CollectorInterface.LongCounter> counterEntry : countersEntry.getValue()
+							.entrySet())
+						counter.put(counterEntry.getKey(), counterEntry.getValue().count);
+					result.counters.put(countersEntry.getKey(), counter);
+				}
+			}
+
+			return result;
+		} finally {
+			rwl.r.unlock();
+		}
+
 	}
 
 

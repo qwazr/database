@@ -42,9 +42,13 @@ public abstract class StoredColumn<T> extends ColumnAbstract<T> {
 	}
 
 	@Override
-	public void setValues(Integer docId, Collection<Object> values) {
-		throw new IllegalArgumentException(
-				"Only one value allowed for this field: " + this.name);
+	public void setValues(Integer docId, Collection<Object> values) throws DatabaseException, IOException {
+		if (values == null || values.size() == 0)
+			return;
+		if (values.size() != 1)
+			throw new DatabaseException(
+					"Only one value allowed for this column: " + this.name);
+		setValue(docId, values.iterator().next());
 	}
 
 	@Override

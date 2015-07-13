@@ -17,19 +17,29 @@ package com.qwazr.database.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import com.fasterxml.jackson.databind.JsonNode;
 
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
 
 @JsonInclude(Include.NON_EMPTY)
-public class TableRequest {
+public class TableRequestResult {
 
-	public final Integer start = null;
-	public final Integer rows = null;
+	final public Long count;
 
-	public final Set<String> columns = null;
-	public final Set<String> counters = null;
+	final public List<LinkedHashMap<String, Object>> rows;
+	final public LinkedHashMap<String, LinkedHashMap<String, Long>> counters;
 
-	public final JsonNode query = null;
+	public TableRequestResult() {
+		count = null;
+		rows = null;
+		counters = null;
+	}
+
+	public TableRequestResult(Long count) {
+		this.count = count;
+		this.rows = new ArrayList<LinkedHashMap<String, Object>>();
+		this.counters = new LinkedHashMap<String, LinkedHashMap<String, Long>>();
+	}
 
 }

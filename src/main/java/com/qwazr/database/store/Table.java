@@ -24,6 +24,7 @@ import com.qwazr.utils.threads.ThreadUtils;
 import com.qwazr.utils.threads.ThreadUtils.ProcedureExceptionCatcher;
 import org.apache.commons.collections4.trie.PatriciaTrie;
 import org.apache.commons.io.FileUtils;
+import org.roaringbitmap.IntIterator;
 import org.roaringbitmap.RoaringBitmap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -412,7 +413,7 @@ public class Table implements Closeable {
 			if (o != null)
 				key = o.toString();
 			if (key == null)
-				throw new IllegalArgumentException(
+				throw new DatabaseException(
 						"The primary key is missing (" + ID_COLUMN_NAME + ")");
 		}
 		AtomicBoolean isNew = new AtomicBoolean();
@@ -460,52 +461,99 @@ public class Table implements Closeable {
 		return primaryKey.size();
 	}
 
-	public List<LinkedHashMap<String, Object>> getRows(Set<String> keys,
-													   Set<String> columnNames) throws IOException {
-		if (keys == null || keys.isEmpty())
+	private class CompiledColumn {
+
+		private final String name;
+
+		private final ColumnInterface column;
+
+		private CompiledColumn(String name) throws DatabaseException {
+			this.column = columns.get(name);
+			if (column == null)
+				throw new DatabaseException("Column not found: " + name);
+			this.name = name;
+		}
+	}
+
+	static private final CompiledColumn[] EMPTY_COLUMNS = new CompiledColumn[0];
+
+	private CompiledColumn[] getColumns(Set<String> columnNames) throws DatabaseException {
+		if (columnNames == null || columnNames.isEmpty())
+			return EMPTY_COLUMNS;
+		CompiledColumn[] columns = new CompiledColumn[columnNames.size()];
+		int i = 0;
+		for (String columnName : columnNames)
+			columns[i++] = new CompiledColumn(columnName);
+		return columns;
+	}
+
+	private LinkedHashMap<String, Object> getRowByIdNoLock(Integer id, CompiledColumn[] columns)
+			throws DatabaseException, IOException {
+		if (id == null)
 			return null;
+		LinkedHashMap<String, Object> row = new LinkedHashMap<String, Object>();
+		for (CompiledColumn column : columns)
+			row.put(column.name, column.column.getValues(id));
+		return row;
+	}
+
+	public void getRows(RoaringBitmap bitmap, Set<String> columnNames, long start,
+						long rows, List<LinkedHashMap<String, Object>> results)
+			throws IOException, DatabaseException {
+		if (bitmap == null || bitmap.isEmpty())
+			return;
+		rwlColumns.r.lock();
+		try {
+			CompiledColumn[] columns = getColumns(columnNames);
+			IntIterator docIterator = bitmap.getIntIterator();
+			while (start-- > 0 && docIterator.hasNext())
+				docIterator.next();
+
+			while (rows-- > 0 && docIterator.hasNext()) {
+				LinkedHashMap<String, Object> row = getRowByIdNoLock(docIterator.next(), columns);
+				if (row != null)
+					results.add(row);
+			}
+		} finally {
+			rwlColumns.r.unlock();
+		}
+	}
+
+	public void getRows(Set<String> keys, Set<String> columnNames, List<LinkedHashMap<String, Object>> results)
+			throws IOException, DatabaseException {
+		if (keys == null || keys.isEmpty())
+			return;
 		ArrayList<Integer> ids = new ArrayList<Integer>(keys.size());
 		primaryKey.fillExistingIds(keys, ids);
 		if (ids == null || ids.isEmpty())
-			return null;
-		List<LinkedHashMap<String, Object>> rows = new ArrayList<LinkedHashMap<String, Object>>(
-				ids.size());
+			return;
 		rwlColumns.r.lock();
 		try {
+			CompiledColumn[] columns = getColumns(columnNames);
 			for (Integer id : ids) {
-				LinkedHashMap<String, Object> row = null;
+				LinkedHashMap<String, Object> row = getRowByIdNoLock(id, columns);
 				// Id can be null if the document did not exists
-				if (id != null) {
-					row = new LinkedHashMap<String, Object>();
-					for (String columnName : columnNames) {
-						ColumnInterface<?> column = columns.get(columnName);
-						if (column == null)
-							throw new IllegalArgumentException(
-									"Column not found: " + columnName);
-						row.put(columnName, column.getValues(id));
-					}
-				}
-				rows.add(row);
+				if (row != null)
+					results.add(row);
 			}
-			return rows;
 		} finally {
 			rwlColumns.r.unlock();
 		}
 	}
 
 	@SuppressWarnings("unchecked")
-	<T> IndexedColumn<T> getIndexedColumn(String columnName) {
+	<T> IndexedColumn<T> getIndexedColumn(String columnName) throws DatabaseException {
 		ColumnInterface<?> column = columns.get(columnName);
 		if (column == null)
-			throw new IllegalArgumentException("Column not found: " + columnName);
+			throw new DatabaseException("Column not found: " + columnName);
 		if (!(column instanceof IndexedColumn))
-			throw new IllegalArgumentException("The column is not indexed: "
+			throw new DatabaseException("The column is not indexed: "
 					+ columnName);
 		return ((IndexedColumn<T>) column);
 	}
 
 	public RoaringBitmap query(Query query,
-							   Map<String, Map<String, LongCounter>> facets) {
+							   Map<String, Map<String, LongCounter>> facets) throws DatabaseException, IOException {
 		rwlColumns.r.lock();
 		try {
 
@@ -578,8 +626,10 @@ public class Table implements Closeable {
 			// lastTime = newTime;
 
 			return finalBitmap;
+		} catch (IOException e) {
+			throw e;
 		} catch (Exception e) {
-			throw new RuntimeException(e);
+			throw new DatabaseException(e);
 		} finally {
 			rwlColumns.r.unlock();
 		}

@@ -18,6 +18,7 @@ package com.qwazr.database;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.qwazr.database.model.TableDefinition;
 import com.qwazr.database.model.TableRequest;
+import com.qwazr.database.model.TableRequestResult;
 import com.qwazr.database.store.DatabaseException;
 import com.qwazr.utils.json.JsonMapper;
 import com.qwazr.utils.server.ServerException;
@@ -169,8 +170,13 @@ public class TableServiceImpl implements TableServiceInterface {
 	}
 
 	@Override
-	public List<LinkedHashMap<String, Object>> requestNodes(String graph_name, TableRequest request) {
-		return null;
+	public TableRequestResult queryRows(String table_name, TableRequest request) {
+		try {
+			return TableManager.INSTANCE.query(table_name, request);
+		} catch (ServerException | IOException | DatabaseException e) {
+			logger.warn(e.getMessage(), e);
+			throw ServerException.getJsonException(e);
+		}
 	}
 
 

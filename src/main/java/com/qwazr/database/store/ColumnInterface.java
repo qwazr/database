@@ -24,7 +24,7 @@ public interface ColumnInterface<T> {
 
 	T convertValue(Object value);
 
-	void setValues(Integer docId, Collection<Object> values) throws IOException;
+	void setValues(Integer docId, Collection<Object> values) throws IOException, DatabaseException;
 
 	void setValue(Integer docId, Object value) throws IOException;
 

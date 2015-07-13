@@ -79,8 +79,8 @@ public abstract class Query {
 		}
 
 		@Override
-		final RoaringBitmap execute(final Table table,
-									final ExecutorService executor) throws IOException {
+		final RoaringBitmap execute(final Table table, final ExecutorService executor)
+				throws IOException, DatabaseException {
 			RoaringBitmap bitset = table.getIndexedColumn(field).getDocBitSet(
 					value);
 			if (bitset == null)

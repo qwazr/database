@@ -17,13 +17,13 @@ package com.qwazr.database;
 
 import com.qwazr.database.model.TableDefinition;
 import com.qwazr.database.model.TableRequest;
+import com.qwazr.database.model.TableRequestResult;
 import com.qwazr.utils.server.RestApplication;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import java.io.InputStream;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Set;
 
 @Path("/table")
@@ -96,14 +96,12 @@ public interface TableServiceInterface {
 	@DELETE
 	@Path("/{table_name}/row/{row_id}")
 	@Produces(RestApplication.APPLICATION_JSON_UTF8)
-	public Boolean deleteRow(@PathParam("table_name") String table_name,
-							 @PathParam("row_id") String row_id);
+	public Boolean deleteRow(@PathParam("table_name") String table_name, @PathParam("row_id") String row_id);
 
 	@POST
-	@Path("/{table_name}/request")
+	@Path("/{table_name}/query")
 	@Consumes(RestApplication.APPLICATION_JSON_UTF8)
 	@Produces(RestApplication.APPLICATION_JSON_UTF8)
-	public List<LinkedHashMap<String, Object>> requestNodes(@PathParam("table_name") String graph_name,
-															TableRequest request);
+	public TableRequestResult queryRows(@PathParam("table_name") String graph_name, TableRequest request);
 
 }
