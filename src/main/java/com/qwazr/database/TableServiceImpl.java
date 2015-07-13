@@ -20,6 +20,7 @@ import com.qwazr.database.model.TableDefinition;
 import com.qwazr.database.model.TableRequest;
 import com.qwazr.database.model.TableRequestResult;
 import com.qwazr.database.store.DatabaseException;
+import com.qwazr.database.store.Query;
 import com.qwazr.utils.json.JsonMapper;
 import com.qwazr.utils.server.ServerException;
 import org.apache.commons.io.IOUtils;
@@ -173,7 +174,7 @@ public class TableServiceImpl implements TableServiceInterface {
 	public TableRequestResult queryRows(String table_name, TableRequest request) {
 		try {
 			return TableManager.INSTANCE.query(table_name, request);
-		} catch (ServerException | IOException | DatabaseException e) {
+		} catch (ServerException | IOException | Query.QueryException | DatabaseException e) {
 			logger.warn(e.getMessage(), e);
 			throw ServerException.getJsonException(e);
 		}

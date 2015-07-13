@@ -58,6 +58,8 @@ public abstract class Query {
 				newQuery = new TermQuery<Double>(field, valueNode.asDouble());
 			else if (node.isIntegralNumber())
 				newQuery = new TermQuery<Long>(field, valueNode.asLong());
+			else
+				throw new QueryException("Unexpected value: " + field + "  Type: " + valueNode.getNodeType());
 		}
 		if (queryHook != null)
 			queryHook.query(newQuery);
