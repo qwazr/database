@@ -37,6 +37,8 @@ public abstract class IndexedColumn<T> extends ColumnAbstract<T> {
 
 	private final HashMap<Integer, byte[]> memoryTermVectorMap;
 
+	private final static byte[] empty_id_array = new byte[0];
+
 	private final StoreMapInterface<Integer, T> storedInvertedDictionaryMap;
 
 	protected IndexedColumn(Table table, String name, long columnId, UniqueKey<T> indexedDictionary,
@@ -78,22 +80,20 @@ public abstract class IndexedColumn<T> extends ColumnAbstract<T> {
 		return termId;
 	}
 
-
 	public int[] getTermIds(Integer docId) throws IOException {
 		byte[] bytes = memoryTermVectorMap.get(docId);
+		if (bytes == empty_id_array)
+			return null;
 		if (bytes != null)
 			return Snappy.uncompressIntArray(bytes);
 		int[] idArray = storedTermVectorMap.get(docId);
-		if (idArray == null)
-			return null;
-		memoryTermVectorMap.put(docId, Snappy.compress(idArray));
+		memoryTermVectorMap.put(docId, idArray == null ? empty_id_array : Snappy.compress(idArray));
 		return idArray;
 	}
 
-
 	private Set<Integer> getTermVectorIdSet(Integer docId) throws IOException {
 		Set<Integer> idSet = new HashSet<Integer>();
-		int[] idArray = storedTermVectorMap.get(docId);
+		int[] idArray = getTermIds(docId);
 		if (idArray != null)
 			for (int id : idArray)
 				idSet.add(id);
@@ -104,7 +104,7 @@ public abstract class IndexedColumn<T> extends ColumnAbstract<T> {
 			throws IOException {
 		if (termIdSet.isEmpty()) {
 			storedTermVectorMap.delete(docId);
-			memoryTermVectorMap.remove(docId);
+			memoryTermVectorMap.put(docId, empty_id_array);
 			return;
 		}
 		int[] idArray = new int[termIdSet.size()];
@@ -194,15 +194,6 @@ public abstract class IndexedColumn<T> extends ColumnAbstract<T> {
 			if (termIdArray == null || termIdArray.length == 0)
 				return null;
 			return storedInvertedDictionaryMap.get(termIdArray[0]);
-		} finally {
-			rwl.r.unlock();
-		}
-	}
-
-	public int[] getTerms(Integer docId) throws IOException {
-		rwl.r.lock();
-		try {
-			return storedTermVectorMap.get(docId);
 		} finally {
 			rwl.r.unlock();
 		}
@@ -302,7 +293,7 @@ public abstract class IndexedColumn<T> extends ColumnAbstract<T> {
 	public void deleteRow(Integer docId) throws IOException {
 		rwl.r.lock();
 		try {
-			int[] termIdArray = storedTermVectorMap.get(docId);
+			int[] termIdArray = getTermIds(docId);
 			if (termIdArray == null)
 				return;
 			for (int termId : termIdArray) {
