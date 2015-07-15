@@ -38,6 +38,8 @@ public abstract class StoredColumn<T> extends ColumnAbstract<T> {
 
 	@Override
 	public void setValue(Integer id, Object value) throws IOException {
+		if (value == null)
+			return;
 		map.put(id, convertValue(value));
 	}
 
@@ -104,6 +106,8 @@ public abstract class StoredColumn<T> extends ColumnAbstract<T> {
 
 		@Override
 		final public String convertValue(final Object value) {
+			if (value == null)
+				return null;
 			if (value instanceof String)
 				return (String) value;
 			System.out.println("CONVERT VALUE: " + value.getClass());

@@ -100,31 +100,56 @@ public class TableServiceImpl implements TableServiceInterface {
 		}
 	}
 
+	private class BufferFlush {
+
+		private final List<Map<String, Object>> buffer;
+		private final String tableName;
+
+		private BufferFlush(int bufferSize, String tableName) {
+			this.buffer = new ArrayList<Map<String, Object>>(bufferSize);
+			this.tableName = tableName;
+		}
+
+		private int addRow(Map<String, Object> row) {
+			buffer.add(row);
+			return buffer.size();
+		}
+
+		private int flush() throws ServerException, DatabaseException, IOException {
+			if (buffer.size() == 0)
+				return 0;
+			int res = TableManager.INSTANCE.upsertRows(tableName, buffer);
+			buffer.clear();
+			return res;
+		}
+
+	}
+
 	@Override
 	public Long upsertRows(String table_name, Integer bufferSize, InputStream inputStream) {
-		if (bufferSize == null || bufferSize < 0)
+		if (bufferSize == null || bufferSize < 1)
 			bufferSize = 50;
+		
 		try {
 			InputStreamReader irs = null;
 			BufferedReader br = null;
 			try {
 				irs = new InputStreamReader(inputStream, "UTF-8");
 				br = new BufferedReader(irs);
-				long count = 0;
+				long counter = 0;
 				String line;
-				List<Map<String, Object>> buffer = new ArrayList<Map<String, Object>>(bufferSize);
+				BufferFlush buffer = new BufferFlush(bufferSize, table_name);
 				while ((line = br.readLine()) != null) {
 					line = line.trim();
 					if (line.isEmpty())
 						continue;
 					Map<String, Object> nodeMap = JsonMapper.MAPPER
 							.readValue(line, MapStringColumnValueTypeRef);
-					buffer.add(nodeMap);
-					if (buffer.size() == 50)
-						count += flushBuffer(table_name, buffer);
+					if (buffer.addRow(nodeMap) == bufferSize)
+						counter += buffer.flush();
 				}
-				count += flushBuffer(table_name, buffer);
-				return count;
+				counter += buffer.flush();
+				return counter;
 			} finally {
 				if (br != null)
 					IOUtils.closeQuietly(br);

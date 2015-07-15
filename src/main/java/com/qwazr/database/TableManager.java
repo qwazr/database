@@ -138,13 +138,12 @@ public class TableManager {
 		}
 	}
 
-	public void upsertRows(String tableName, List<Map<String, Object>> rows)
+	public int upsertRows(String tableName, List<Map<String, Object>> rows)
 			throws IOException, ServerException, DatabaseException {
 		rwl.r.lock();
 		try {
 			Table table = getTable(tableName, false);
-			for (Map<String, Object> row : rows)
-				table.upsertRow(null, row);
+			return table.upsertRows(rows);
 		} finally {
 			rwl.r.unlock();
 		}
