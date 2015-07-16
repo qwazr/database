@@ -208,7 +208,7 @@ public class Table implements Closeable {
 	@Override
 	public void close() throws IOException {
 		store.close();
-		rwlTables.r.unlock();
+		rwlTables.r.lock();
 		try {
 			Table table = tables.get(directory);
 			if (table == null)
