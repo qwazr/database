@@ -73,7 +73,7 @@ public class TableServiceImpl implements TableServiceInterface {
 		try {
 			TableManager.INSTANCE.delete(tableName);
 			return true;
-		} catch (IOException | ServerException e) {
+		} catch (IOException | ServerException | DatabaseException e) {
 			logger.warn(e.getMessage(), e);
 			throw ServerException.getJsonException(e);
 		}
@@ -129,7 +129,7 @@ public class TableServiceImpl implements TableServiceInterface {
 	public Long upsertRows(String table_name, Integer bufferSize, InputStream inputStream) {
 		if (bufferSize == null || bufferSize < 1)
 			bufferSize = 50;
-		
+
 		try {
 			InputStreamReader irs = null;
 			BufferedReader br = null;

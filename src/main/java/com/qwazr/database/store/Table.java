@@ -23,7 +23,6 @@ import com.qwazr.utils.LockUtils;
 import com.qwazr.utils.threads.ThreadUtils;
 import com.qwazr.utils.threads.ThreadUtils.ProcedureExceptionCatcher;
 import org.apache.commons.collections4.trie.PatriciaTrie;
-import org.apache.commons.io.FileUtils;
 import org.roaringbitmap.IntIterator;
 import org.roaringbitmap.RoaringBitmap;
 import org.slf4j.Logger;
@@ -31,7 +30,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
@@ -203,12 +201,18 @@ public class Table implements Closeable {
 		}
 	}
 
-	public static void deleteTable(File directory) throws IOException {
-		rwlTables.r.lock();
+	public void commit() throws IOException {
+		store.commit();
+	}
+
+	@Override
+	public void close() throws IOException {
+		store.close();
+		rwlTables.r.unlock();
 		try {
 			Table table = tables.get(directory);
 			if (table == null)
-				throw new FileNotFoundException("Table not found: " + directory.getAbsolutePath());
+				return;
 		} finally {
 			rwlTables.r.unlock();
 		}
@@ -218,26 +222,9 @@ public class Table implements Closeable {
 			if (table == null)
 				return;
 			tables.remove(directory);
-			table.delete();
 		} finally {
 			rwlTables.w.unlock();
 		}
-
-	}
-
-	public void commit() throws IOException {
-		store.commit();
-	}
-
-	@Override
-	public void close() throws IOException {
-		store.close();
-	}
-
-	private void delete() throws IOException {
-		logger.info("Delete " + directory);
-		close();
-		FileUtils.deleteDirectory(directory);
 	}
 
 	private class LoadOrCreateColumnThread extends ProcedureExceptionCatcher {
