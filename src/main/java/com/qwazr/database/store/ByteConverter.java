@@ -1,12 +1,12 @@
 /**
  * Copyright 2015 Emmanuel Keller / QWAZR
- *
+ * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * <p/>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,153 +17,226 @@ package com.qwazr.database.store;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.qwazr.utils.CharsetUtils;
 import com.qwazr.utils.SerializationUtils;
 import com.qwazr.utils.json.JsonMapper;
-import org.roaringbitmap.RoaringBitmap;
 import org.xerial.snappy.Snappy;
 
 import java.io.IOException;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
-
-import static org.fusesource.leveldbjni.JniDBFactory.asString;
-import static org.fusesource.leveldbjni.JniDBFactory.bytes;
+import java.nio.CharBuffer;
+import java.util.ArrayList;
+import java.util.List;
 
 public interface ByteConverter<T> {
 
-	byte[] toBytes(T value) throws IOException;
+    byte[] toBytes(T value) throws IOException;
 
-	T toValue(byte[] bytes) throws IOException;
+    T toValue(byte[] bytes) throws IOException;
 
-	public class IntegerByteConverter implements ByteConverter<Integer> {
+    public class IntegerByteConverter implements ByteConverter<Integer> {
 
-		public final static IntegerByteConverter INSTANCE = new IntegerByteConverter();
+	public final static IntegerByteConverter INSTANCE = new IntegerByteConverter();
 
-		@Override
-		final public byte[] toBytes(Integer value) {
-			return ByteBuffer.allocate(4).putInt(value).array();
-		}
-
-		@Override
-		final public Integer toValue(byte[] bytes) {
-			return ByteBuffer.wrap(bytes).getInt();
-		}
+	@Override
+	final public byte[] toBytes(Integer value) {
+	    return ByteBuffer.allocate(4).putInt(value).array();
 	}
 
-	public class LongByteConverter implements ByteConverter<Long> {
-
-		public final static LongByteConverter INSTANCE = new LongByteConverter();
-
-		@Override
-		final public byte[] toBytes(Long value) {
-			return ByteBuffer.allocate(8).putLong(value).array();
-		}
-
-		@Override
-		final public Long toValue(byte[] bytes) {
-			return ByteBuffer.wrap(bytes).getLong();
-		}
+	@Override
+	final public Integer toValue(byte[] bytes) {
+	    return ByteBuffer.wrap(bytes).getInt();
 	}
 
-	public class DoubleByteConverter implements ByteConverter<Double> {
+    }
 
-		public final static DoubleByteConverter INSTANCE = new DoubleByteConverter();
+    public class LongByteConverter implements ByteConverter<Long> {
 
-		@Override
-		final public byte[] toBytes(Double value) {
-			return ByteBuffer.allocate(8).putDouble(value).array();
-		}
+	public final static LongByteConverter INSTANCE = new LongByteConverter();
 
-		@Override
-		final public Double toValue(byte[] bytes) {
-			return ByteBuffer.wrap(bytes).getDouble();
-		}
+	@Override
+	final public byte[] toBytes(Long value) {
+	    return ByteBuffer.allocate(8).putLong(value).array();
 	}
 
-	public class StringByteConverter implements ByteConverter<String> {
+	@Override
+	final public Long toValue(byte[] bytes) {
+	    return ByteBuffer.wrap(bytes).getLong();
+	}
+    }
 
-		public final static StringByteConverter INSTANCE = new StringByteConverter();
+    public class DoubleByteConverter implements ByteConverter<Double> {
 
-		@Override
-		final public byte[] toBytes(String value) {
-			return bytes(value);
-		}
+	public final static DoubleByteConverter INSTANCE = new DoubleByteConverter();
 
-		@Override
-		final public String toValue(byte[] bytes) {
-			return asString(bytes);
-		}
+	@Override
+	final public byte[] toBytes(Double value) {
+	    return ByteBuffer.allocate(8).putDouble(value).array();
 	}
 
-	public class JsonByteConverter<T> implements ByteConverter<T> {
+	@Override
+	final public Double toValue(byte[] bytes) {
+	    return ByteBuffer.wrap(bytes).getDouble();
+	}
+    }
 
-		private final Class<T> objectClass;
+    public class StringByteConverter implements ByteConverter<String> {
 
-		public JsonByteConverter(Class<T> objectClass) {
-			this.objectClass = objectClass;
-		}
+	public final static StringByteConverter INSTANCE = new StringByteConverter();
 
-		@Override
-		final public byte[] toBytes(T value) throws JsonProcessingException {
-			return JsonMapper.MAPPER.writeValueAsBytes(value);
-		}
-
-		@Override
-		final public T toValue(byte[] bytes) throws IOException {
-			return JsonMapper.MAPPER.readValue(bytes, objectClass);
-		}
+	@Override
+	final public byte[] toBytes(String value) {
+	    return CharsetUtils.encodeUtf8(value);
 	}
 
-	public class JsonTypeByteConverter<T> implements ByteConverter<T> {
+	@Override
+	final public String toValue(byte[] bytes) {
+	    return CharsetUtils.decodeUtf8(bytes);
+	}
+    }
 
-		private final TypeReference<T> typeReference;
+    public class JsonByteConverter<T> implements ByteConverter<T> {
 
-		public JsonTypeByteConverter(TypeReference<T> typeReference) {
-			this.typeReference = typeReference;
-		}
+	private final Class<T> objectClass;
 
-		@Override
-		final public byte[] toBytes(T value) throws JsonProcessingException {
-			return JsonMapper.MAPPER.writeValueAsBytes(value);
-		}
-
-		@Override
-		final public T toValue(byte[] bytes) throws IOException {
-			return JsonMapper.MAPPER.readValue(bytes, typeReference);
-		}
+	public JsonByteConverter(Class<T> objectClass) {
+	    this.objectClass = objectClass;
 	}
 
-	public class SerializableByteConverter<T extends Serializable> implements ByteConverter<T> {
-
-		@Override
-		final public byte[] toBytes(T value) {
-			return SerializationUtils.serialize(value);
-		}
-
-		@Override
-		final public T toValue(byte[] bytes) {
-			return SerializationUtils.deserialize(bytes);
-		}
+	@Override
+	final public byte[] toBytes(T value) throws JsonProcessingException {
+	    return JsonMapper.MAPPER.writeValueAsBytes(value);
 	}
 
-	public class IntArrayByteConverter implements ByteConverter<int[]> {
+	@Override
+	final public T toValue(byte[] bytes) throws IOException {
+	    return JsonMapper.MAPPER.readValue(bytes, objectClass);
+	}
+    }
 
-		public final static IntArrayByteConverter INSTANCE = new IntArrayByteConverter();
+    public class JsonTypeByteConverter<T> implements ByteConverter<T> {
 
-		@Override
-		final public byte[] toBytes(int[] intArray) throws IOException {
-			return Snappy.compress(intArray);
-		}
+	private final TypeReference<T> typeReference;
 
-		@Override
-		final public int[] toValue(byte[] compressedByteArray) throws IOException {
-			if (compressedByteArray == null)
-				return null;
-			return Snappy.uncompressIntArray(compressedByteArray);
-		}
+	public JsonTypeByteConverter(TypeReference<T> typeReference) {
+	    this.typeReference = typeReference;
 	}
 
-	public final static ByteConverter.SerializableByteConverter<RoaringBitmap> RoaringBitmapConverter =
-			new ByteConverter.SerializableByteConverter<RoaringBitmap>();
+	@Override
+	final public byte[] toBytes(T value) throws JsonProcessingException {
+	    return JsonMapper.MAPPER.writeValueAsBytes(value);
+	}
+
+	@Override
+	final public T toValue(byte[] bytes) throws IOException {
+	    return JsonMapper.MAPPER.readValue(bytes, typeReference);
+	}
+    }
+
+    public class SerializableByteConverter<T extends Serializable> implements ByteConverter<T> {
+
+	@Override
+	final public byte[] toBytes(T value) {
+	    return SerializationUtils.serialize(value);
+	}
+
+	@Override
+	final public T toValue(byte[] bytes) {
+	    return SerializationUtils.deserialize(bytes);
+	}
+    }
+
+    public class IntArrayByteConverter implements ByteConverter<int[]> {
+
+	public final static IntArrayByteConverter INSTANCE = new IntArrayByteConverter();
+
+	@Override
+	final public byte[] toBytes(int[] intArray) throws IOException {
+	    return Snappy.compress(intArray);
+	}
+
+	@Override
+	final public int[] toValue(byte[] compressedByteArray) throws IOException {
+	    if (compressedByteArray == null)
+		return null;
+	    return Snappy.uncompressIntArray(compressedByteArray);
+	}
+    }
+
+    public class LongArrayByteConverter implements ByteConverter<long[]> {
+
+	public final static LongArrayByteConverter INSTANCE = new LongArrayByteConverter();
+
+	@Override
+	final public byte[] toBytes(long[] intArray) throws IOException {
+	    return Snappy.compress(intArray);
+	}
+
+	@Override
+	final public long[] toValue(byte[] compressedByteArray) throws IOException {
+	    if (compressedByteArray == null)
+		return null;
+	    return Snappy.uncompressLongArray(compressedByteArray);
+	}
+    }
+
+    public class DoubleArrayByteConverter implements ByteConverter<double[]> {
+
+	public final static DoubleArrayByteConverter INSTANCE = new DoubleArrayByteConverter();
+
+	@Override
+	final public byte[] toBytes(double[] doubleArray) throws IOException {
+	    return Snappy.compress(doubleArray);
+	}
+
+	@Override
+	final public double[] toValue(byte[] compressedByteArray) throws IOException {
+	    if (compressedByteArray == null)
+		return null;
+	    return Snappy.uncompressDoubleArray(compressedByteArray);
+	}
+    }
+
+    public class StringArrayByteConverter implements ByteConverter<String[]> {
+
+	public final static StringArrayByteConverter INSTANCE = new StringArrayByteConverter();
+
+	@Override
+	final public byte[] toBytes(String[] stringArray) throws IOException {
+	    int l = 0;
+	    for (String s : stringArray)
+		l += (s.length() + 1);
+	    char[] chars = new char[l];
+	    CharBuffer buffer = CharBuffer.wrap(chars);
+	    for (String s : stringArray) {
+		buffer.append(s);
+		buffer.append((char) 0);
+	    }
+	    return Snappy.compress(chars);
+	}
+
+	private final static String[] emptyStringArray = new String[0];
+
+	@Override
+	final public String[] toValue(byte[] compressedByteArray) throws IOException {
+	    if (compressedByteArray == null)
+		return null;
+	    char[] chars = Snappy.uncompressCharArray(compressedByteArray);
+	    if (chars.length == 0)
+		return emptyStringArray;
+	    List<String> array = new ArrayList<>();
+	    int last = 0;
+	    int pos = 0;
+	    for (char c : chars) {
+		if (c == 0) {
+		    array.add(new String(chars, last, pos - last));
+		    last = pos + 1;
+		}
+		pos++;
+	    }
+	    return array.toArray(new String[array.size()]);
+	}
+    }
 
 }

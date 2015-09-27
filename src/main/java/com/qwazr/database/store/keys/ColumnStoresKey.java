@@ -12,33 +12,25 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */
-package com.qwazr.database.store;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+ **/
+package com.qwazr.database.store.keys;
 
 import java.io.IOException;
+import java.io.ObjectOutputStream;
 
-abstract class ColumnAbstract<T> implements ColumnInterface<T> {
+final public class ColumnStoresKey<T> extends KeysAbstract<T> {
 
-    protected static final Logger logger = LoggerFactory.getLogger(ColumnAbstract.class);
+    private final int columnId;
 
-    protected final String name;
-    protected final int columnId;
-
-    ColumnAbstract(String name, int columnId) {
-	this.name = name;
+    public ColumnStoresKey(int columnId) {
+	super(KeyEnum.COLUMN_STORE);
 	this.columnId = columnId;
-	logger.info("Load column (" + columnId + "): " + name + " " + this.getClass().getName());
     }
 
     @Override
-    public void commit() throws IOException {
-    }
-
-    @Override
-    public void delete() throws IOException {
+    final public void buildKey(final ObjectOutputStream output) throws IOException {
+	super.buildKey(output);
+	output.writeInt(columnId);
     }
 
 }

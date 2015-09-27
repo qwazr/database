@@ -16,16 +16,16 @@
 package com.qwazr.database.store;
 
 import com.qwazr.database.model.ColumnDefinition;
+import com.qwazr.database.store.keys.ColumnStoreKey;
 
 import java.io.IOException;
 import java.util.*;
 
 public abstract class StoredColumn<T> extends ColumnAbstract<T> {
 
-	private final StoreMapInterface<Integer, T> map;
-	private final String collectionName;
+	private final ColumnStoreKey fieldStoreKey;
 
-	protected StoredColumn(String name, long columnId, StoreInterface store, ByteConverter<T> byteConverter) {
+	protected StoredColumn(ColumnStoreKey fieldStoreKey, ByteConverter<T> byteConverter) {
 		super(name, columnId);
 		collectionName = "store." + columnId;
 		map = store.getMap(collectionName, ByteConverter.IntegerByteConverter.INSTANCE, byteConverter);

@@ -12,33 +12,30 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */
-package com.qwazr.database.store;
+ **/
+package com.qwazr.database.store.keys;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.qwazr.database.store.ByteConverter;
+import com.qwazr.database.store.KeyStore;
 
 import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.util.Collection;
+import java.util.Set;
 
-abstract class ColumnAbstract<T> implements ColumnInterface<T> {
+public class PrimaryKeysKey extends KeyAbstract<String> {
 
-    protected static final Logger logger = LoggerFactory.getLogger(ColumnAbstract.class);
+    private final int docId;
 
-    protected final String name;
-    protected final int columnId;
-
-    ColumnAbstract(String name, int columnId) {
-	this.name = name;
-	this.columnId = columnId;
-	logger.info("Load column (" + columnId + "): " + name + " " + this.getClass().getName());
+    public PrimaryKeysKey(int docId) {
+	super(KeyEnum.PRIMARY_KEYS, ByteConverter.StringByteConverter.INSTANCE);
+	this.docId = docId;
     }
 
     @Override
-    public void commit() throws IOException {
-    }
-
-    @Override
-    public void delete() throws IOException {
+    public void buildKey(final ObjectOutputStream output) throws IOException {
+	super.buildKey(output);
+	output.writeInt(docId);
     }
 
 }
