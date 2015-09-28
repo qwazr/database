@@ -16,14 +16,13 @@
 package com.qwazr.database.store.keys;
 
 import com.qwazr.database.store.KeyStore;
-import com.qwazr.utils.IOUtils;
 
+import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.ObjectOutputStream;
 
 interface KeyInterface<T> {
 
-    void buildKey(final ObjectOutputStream os) throws IOException;
+    void buildKey(final DataOutputStream output) throws IOException;
 
     byte[] getCachedKey() throws IOException;
 

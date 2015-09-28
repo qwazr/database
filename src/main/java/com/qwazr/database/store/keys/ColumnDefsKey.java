@@ -17,11 +17,13 @@ package com.qwazr.database.store.keys;
 
 import com.qwazr.database.model.ColumnDefinition;
 import com.qwazr.database.store.KeyStore;
+import com.qwazr.utils.ArrayUtils;
 import com.qwazr.utils.CharsetUtils;
 import org.iq80.leveldb.DBIterator;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -34,15 +36,12 @@ final public class ColumnDefsKey extends KeyAbstract<Map<String, ColumnDefinitio
     public Map<String, ColumnDefinition.Internal> getColumns(final KeyStore store) throws IOException {
 	final Map<String, ColumnDefinition.Internal> map = new LinkedHashMap<>();
 	final byte[] myKey = getCachedKey();
-	final ByteBuffer bb = ByteBuffer.wrap(myKey);
 	final DBIterator iterator = store.iterator();
 	iterator.seek(myKey);
 	while (iterator.hasNext()) {
 	    Map.Entry<byte[], byte[]> entry = iterator.next();
 	    byte[] key = entry.getKey();
-	    if (key.length < myKey.length)
-		break;
-	    if (!bb.equals(ByteBuffer.wrap(key, 0, myKey.length)))
+	    if (!ArrayUtils.startsWith(key, myKey))
 		break;
 	    String fieldName = CharsetUtils.decodeUtf8(ByteBuffer.wrap(key, myKey.length, key.length - myKey.length));
 	    ColumnDefinition.Internal colDef = ColumnDefKey.columnInternalDefinitionByteConverter

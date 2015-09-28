@@ -22,6 +22,7 @@ import com.qwazr.database.store.DatabaseException;
 import com.qwazr.database.store.KeyStore;
 import org.iq80.leveldb.DBIterator;
 
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
@@ -55,9 +56,9 @@ public class ColumnIndexesKey<T> extends KeysAbstract<T> {
     }
 
     @Override
-    final public void buildKey(final ObjectOutputStream os) throws IOException {
-	super.buildKey(os);
-	os.writeInt(colDef.column_id);
+    final public void buildKey(final DataOutputStream output) throws IOException {
+	super.buildKey(output);
+	output.writeInt(colDef.column_id);
     }
 
     final public void remove(KeyStore store, ColumnStoreKey<?> columnStoreKey) throws DatabaseException, IOException {
@@ -70,6 +71,9 @@ public class ColumnIndexesKey<T> extends KeysAbstract<T> {
     final public void select(KeyStore store, Object value, int docId) throws IOException, DatabaseException {
 	if (value instanceof Collection<?>) {
 	    for (Object val : (Collection<?>) value)
+		ColumnIndexKey.newInstance(colDef, val).select(store, docId);
+	} else if (value.getClass().isArray()) {
+	    for (Object val : (Object[]) value)
 		ColumnIndexKey.newInstance(colDef, val).select(store, docId);
 	} else
 	    ColumnIndexKey.newInstance(colDef, value).select(store, docId);

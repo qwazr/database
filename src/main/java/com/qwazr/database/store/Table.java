@@ -108,12 +108,13 @@ public class Table implements Closeable {
     public void addColumn(String columnName, ColumnDefinition columnDefinition) throws DatabaseException, IOException {
 	rwlColumns.w.lock();
 	try {
-
 	    // Check if the column already exists
 	    Map<String, ColumnDefinition.Internal> columns = columnDefsKey.getValue(keyStore);
-	    ColumnDefinition.Internal colDef = columns.get(columnName);
-	    if (colDef != null)
-		throw new DatabaseException("Cannot add an already existing column: " + columnName);
+	    if (columns != null) {
+		ColumnDefinition.Internal colDef = columns.get(columnName);
+		if (colDef != null)
+		    throw new DatabaseException("Cannot add an already existing column: " + columnName);
+	    }
 
 	    // Find the next available column id
 	    BitSet bitset = new BitSet();
@@ -332,7 +333,7 @@ public class Table implements Closeable {
 	}
     }
 
-    ColumnDefinition.Internal getIndexedColumn(String columnName) throws DatabaseException, IOException {
+    private ColumnDefinition.Internal getIndexedColumn(String columnName) throws DatabaseException, IOException {
 	ColumnDefinition.Internal columnDef = new ColumnDefKey(columnName).getValue(keyStore);
 	if (columnDef == null)
 	    throw new DatabaseException("Column not found: " + columnName);
@@ -341,22 +342,27 @@ public class Table implements Closeable {
 	return columnDef;
     }
 
-    public RoaringBitmap query(Query query, Map<String, Map<String, LongCounter>> facets)
+    public QueryContext getNewQueryContext() throws IOException {
+	return new QueryContext(keyStore, columnDefsKey.getColumns(keyStore));
+    }
+
+    public QueryResult query(Query query, Map<String, Map<String, LongCounter>> facets)
 		    throws DatabaseException, IOException {
 	rwlColumns.r.lock();
 	try {
 
 	    // long lastTime = System.currentTimeMillis();
+	    QueryContext context = getNewQueryContext();
 
 	    // First we search for the document using Bitset
 	    RoaringBitmap finalBitmap;
 	    if (query != null) {
-		finalBitmap = query.execute(this, readExecutor);
+		finalBitmap = query.execute(context, readExecutor);
 		primaryIndexKey.remove(keyStore, finalBitmap);
 	    } else
 		finalBitmap = primaryIndexKey.getValue(keyStore);
 	    if (finalBitmap.isEmpty())
-		return finalBitmap;
+		return new QueryResult(context, finalBitmap);
 
 	    // long newTime = System.currentTimeMillis();
 	    // System.out.println("Bitmap : " + (newTime - lastTime));
@@ -366,50 +372,26 @@ public class Table implements Closeable {
 	    CollectorInterface collector = CollectorInterface.build();
 
 	    // Collector chain for facets
-	    final Map<String, Map<Integer, LongCounter>> termIdFacetsMap;
+	    final Map<String, Map<Object, LongCounter>> facetsMap;
 	    if (facets != null) {
-		termIdFacetsMap = new HashMap<String, Map<Integer, LongCounter>>();
+		facetsMap = new HashMap<String, Map<Object, LongCounter>>();
 		for (Map.Entry<String, Map<String, LongCounter>> entry : facets.entrySet()) {
 		    String facetField = entry.getKey();
-		    Map<Integer, LongCounter> termIdFacetMap = new HashMap<Integer, LongCounter>();
-		    termIdFacetsMap.put(facetField, termIdFacetMap);
-		    collector = getIndexedColumn(facetField).newFacetCollector(collector, termIdFacetMap);
+		    Map<Object, LongCounter> facetMap = new HashMap<Object, LongCounter>();
+		    facetsMap.put(facetField, facetMap);
+		    collector = context.newFacetCollector(collector, facetField, facetMap);
 		}
 	    } else
-		termIdFacetsMap = null;
+		facetsMap = null;
 
-	    // newTime = System.currentTimeMillis();
-	    // System.out.println("Collect chain : " + (newTime - lastTime));
-	    // lastTime = newTime;
-
-	    // Extract the data
+	    // Collect the data
 	    collector.collect(finalBitmap);
 
 	    // newTime = System.currentTimeMillis();
 	    // System.out.println("Collect : " + (newTime - lastTime));
 	    // lastTime = newTime;
 
-	    // Resolve facets termIds
-	    if (facets != null) {
-		List<ProcedureExceptionCatcher> threads = new ArrayList<ProcedureExceptionCatcher>(facets.size());
-		for (Map.Entry<String, Map<String, LongCounter>> entry : facets.entrySet()) {
-		    String facetField = entry.getKey();
-		    threads.add(new ProcedureExceptionCatcher() {
-			@Override
-			public void execute() throws Exception {
-			    getIndexedColumn(facetField)
-					    .resolveFacetsIds(termIdFacetsMap.get(facetField), entry.getValue());
-			}
-		    });
-		}
-		ThreadUtils.invokeAndJoin(readExecutor, threads);
-	    }
-
-	    // newTime = System.currentTimeMillis();
-	    // System.out.println("Facet : " + (newTime - lastTime));
-	    // lastTime = newTime;
-
-	    return finalBitmap;
+	    return new QueryResult(context, finalBitmap);
 	} catch (IOException e) {
 	    throw e;
 	} catch (Exception e) {
@@ -418,4 +400,5 @@ public class Table implements Closeable {
 	    rwlColumns.r.unlock();
 	}
     }
+
 }

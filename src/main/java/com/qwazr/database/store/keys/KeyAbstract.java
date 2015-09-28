@@ -22,6 +22,7 @@ import com.qwazr.utils.IOUtils;
 import org.roaringbitmap.RoaringBitmap;
 
 import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
@@ -32,7 +33,7 @@ public abstract class KeyAbstract<T> implements KeyInterface<T> {
 
     private final KeyEnum keyType;
 
-    private final ByteConverter<T> byteConverter;
+    protected final ByteConverter<T> byteConverter;
 
     private byte[] keyBytes;
 
@@ -43,8 +44,8 @@ public abstract class KeyAbstract<T> implements KeyInterface<T> {
     }
 
     @Override
-    public void buildKey(final ObjectOutputStream os) throws IOException {
-	os.writeInt(keyType.id);
+    public void buildKey(final DataOutputStream output) throws IOException {
+	output.writeChar(keyType.id);
     }
 
     final public synchronized byte[] getCachedKey() throws IOException {
@@ -52,15 +53,16 @@ public abstract class KeyAbstract<T> implements KeyInterface<T> {
 	    return keyBytes;
 	ByteArrayOutputStream baos = new ByteArrayOutputStream();
 	try {
-	    ObjectOutputStream oos = new ObjectOutputStream(baos);
+	    DataOutputStream output = new DataOutputStream(baos);
 	    try {
-		buildKey(oos);
-		oos.close();
-		oos = null;
+		buildKey(output);
+		output.flush();
+		output.close();
+		output = null;
 		return baos.toByteArray();
 	    } finally {
-		if (oos != null)
-		    IOUtils.close(oos);
+		if (output != null)
+		    IOUtils.close(output);
 	    }
 	} finally {
 	    if (baos != null)

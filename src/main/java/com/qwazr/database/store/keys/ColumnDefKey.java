@@ -19,8 +19,8 @@ import com.qwazr.database.model.ColumnDefinition;
 import com.qwazr.database.store.ByteConverter;
 import com.qwazr.utils.CharsetUtils;
 
+import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.ObjectOutputStream;
 
 final public class ColumnDefKey extends KeyAbstract<ColumnDefinition.Internal> {
 
@@ -35,9 +35,9 @@ final public class ColumnDefKey extends KeyAbstract<ColumnDefinition.Internal> {
     }
 
     @Override
-    final public void buildKey(final ObjectOutputStream os) throws IOException {
-	super.buildKey(os);
-	os.write(fieldBytes);
+    final public void buildKey(final DataOutputStream output) throws IOException {
+	super.buildKey(output);
+	output.write(fieldBytes);
     }
 
 }

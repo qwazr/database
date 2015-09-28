@@ -35,6 +35,10 @@ public interface ByteConverter<T> {
 
     T toValue(byte[] bytes) throws IOException;
 
+    void forEach(T value, ValueConsumer consumer);
+
+    void forFirst(T value, ValueConsumer consumer);
+
     public class IntegerByteConverter implements ByteConverter<Integer> {
 
 	public final static IntegerByteConverter INSTANCE = new IntegerByteConverter();
@@ -47,6 +51,17 @@ public interface ByteConverter<T> {
 	@Override
 	final public Integer toValue(byte[] bytes) {
 	    return ByteBuffer.wrap(bytes).getInt();
+	}
+
+	@Override
+	final public void forEach(Integer value, final ValueConsumer consumer) {
+	    if (value != null)
+		consumer.consume(value);
+	}
+
+	@Override
+	final public void forFirst(Integer value, ValueConsumer consumer) {
+	    forEach(value, consumer);
 	}
 
     }
@@ -64,6 +79,17 @@ public interface ByteConverter<T> {
 	final public Long toValue(byte[] bytes) {
 	    return ByteBuffer.wrap(bytes).getLong();
 	}
+
+	@Override
+	final public void forEach(Long value, final ValueConsumer consumer) {
+	    if (value != null)
+		consumer.consume(value);
+	}
+
+	@Override
+	final public void forFirst(Long value, ValueConsumer consumer) {
+	    forEach(value, consumer);
+	}
     }
 
     public class DoubleByteConverter implements ByteConverter<Double> {
@@ -79,6 +105,17 @@ public interface ByteConverter<T> {
 	final public Double toValue(byte[] bytes) {
 	    return ByteBuffer.wrap(bytes).getDouble();
 	}
+
+	@Override
+	final public void forEach(Double value, final ValueConsumer consumer) {
+	    if (value != null)
+		consumer.consume(value);
+	}
+
+	@Override
+	final public void forFirst(Double value, ValueConsumer consumer) {
+	    forEach(value, consumer);
+	}
     }
 
     public class StringByteConverter implements ByteConverter<String> {
@@ -93,6 +130,17 @@ public interface ByteConverter<T> {
 	@Override
 	final public String toValue(byte[] bytes) {
 	    return CharsetUtils.decodeUtf8(bytes);
+	}
+
+	@Override
+	final public void forEach(String value, final ValueConsumer consumer) {
+	    if (value != null)
+		consumer.consume(value);
+	}
+
+	@Override
+	final public void forFirst(String value, ValueConsumer consumer) {
+	    forEach(value, consumer);
 	}
     }
 
@@ -113,6 +161,16 @@ public interface ByteConverter<T> {
 	final public T toValue(byte[] bytes) throws IOException {
 	    return JsonMapper.MAPPER.readValue(bytes, objectClass);
 	}
+
+	@Override
+	final public void forEach(T value, final ValueConsumer consumer) {
+	    throw new RuntimeException("Function not implemented");
+	}
+
+	@Override
+	final public void forFirst(T value, ValueConsumer consumer) {
+	    throw new RuntimeException("Function not implemented");
+	}
     }
 
     public class JsonTypeByteConverter<T> implements ByteConverter<T> {
@@ -132,6 +190,16 @@ public interface ByteConverter<T> {
 	final public T toValue(byte[] bytes) throws IOException {
 	    return JsonMapper.MAPPER.readValue(bytes, typeReference);
 	}
+
+	@Override
+	final public void forEach(T value, final ValueConsumer consumer) {
+	    throw new RuntimeException("Function not implemented");
+	}
+
+	@Override
+	final public void forFirst(T value, ValueConsumer consumer) {
+	    throw new RuntimeException("Function not implemented");
+	}
     }
 
     public class SerializableByteConverter<T extends Serializable> implements ByteConverter<T> {
@@ -144,6 +212,16 @@ public interface ByteConverter<T> {
 	@Override
 	final public T toValue(byte[] bytes) {
 	    return SerializationUtils.deserialize(bytes);
+	}
+
+	@Override
+	final public void forEach(T value, final ValueConsumer consumer) {
+	    throw new RuntimeException("Function not implemented");
+	}
+
+	@Override
+	final public void forFirst(T value, ValueConsumer consumer) {
+	    throw new RuntimeException("Function not implemented");
 	}
     }
 
@@ -162,6 +240,21 @@ public interface ByteConverter<T> {
 		return null;
 	    return Snappy.uncompressIntArray(compressedByteArray);
 	}
+
+	@Override
+	final public void forEach(int[] values, final ValueConsumer consumer) {
+	    if (values == null)
+		return;
+	    for (int value : values)
+		consumer.consume(value);
+	}
+
+	@Override
+	final public void forFirst(int[] values, ValueConsumer consumer) {
+	    if (values == null || values.length == 0)
+		return;
+	    consumer.consume(values[0]);
+	}
     }
 
     public class LongArrayByteConverter implements ByteConverter<long[]> {
@@ -179,6 +272,21 @@ public interface ByteConverter<T> {
 		return null;
 	    return Snappy.uncompressLongArray(compressedByteArray);
 	}
+
+	@Override
+	final public void forEach(long[] values, final ValueConsumer consumer) {
+	    if (values == null)
+		return;
+	    for (long value : values)
+		consumer.consume(value);
+	}
+
+	@Override
+	final public void forFirst(long[] values, ValueConsumer consumer) {
+	    if (values == null || values.length == 0)
+		return;
+	    consumer.consume(values[0]);
+	}
     }
 
     public class DoubleArrayByteConverter implements ByteConverter<double[]> {
@@ -195,6 +303,21 @@ public interface ByteConverter<T> {
 	    if (compressedByteArray == null)
 		return null;
 	    return Snappy.uncompressDoubleArray(compressedByteArray);
+	}
+
+	@Override
+	final public void forEach(double[] values, final ValueConsumer consumer) {
+	    if (values == null)
+		return;
+	    for (double value : values)
+		consumer.consume(value);
+	}
+
+	@Override
+	final public void forFirst(double[] values, ValueConsumer consumer) {
+	    if (values == null || values.length == 0)
+		return;
+	    consumer.consume(values[0]);
 	}
     }
 
@@ -236,6 +359,21 @@ public interface ByteConverter<T> {
 		pos++;
 	    }
 	    return array.toArray(new String[array.size()]);
+	}
+
+	@Override
+	final public void forEach(String[] values, final ValueConsumer consumer) {
+	    if (values == null)
+		return;
+	    for (String value : values)
+		consumer.consume(value);
+	}
+
+	@Override
+	final public void forFirst(String[] values, ValueConsumer consumer) {
+	    if (values == null || values.length == 0)
+		return;
+	    consumer.consume(values[0]);
 	}
     }
 

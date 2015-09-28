@@ -16,12 +16,9 @@
 package com.qwazr.database.store.keys;
 
 import com.qwazr.database.store.ByteConverter;
-import com.qwazr.database.store.KeyStore;
 
+import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.ObjectOutputStream;
-import java.util.Collection;
-import java.util.Set;
 
 public class PrimaryKeysKey extends KeyAbstract<String> {
 
@@ -33,7 +30,7 @@ public class PrimaryKeysKey extends KeyAbstract<String> {
     }
 
     @Override
-    public void buildKey(final ObjectOutputStream output) throws IOException {
+    public void buildKey(final DataOutputStream output) throws IOException {
 	super.buildKey(output);
 	output.writeInt(docId);
     }

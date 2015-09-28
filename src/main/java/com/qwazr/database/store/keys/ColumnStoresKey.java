@@ -15,8 +15,8 @@
  **/
 package com.qwazr.database.store.keys;
 
+import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.ObjectOutputStream;
 
 final public class ColumnStoresKey<T> extends KeysAbstract<T> {
 
@@ -28,7 +28,7 @@ final public class ColumnStoresKey<T> extends KeysAbstract<T> {
     }
 
     @Override
-    final public void buildKey(final ObjectOutputStream output) throws IOException {
+    final public void buildKey(final DataOutputStream output) throws IOException {
 	super.buildKey(output);
 	output.writeInt(columnId);
     }

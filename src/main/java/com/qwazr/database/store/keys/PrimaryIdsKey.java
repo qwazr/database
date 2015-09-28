@@ -17,11 +17,9 @@ package com.qwazr.database.store.keys;
 
 import com.qwazr.database.store.ByteConverter;
 import com.qwazr.database.store.KeyStore;
-import org.roaringbitmap.RoaringBitmap;
 
+import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.ObjectOutputStream;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Set;
 
@@ -35,9 +33,9 @@ public class PrimaryIdsKey extends KeyAbstract<Integer> {
     }
 
     @Override
-    public void buildKey(final ObjectOutputStream os) throws IOException {
-	super.buildKey(os);
-	os.writeChars(key);
+    public void buildKey(final DataOutputStream output) throws IOException {
+	super.buildKey(output);
+	output.writeChars(key);
     }
 
     /**

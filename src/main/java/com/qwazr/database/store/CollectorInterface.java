@@ -15,6 +15,8 @@
  **/
 package com.qwazr.database.store;
 
+import com.qwazr.database.model.ColumnDefinition;
+import com.qwazr.database.store.keys.ColumnStoreKey;
 import org.roaringbitmap.RoaringBitmap;
 
 import java.io.IOException;
@@ -27,15 +29,16 @@ public interface CollectorInterface {
 	return new Collector(null);
     }
 
-    void collect(RoaringBitmap finalBitmap) throws IOException;
+    void collect(RoaringBitmap finalBitmap) throws IOException, DatabaseException;
 
-    void collect(int docId) throws IOException;
+    void collect(int docId) throws IOException, DatabaseException;
 
     int getCount();
 
     DocumentsCollector documents(Collection<Integer> documentIds);
 
-    FacetsCollector facets(IndexedColumn indexedColumn, Map<Integer, LongCounter> termCounter);
+    FacetsCollector facets(QueryContext context, ColumnDefinition.Internal columnDef,
+		    Map<Object, LongCounter> termCounter);
 
     ScoresCollector scores();
 
@@ -53,8 +56,9 @@ public interface CollectorInterface {
 	}
 
 	@Override
-	final public FacetsCollector facets(IndexedColumn indexedColumn, Map<Integer, LongCounter> termCounter) {
-	    return new FacetsCollector(this, indexedColumn, termCounter);
+	final public FacetsCollector facets(QueryContext context, ColumnDefinition.Internal columnDef,
+			Map<Object, LongCounter> termCounter) {
+	    return new FacetsCollector(this, context, columnDef, termCounter);
 	}
 
 	@Override
@@ -63,7 +67,7 @@ public interface CollectorInterface {
 	}
 
 	@Override
-	final public void collect(RoaringBitmap bitmap) throws IOException {
+	final public void collect(RoaringBitmap bitmap) throws IOException, DatabaseException {
 	    for (Integer docId : bitmap)
 		collect(docId);
 	}
@@ -105,7 +109,7 @@ public interface CollectorInterface {
 	}
 
 	@Override
-	final public void collect(int docId) throws IOException {
+	final public void collect(int docId) throws IOException, DatabaseException {
 	    documentIds.add(docId);
 	    parent.collect(docId);
 	}
@@ -115,31 +119,60 @@ public interface CollectorInterface {
 	public long count = 1;
     }
 
-    static class FacetsCollector extends CollectorAbstract {
+    static class FacetsCollector extends CollectorAbstract implements ValueConsumer {
 
-	private final IndexedColumn indexedColumn;
-	private final Map<Integer, LongCounter> termCounter;
+	private final QueryContext context;
+	private final ColumnDefinition.Internal columnDef;
+	private final Map<Object, LongCounter> termCounter;
 
-	private FacetsCollector(CollectorInterface parent, IndexedColumn indexedColumn,
-			Map<Integer, LongCounter> termCounter) {
+	private FacetsCollector(CollectorInterface parent, QueryContext context, ColumnDefinition.Internal columnDef,
+			Map<Object, LongCounter> termCounter) {
 	    super(parent);
-	    this.indexedColumn = indexedColumn;
+	    this.context = context;
+	    this.columnDef = columnDef;
 	    this.termCounter = termCounter;
 	}
 
 	@Override
-	final public void collect(int docId) throws IOException {
+	final public void collect(int docId) throws IOException, DatabaseException {
 	    parent.collect(docId);
-	    int[] termIdArray = indexedColumn.getTermIds(docId);
-	    if (termIdArray == null)
-		return;
-	    for (int termId : termIdArray) {
-		LongCounter counter = termCounter.get(termId);
-		if (counter == null)
-		    termCounter.put(termId, new LongCounter());
-		else
-		    counter.count++;
-	    }
+	    ColumnStoreKey.newInstance(columnDef, docId).forEach(context.store, this);
+	}
+
+	@Override
+	final public void consume(final double value) {
+	    LongCounter counter = termCounter.get(value);
+	    if (counter == null)
+		termCounter.put(value, new LongCounter());
+	    else
+		counter.count++;
+	}
+
+	@Override
+	public void consume(long value) {
+	    LongCounter counter = termCounter.get(value);
+	    if (counter == null)
+		termCounter.put(value, new LongCounter());
+	    else
+		counter.count++;
+	}
+
+	@Override
+	public void consume(float value) {
+	    LongCounter counter = termCounter.get(value);
+	    if (counter == null)
+		termCounter.put(value, new LongCounter());
+	    else
+		counter.count++;
+	}
+
+	@Override
+	public void consume(String value) {
+	    LongCounter counter = termCounter.get(value);
+	    if (counter == null)
+		termCounter.put(value, new LongCounter());
+	    else
+		counter.count++;
 	}
     }
 
@@ -151,7 +184,7 @@ public interface CollectorInterface {
 	}
 
 	@Override
-	final public void collect(int docId) throws IOException {
+	final public void collect(int docId) throws IOException, DatabaseException {
 	    parent.collect(docId);
 	}
     }

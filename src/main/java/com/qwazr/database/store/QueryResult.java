@@ -1,12 +1,12 @@
 /**
  * Copyright 2015 Emmanuel Keller / QWAZR
- *
+ * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * <p/>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -15,17 +15,16 @@
  **/
 package com.qwazr.database.store;
 
-import java.io.IOException;
-import java.util.Iterator;
-import java.util.Map;
+import org.roaringbitmap.RoaringBitmap;
 
-public interface StoreMapInterface<K extends KeyInterface, V> extends Iterable<Map.Entry<K, V>> {
+public class QueryResult {
 
-	V get(K key) throws IOException;
+    public final QueryContext context;
+    public final RoaringBitmap finalBitmap;
 
-	void put(K key, V value) throws IOException;
+    QueryResult(QueryContext context, RoaringBitmap finalBitmap) {
+	this.context = context;
+	this.finalBitmap = finalBitmap;
+    }
 
-	void delete(K key) throws IOException;
-
-	Iterator<Map.Entry<K, V>> iterator();
 }

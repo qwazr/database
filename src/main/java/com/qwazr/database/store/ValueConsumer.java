@@ -15,30 +15,13 @@
  */
 package com.qwazr.database.store;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+public interface ValueConsumer {
 
-import java.io.IOException;
+    void consume(double value);
 
-abstract class ColumnAbstract<T> implements ColumnInterface<T> {
+    void consume(long value);
 
-    protected static final Logger logger = LoggerFactory.getLogger(ColumnAbstract.class);
+    void consume(float value);
 
-    protected final String name;
-    protected final int columnId;
-
-    ColumnAbstract(String name, int columnId) {
-	this.name = name;
-	this.columnId = columnId;
-	logger.info("Load column (" + columnId + "): " + name + " " + this.getClass().getName());
-    }
-
-    @Override
-    public void commit() throws IOException {
-    }
-
-    @Override
-    public void delete() throws IOException {
-    }
-
+    void consume(String value);
 }
