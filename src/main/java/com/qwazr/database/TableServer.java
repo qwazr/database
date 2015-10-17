@@ -1,12 +1,12 @@
 /**
  * Copyright 2015 Emmanuel Keller / QWAZR
- *
+ * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * <p/>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,11 +17,11 @@ package com.qwazr.database;
 
 import com.qwazr.cluster.ClusterServer;
 import com.qwazr.cluster.manager.ClusterManager;
-import com.qwazr.cluster.service.ClusterServiceImpl;
 import com.qwazr.utils.server.AbstractServer;
 import com.qwazr.utils.server.RestApplication;
 import com.qwazr.utils.server.ServerException;
 import com.qwazr.utils.server.ServletApplication;
+import io.undertow.security.idm.IdentityManager;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.ParseException;
 
@@ -64,12 +64,17 @@ public class TableServer extends AbstractServer {
 	}
 
 	@Override
-	protected RestApplication getRestApplication() {
-		return new GraphApplication();
+	protected Class<GraphApplication> getRestApplication() {
+		return GraphApplication.class;
 	}
 
 	@Override
-	protected ServletApplication getServletApplication() {
+	protected Class<ServletApplication> getServletApplication() {
+		return null;
+	}
+
+	@Override
+	protected IdentityManager getIdentityManager(String realm) {
 		return null;
 	}
 
@@ -91,8 +96,8 @@ public class TableServer extends AbstractServer {
 		load(dataDir);
 	}
 
-	public static void main(String[] args) throws IOException, ParseException,
-			ServletException {
+	public static void main(String[] args) throws IOException, ParseException, ServletException, InstantiationException,
+					IllegalAccessException {
 		new TableServer().start(args);
 		ClusterManager.INSTANCE.registerMe(SERVICE_NAME_TABLE);
 	}
