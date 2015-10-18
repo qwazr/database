@@ -21,6 +21,7 @@ import com.qwazr.database.model.TableRequest;
 import com.qwazr.database.model.TableRequestResult;
 import com.qwazr.utils.server.RestApplication;
 
+import javax.annotation.security.RolesAllowed;
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import java.io.InputStream;
@@ -29,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+@RolesAllowed(TableServer.SERVICE_NAME_TABLE)
 @Path("/table")
 public interface TableServiceInterface {
 
