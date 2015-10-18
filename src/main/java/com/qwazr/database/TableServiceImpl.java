@@ -36,203 +36,207 @@ import java.util.*;
 
 public class TableServiceImpl implements TableServiceInterface {
 
-    private static final Logger logger = LoggerFactory.getLogger(TableServiceImpl.class);
+	private static final Logger logger = LoggerFactory.getLogger(TableServiceImpl.class);
 
-    @Override
-    public Set<String> list(Integer msTimeOut, Boolean local) {
-	return TableManager.INSTANCE.getNameSet();
-    }
-
-    @Override
-    public TableDefinition createTable(String tableName, Integer msTimeOut, Boolean local) {
-	try {
-	    TableManager.INSTANCE.createTable(tableName);
-	    return new TableDefinition(TableManager.INSTANCE.getColumns(tableName));
-	} catch (Exception e) {
-	    logger.warn(e.getMessage(), e);
-	    throw ServerException.getJsonException(e);
-	}
-    }
-
-    @Override
-    public TableDefinition getTable(String tableName, Integer msTimeOut, Boolean local) {
-	try {
-	    return new TableDefinition(TableManager.INSTANCE.getColumns(tableName));
-	} catch (IOException | ServerException | DatabaseException e) {
-	    logger.warn(e.getMessage(), e);
-	    throw ServerException.getJsonException(e);
-	}
-    }
-
-    @Override
-    public Boolean deleteTable(String tableName, Integer msTimeOut, Boolean local) {
-	try {
-	    TableManager.INSTANCE.deleteTable(tableName);
-	    return true;
-	} catch (IOException | ServerException | DatabaseException e) {
-	    logger.warn(e.getMessage(), e);
-	    throw ServerException.getJsonException(e);
-	}
-    }
-
-    @Override
-    public Map<String, ColumnDefinition> getColumns(String tableName, Integer msTimeOut, Boolean local) {
-	try {
-	    return TableManager.INSTANCE.getColumns(tableName);
-	} catch (ServerException | DatabaseException | IOException e) {
-	    logger.warn(e.getMessage(), e);
-	    throw ServerException.getJsonException(e);
-	}
-    }
-
-    @Override
-    public ColumnDefinition getColumn(String tableName, String columnName, Integer msTimeOut, Boolean local) {
-	try {
-	    return TableManager.INSTANCE.getColumns(tableName).get(columnName);
-	} catch (ServerException | DatabaseException | IOException e) {
-	    logger.warn(e.getMessage(), e);
-	    throw ServerException.getJsonException(e);
-	}
-    }
-
-    @Override
-    public ColumnDefinition addColumn(String tableName, String columnName, ColumnDefinition columnDefinition,
-		    Integer msTimeOut, Boolean local) {
-	try {
-	    TableManager.INSTANCE.addColumn(tableName, columnName, columnDefinition);
-	    return columnDefinition;
-	} catch (ServerException | IOException e) {
-	    logger.warn(e.getMessage(), e);
-	    throw ServerException.getJsonException(e);
-	}
-    }
-
-    @Override
-    public Boolean removeColumn(String table_name, String column_name, Integer msTimeOut, Boolean local) {
-	return null;
-    }
-
-    @Override
-    public Long upsertRows(String table_name, LinkedHashMap<String, Object> rows) {
-	return null;
-    }
-
-    public final static TypeReference<Map<String, Object>> MapStringColumnValueTypeRef = new TypeReference<Map<String, Object>>() {
-    };
-
-    private final int flushBuffer(String table_name, List<Map<String, Object>> buffer)
-		    throws IOException, ServerException, DatabaseException {
-	try {
-	    if (buffer == null || buffer.isEmpty())
-		return 0;
-	    TableManager.INSTANCE.upsertRows(table_name, buffer);
-	    return buffer.size();
-	} finally {
-	    buffer.clear();
-	}
-    }
-
-    private class BufferFlush {
-
-	private final List<Map<String, Object>> buffer;
-	private final String tableName;
-
-	private BufferFlush(int bufferSize, String tableName) {
-	    this.buffer = new ArrayList<Map<String, Object>>(bufferSize);
-	    this.tableName = tableName;
+	@Override
+	public Set<String> list(Integer msTimeOut, Boolean local) {
+		return TableManager.INSTANCE.getNameSet();
 	}
 
-	private int addRow(Map<String, Object> row) {
-	    buffer.add(row);
-	    return buffer.size();
-	}
-
-	private int flush() throws ServerException, DatabaseException, IOException {
-	    if (buffer.size() == 0)
-		return 0;
-	    int res = TableManager.INSTANCE.upsertRows(tableName, buffer);
-	    buffer.clear();
-	    return res;
-	}
-
-    }
-
-    @Override
-    public Long upsertRows(String table_name, Integer bufferSize, InputStream inputStream) {
-	if (bufferSize == null || bufferSize < 1)
-	    bufferSize = 50;
-
-	try {
-	    InputStreamReader irs = null;
-	    BufferedReader br = null;
-	    try {
-		irs = new InputStreamReader(inputStream, "UTF-8");
-		br = new BufferedReader(irs);
-		long counter = 0;
-		String line;
-		BufferFlush buffer = new BufferFlush(bufferSize, table_name);
-		while ((line = br.readLine()) != null) {
-		    line = line.trim();
-		    if (line.isEmpty())
-			continue;
-		    Map<String, Object> nodeMap = JsonMapper.MAPPER.readValue(line, MapStringColumnValueTypeRef);
-		    if (buffer.addRow(nodeMap) == bufferSize)
-			counter += buffer.flush();
+	@Override
+	public TableDefinition createTable(String tableName, Integer msTimeOut, Boolean local) {
+		try {
+			TableManager.INSTANCE.createTable(tableName);
+			return new TableDefinition(TableManager.INSTANCE.getColumns(tableName));
+		} catch (Exception e) {
+			logger.warn(e.getMessage(), e);
+			throw ServerException.getJsonException(e);
 		}
-		counter += buffer.flush();
-		return counter;
-	    } finally {
-		if (br != null)
-		    IOUtils.closeQuietly(br);
-		if (irs != null)
-		    IOUtils.closeQuietly(irs);
-	    }
-	} catch (Exception e) {
-	    logger.warn(e.getMessage(), e);
-	    throw ServerException.getJsonException(e);
 	}
-    }
 
-    @Override
-    public LinkedHashMap<String, Object> upsertRow(String table_name, String row_id,
-		    LinkedHashMap<String, Object> node) {
-	try {
-	    TableManager.INSTANCE.upsertRow(table_name, row_id, node);
-	    return node;
-	} catch (ServerException | IOException | DatabaseException e) {
-	    logger.warn(e.getMessage(), e);
-	    throw ServerException.getJsonException(e);
+	@Override
+	public TableDefinition getTable(String tableName, Integer msTimeOut, Boolean local) {
+		try {
+			return new TableDefinition(TableManager.INSTANCE.getColumns(tableName));
+		} catch (IOException | ServerException | DatabaseException e) {
+			logger.warn(e.getMessage(), e);
+			throw ServerException.getJsonException(e);
+		}
 	}
-    }
 
-    @Override
-    public LinkedHashMap<String, Object> getRow(String table_name, String row_id, Set<String> columns) {
-	try {
-	    return TableManager.INSTANCE.getRow(table_name, row_id, columns);
-	} catch (ServerException | IOException | DatabaseException e) {
-	    logger.warn(e.getMessage(), e);
-	    throw ServerException.getJsonException(e);
+	@Override
+	public Boolean deleteTable(String tableName, Integer msTimeOut, Boolean local) {
+		try {
+			TableManager.INSTANCE.deleteTable(tableName);
+			return true;
+		} catch (IOException | ServerException | DatabaseException e) {
+			logger.warn(e.getMessage(), e);
+			throw ServerException.getJsonException(e);
+		}
 	}
-    }
 
-    @Override
-    public Boolean deleteRow(String table_name, String row_id) {
-	try {
-	    return TableManager.INSTANCE.deleteRow(table_name, row_id);
-	} catch (ServerException | IOException | DatabaseException e) {
-	    logger.warn(e.getMessage(), e);
-	    throw ServerException.getJsonException(e);
+	@Override
+	public Map<String, ColumnDefinition> getColumns(String tableName, Integer msTimeOut, Boolean local) {
+		try {
+			return TableManager.INSTANCE.getColumns(tableName);
+		} catch (ServerException | DatabaseException | IOException e) {
+			logger.warn(e.getMessage(), e);
+			throw ServerException.getJsonException(e);
+		}
 	}
-    }
 
-    @Override
-    public TableRequestResult queryRows(String table_name, TableRequest request) {
-	try {
-	    return TableManager.INSTANCE.query(table_name, request);
-	} catch (ServerException | IOException | Query.QueryException | DatabaseException e) {
-	    logger.warn(e.getMessage(), e);
-	    throw ServerException.getJsonException(e);
+	@Override
+	public ColumnDefinition getColumn(String tableName, String columnName, Integer msTimeOut, Boolean local) {
+		try {
+			return TableManager.INSTANCE.getColumns(tableName).get(columnName);
+		} catch (ServerException | DatabaseException | IOException e) {
+			logger.warn(e.getMessage(), e);
+			throw ServerException.getJsonException(e);
+		}
 	}
-    }
+
+	@Override
+	public ColumnDefinition addColumn(String tableName, String columnName, ColumnDefinition columnDefinition,
+					Integer msTimeOut, Boolean local) {
+		try {
+			TableManager.INSTANCE.addColumn(tableName, columnName, columnDefinition);
+			return columnDefinition;
+		} catch (ServerException | IOException e) {
+			logger.warn(e.getMessage(), e);
+			throw ServerException.getJsonException(e);
+		}
+	}
+
+	@Override
+	public Boolean removeColumn(String table_name, String column_name, Integer msTimeOut, Boolean local) {
+		return null;
+	}
+
+	@Override
+	public Long upsertRows(String table_name, List<Map<String, Object>> rows) {
+		try {
+			return (long) TableManager.INSTANCE.upsertRows(table_name, rows);
+		} catch (IOException | ServerException | DatabaseException e) {
+			logger.warn(e.getMessage(), e);
+			throw ServerException.getJsonException(e);
+		}
+	}
+
+	public final static TypeReference<Map<String, Object>> MapStringColumnValueTypeRef = new TypeReference<Map<String, Object>>() {
+	};
+
+	private final int flushBuffer(String table_name, List<Map<String, Object>> buffer)
+					throws IOException, ServerException, DatabaseException {
+		try {
+			if (buffer == null || buffer.isEmpty())
+				return 0;
+			TableManager.INSTANCE.upsertRows(table_name, buffer);
+			return buffer.size();
+		} finally {
+			buffer.clear();
+		}
+	}
+
+	private class BufferFlush {
+
+		private final List<Map<String, Object>> buffer;
+		private final String tableName;
+
+		private BufferFlush(int bufferSize, String tableName) {
+			this.buffer = new ArrayList<Map<String, Object>>(bufferSize);
+			this.tableName = tableName;
+		}
+
+		private int addRow(Map<String, Object> row) {
+			buffer.add(row);
+			return buffer.size();
+		}
+
+		private int flush() throws ServerException, DatabaseException, IOException {
+			if (buffer.size() == 0)
+				return 0;
+			int res = TableManager.INSTANCE.upsertRows(tableName, buffer);
+			buffer.clear();
+			return res;
+		}
+
+	}
+
+	@Override
+	public Long upsertRows(String table_name, Integer bufferSize, InputStream inputStream) {
+		if (bufferSize == null || bufferSize < 1)
+			bufferSize = 50;
+
+		try {
+			InputStreamReader irs = null;
+			BufferedReader br = null;
+			try {
+				irs = new InputStreamReader(inputStream, "UTF-8");
+				br = new BufferedReader(irs);
+				long counter = 0;
+				String line;
+				BufferFlush buffer = new BufferFlush(bufferSize, table_name);
+				while ((line = br.readLine()) != null) {
+					line = line.trim();
+					if (line.isEmpty())
+						continue;
+					Map<String, Object> nodeMap = JsonMapper.MAPPER.readValue(line, MapStringColumnValueTypeRef);
+					if (buffer.addRow(nodeMap) == bufferSize)
+						counter += buffer.flush();
+				}
+				counter += buffer.flush();
+				return counter;
+			} finally {
+				if (br != null)
+					IOUtils.closeQuietly(br);
+				if (irs != null)
+					IOUtils.closeQuietly(irs);
+			}
+		} catch (Exception e) {
+			logger.warn(e.getMessage(), e);
+			throw ServerException.getJsonException(e);
+		}
+	}
+
+	@Override
+	public Map<String, Object> upsertRow(String table_name, String row_id, Map<String, Object> node) {
+		try {
+			TableManager.INSTANCE.upsertRow(table_name, row_id, node);
+			return node;
+		} catch (ServerException | IOException | DatabaseException e) {
+			logger.warn(e.getMessage(), e);
+			throw ServerException.getJsonException(e);
+		}
+	}
+
+	@Override
+	public LinkedHashMap<String, Object> getRow(String table_name, String row_id, Set<String> columns) {
+		try {
+			return TableManager.INSTANCE.getRow(table_name, row_id, columns);
+		} catch (ServerException | IOException | DatabaseException e) {
+			logger.warn(e.getMessage(), e);
+			throw ServerException.getJsonException(e);
+		}
+	}
+
+	@Override
+	public Boolean deleteRow(String table_name, String row_id) {
+		try {
+			return TableManager.INSTANCE.deleteRow(table_name, row_id);
+		} catch (ServerException | IOException | DatabaseException e) {
+			logger.warn(e.getMessage(), e);
+			throw ServerException.getJsonException(e);
+		}
+	}
+
+	@Override
+	public TableRequestResult queryRows(String table_name, TableRequest request) {
+		try {
+			return TableManager.INSTANCE.query(table_name, request);
+		} catch (ServerException | IOException | Query.QueryException | DatabaseException e) {
+			logger.warn(e.getMessage(), e);
+			throw ServerException.getJsonException(e);
+		}
+	}
 
 }

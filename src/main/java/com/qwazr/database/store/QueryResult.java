@@ -19,12 +19,12 @@ import org.roaringbitmap.RoaringBitmap;
 
 public class QueryResult {
 
-    public final QueryContext context;
-    public final RoaringBitmap finalBitmap;
+	public final QueryContext context;
+	public final RoaringBitmap finalBitmap;
 
-    QueryResult(QueryContext context, RoaringBitmap finalBitmap) {
-	this.context = context;
-	this.finalBitmap = finalBitmap;
-    }
+	QueryResult(QueryContext context, RoaringBitmap finalBitmap) {
+		this.context = context;
+		this.finalBitmap = finalBitmap;
+	}
 
 }

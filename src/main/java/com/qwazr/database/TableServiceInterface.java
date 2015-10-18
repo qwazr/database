@@ -25,101 +25,102 @@ import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import java.io.InputStream;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 @Path("/table")
 public interface TableServiceInterface {
 
-    @GET
-    @Path("/")
-    @Produces(RestApplication.APPLICATION_JSON_UTF8)
-    public Set<String> list(@QueryParam("timeout") Integer msTimeOut, @QueryParam("local") Boolean local);
+	@GET
+	@Path("/")
+	@Produces(RestApplication.APPLICATION_JSON_UTF8)
+	public Set<String> list(@QueryParam("timeout") Integer msTimeOut, @QueryParam("local") Boolean local);
 
-    @POST
-    @Path("/{table_name}")
-    @Consumes(RestApplication.APPLICATION_JSON_UTF8)
-    @Produces(RestApplication.APPLICATION_JSON_UTF8)
-    public TableDefinition createTable(@PathParam("table_name") String table_name,
-		    @QueryParam("timeout") Integer msTimeOut, @QueryParam("local") Boolean local);
+	@POST
+	@Path("/{table_name}")
+	@Consumes(RestApplication.APPLICATION_JSON_UTF8)
+	@Produces(RestApplication.APPLICATION_JSON_UTF8)
+	public TableDefinition createTable(@PathParam("table_name") String table_name,
+					@QueryParam("timeout") Integer msTimeOut, @QueryParam("local") Boolean local);
 
-    @GET
-    @Path("/{table_name}")
-    @Produces(RestApplication.APPLICATION_JSON_UTF8)
-    public TableDefinition getTable(@PathParam("table_name") String table_name,
-		    @QueryParam("timeout") Integer msTimeOut, @QueryParam("local") Boolean local);
+	@GET
+	@Path("/{table_name}")
+	@Produces(RestApplication.APPLICATION_JSON_UTF8)
+	public TableDefinition getTable(@PathParam("table_name") String table_name,
+					@QueryParam("timeout") Integer msTimeOut, @QueryParam("local") Boolean local);
 
-    @DELETE
-    @Path("/{table_name}")
-    @Produces(RestApplication.APPLICATION_JSON_UTF8)
-    public Boolean deleteTable(@PathParam("table_name") String table_name, @QueryParam("timeout") Integer msTimeOut,
-		    @QueryParam("local") Boolean local);
+	@DELETE
+	@Path("/{table_name}")
+	@Produces(RestApplication.APPLICATION_JSON_UTF8)
+	public Boolean deleteTable(@PathParam("table_name") String table_name, @QueryParam("timeout") Integer msTimeOut,
+					@QueryParam("local") Boolean local);
 
-    @GET
-    @Path("/{table_name}/column")
-    @Produces(RestApplication.APPLICATION_JSON_UTF8)
-    public Map<String, ColumnDefinition> getColumns(@PathParam("table_name") String table_name,
-		    @QueryParam("timeout") Integer msTimeOut, @QueryParam("local") Boolean local);
+	@GET
+	@Path("/{table_name}/column")
+	@Produces(RestApplication.APPLICATION_JSON_UTF8)
+	public Map<String, ColumnDefinition> getColumns(@PathParam("table_name") String table_name,
+					@QueryParam("timeout") Integer msTimeOut, @QueryParam("local") Boolean local);
 
-    @GET
-    @Path("/{table_name}/column/{column_name}")
-    @Produces(RestApplication.APPLICATION_JSON_UTF8)
-    public ColumnDefinition getColumn(@PathParam("table_name") String table_name,
-		    @PathParam("column_name") String column_name, @QueryParam("timeout") Integer msTimeOut,
-		    @QueryParam("local") Boolean local);
+	@GET
+	@Path("/{table_name}/column/{column_name}")
+	@Produces(RestApplication.APPLICATION_JSON_UTF8)
+	public ColumnDefinition getColumn(@PathParam("table_name") String table_name,
+					@PathParam("column_name") String column_name, @QueryParam("timeout") Integer msTimeOut,
+					@QueryParam("local") Boolean local);
 
-    @POST
-    @Path("/{table_name}/column/{column_name}")
-    @Consumes(RestApplication.APPLICATION_JSON_UTF8)
-    @Produces(RestApplication.APPLICATION_JSON_UTF8)
-    public ColumnDefinition addColumn(@PathParam("table_name") String table_name,
-		    @PathParam("column_name") String column_name, ColumnDefinition columnDefinition,
-		    @QueryParam("timeout") Integer msTimeOut, @QueryParam("local") Boolean local);
+	@POST
+	@Path("/{table_name}/column/{column_name}")
+	@Consumes(RestApplication.APPLICATION_JSON_UTF8)
+	@Produces(RestApplication.APPLICATION_JSON_UTF8)
+	public ColumnDefinition addColumn(@PathParam("table_name") String table_name,
+					@PathParam("column_name") String column_name, ColumnDefinition columnDefinition,
+					@QueryParam("timeout") Integer msTimeOut, @QueryParam("local") Boolean local);
 
-    @DELETE
-    @Path("/{table_name}/column/{column_name}")
-    @Produces(RestApplication.APPLICATION_JSON_UTF8)
-    public Boolean removeColumn(@PathParam("table_name") String table_name,
-		    @PathParam("column_name") String column_name, @QueryParam("timeout") Integer msTimeOut,
-		    @QueryParam("local") Boolean local);
+	@DELETE
+	@Path("/{table_name}/column/{column_name}")
+	@Produces(RestApplication.APPLICATION_JSON_UTF8)
+	public Boolean removeColumn(@PathParam("table_name") String table_name,
+					@PathParam("column_name") String column_name, @QueryParam("timeout") Integer msTimeOut,
+					@QueryParam("local") Boolean local);
 
-    @PUT
-    @POST
-    @Path("/{table_name}/row")
-    @Consumes(RestApplication.APPLICATION_JSON_UTF8)
-    @Produces(RestApplication.APPLICATION_JSON_UTF8)
-    public Long upsertRows(@PathParam("table_name") String table_name, LinkedHashMap<String, Object> rows);
+	@PUT
+	@POST
+	@Path("/{table_name}/row")
+	@Consumes(RestApplication.APPLICATION_JSON_UTF8)
+	@Produces(RestApplication.APPLICATION_JSON_UTF8)
+	public Long upsertRows(@PathParam("table_name") String table_name, List<Map<String, Object>> rows);
 
-    @PUT
-    @POST
-    @Path("/{table_name}/row")
-    @Consumes(MediaType.TEXT_PLAIN)
-    @Produces(RestApplication.APPLICATION_JSON_UTF8)
-    public Long upsertRows(@PathParam("table_name") String table_name, @QueryParam("buffer") Integer buffer,
-		    InputStream inpustStream);
+	@PUT
+	@POST
+	@Path("/{table_name}/row")
+	@Consumes(MediaType.TEXT_PLAIN)
+	@Produces(RestApplication.APPLICATION_JSON_UTF8)
+	public Long upsertRows(@PathParam("table_name") String table_name, @QueryParam("buffer") Integer buffer,
+					InputStream inpustStream);
 
-    @PUT
-    @Path("/{table_name}/row/{row_id}")
-    @Consumes(RestApplication.APPLICATION_JSON_UTF8)
-    @Produces(RestApplication.APPLICATION_JSON_UTF8)
-    public LinkedHashMap<String, Object> upsertRow(@PathParam("table_name") String table_name,
-		    @PathParam("row_id") String row_id, LinkedHashMap<String, Object> node);
+	@PUT
+	@Path("/{table_name}/row/{row_id}")
+	@Consumes(RestApplication.APPLICATION_JSON_UTF8)
+	@Produces(RestApplication.APPLICATION_JSON_UTF8)
+	public Map<String, Object> upsertRow(@PathParam("table_name") String table_name, @PathParam("row_id") String row_id,
+					Map<String, Object> node);
 
-    @GET
-    @Path("/{table_name}/row/{row_id}")
-    @Produces(RestApplication.APPLICATION_JSON_UTF8)
-    public LinkedHashMap<String, Object> getRow(@PathParam("table_name") String table_name,
-		    @PathParam("row_id") String row_id, @QueryParam("column") Set<String> columns);
+	@GET
+	@Path("/{table_name}/row/{row_id}")
+	@Produces(RestApplication.APPLICATION_JSON_UTF8)
+	public Map<String, Object> getRow(@PathParam("table_name") String table_name, @PathParam("row_id") String row_id,
+					@QueryParam("column") Set<String> columns);
 
-    @DELETE
-    @Path("/{table_name}/row/{row_id}")
-    @Produces(RestApplication.APPLICATION_JSON_UTF8)
-    public Boolean deleteRow(@PathParam("table_name") String table_name, @PathParam("row_id") String row_id);
+	@DELETE
+	@Path("/{table_name}/row/{row_id}")
+	@Produces(RestApplication.APPLICATION_JSON_UTF8)
+	public Boolean deleteRow(@PathParam("table_name") String table_name, @PathParam("row_id") String row_id);
 
-    @POST
-    @Path("/{table_name}/query")
-    @Consumes(RestApplication.APPLICATION_JSON_UTF8)
-    @Produces(RestApplication.APPLICATION_JSON_UTF8)
-    public TableRequestResult queryRows(@PathParam("table_name") String graph_name, TableRequest request);
+	@POST
+	@Path("/{table_name}/query")
+	@Consumes(RestApplication.APPLICATION_JSON_UTF8)
+	@Produces(RestApplication.APPLICATION_JSON_UTF8)
+	public TableRequestResult queryRows(@PathParam("table_name") String graph_name, TableRequest request);
 
 }
