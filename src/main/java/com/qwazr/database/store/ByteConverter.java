@@ -39,7 +39,7 @@ public interface ByteConverter<T> {
 
     void forFirst(T value, ValueConsumer consumer);
 
-    public class IntegerByteConverter implements ByteConverter<Integer> {
+    class IntegerByteConverter implements ByteConverter<Integer> {
 
 	public final static IntegerByteConverter INSTANCE = new IntegerByteConverter();
 
@@ -66,7 +66,7 @@ public interface ByteConverter<T> {
 
     }
 
-    public class LongByteConverter implements ByteConverter<Long> {
+    class LongByteConverter implements ByteConverter<Long> {
 
 	public final static LongByteConverter INSTANCE = new LongByteConverter();
 
@@ -92,7 +92,7 @@ public interface ByteConverter<T> {
 	}
     }
 
-    public class DoubleByteConverter implements ByteConverter<Double> {
+    class DoubleByteConverter implements ByteConverter<Double> {
 
 	public final static DoubleByteConverter INSTANCE = new DoubleByteConverter();
 
@@ -118,7 +118,7 @@ public interface ByteConverter<T> {
 	}
     }
 
-    public class StringByteConverter implements ByteConverter<String> {
+    class StringByteConverter implements ByteConverter<String> {
 
 	public final static StringByteConverter INSTANCE = new StringByteConverter();
 
@@ -144,7 +144,7 @@ public interface ByteConverter<T> {
 	}
     }
 
-    public class JsonByteConverter<T> implements ByteConverter<T> {
+    class JsonByteConverter<T> implements ByteConverter<T> {
 
 	private final Class<T> objectClass;
 
@@ -173,7 +173,7 @@ public interface ByteConverter<T> {
 	}
     }
 
-    public class JsonTypeByteConverter<T> implements ByteConverter<T> {
+    class JsonTypeByteConverter<T> implements ByteConverter<T> {
 
 	private final TypeReference<T> typeReference;
 
@@ -202,7 +202,7 @@ public interface ByteConverter<T> {
 	}
     }
 
-    public class SerializableByteConverter<T extends Serializable> implements ByteConverter<T> {
+    class SerializableByteConverter<T extends Serializable> implements ByteConverter<T> {
 
 	@Override
 	final public byte[] toBytes(T value) {
@@ -225,7 +225,7 @@ public interface ByteConverter<T> {
 	}
     }
 
-    public class IntArrayByteConverter implements ByteConverter<int[]> {
+    class IntArrayByteConverter implements ByteConverter<int[]> {
 
 	public final static IntArrayByteConverter INSTANCE = new IntArrayByteConverter();
 
@@ -257,7 +257,7 @@ public interface ByteConverter<T> {
 	}
     }
 
-    public class LongArrayByteConverter implements ByteConverter<long[]> {
+    class LongArrayByteConverter implements ByteConverter<long[]> {
 
 	public final static LongArrayByteConverter INSTANCE = new LongArrayByteConverter();
 
@@ -289,7 +289,7 @@ public interface ByteConverter<T> {
 	}
     }
 
-    public class DoubleArrayByteConverter implements ByteConverter<double[]> {
+    class DoubleArrayByteConverter implements ByteConverter<double[]> {
 
 	public final static DoubleArrayByteConverter INSTANCE = new DoubleArrayByteConverter();
 
@@ -321,7 +321,7 @@ public interface ByteConverter<T> {
 	}
     }
 
-    public class StringArrayByteConverter implements ByteConverter<String[]> {
+    class StringArrayByteConverter implements ByteConverter<String[]> {
 
 	public final static StringArrayByteConverter INSTANCE = new StringArrayByteConverter();
 

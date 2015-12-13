@@ -207,7 +207,7 @@ public abstract class Query {
 		}
 	}
 
-	public static interface QueryHook {
+	public interface QueryHook {
 
 		void query(Query query);
 	}

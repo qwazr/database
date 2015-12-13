@@ -17,13 +17,13 @@ package com.qwazr.database.model;
 
 public class ColumnDefinition {
 
-    public static enum Type {
-	STRING, DOUBLE, LONG, INTEGER;
-    }
+    public enum Type {
+	STRING, DOUBLE, LONG, INTEGER
+	}
 
-    public static enum Mode {
-	INDEXED, STORED;
-    }
+    public enum Mode {
+	INDEXED, STORED
+	}
 
     public final Type type;
     public final Mode mode;

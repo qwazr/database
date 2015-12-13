@@ -42,7 +42,7 @@ public interface CollectorInterface {
 
     ScoresCollector scores();
 
-    static abstract class CollectorAbstract implements CollectorInterface {
+    abstract class CollectorAbstract implements CollectorInterface {
 
 	protected final CollectorInterface parent;
 
@@ -78,7 +78,7 @@ public interface CollectorInterface {
 	}
     }
 
-    static class Collector extends CollectorAbstract {
+    class Collector extends CollectorAbstract {
 
 	private int count;
 
@@ -99,7 +99,7 @@ public interface CollectorInterface {
 
     }
 
-    static class DocumentsCollector extends CollectorAbstract {
+    class DocumentsCollector extends CollectorAbstract {
 
 	private final Collection<Integer> documentIds;
 
@@ -115,11 +115,11 @@ public interface CollectorInterface {
 	}
     }
 
-    public static class LongCounter {
+    class LongCounter {
 	public long count = 1;
     }
 
-    static class FacetsCollector extends CollectorAbstract implements ValueConsumer {
+    class FacetsCollector extends CollectorAbstract implements ValueConsumer {
 
 	private final QueryContext context;
 	private final ColumnDefinition.Internal columnDef;
@@ -177,7 +177,7 @@ public interface CollectorInterface {
     }
 
     // TODO Make the implementation
-    static class ScoresCollector extends CollectorAbstract {
+	class ScoresCollector extends CollectorAbstract {
 
 	private ScoresCollector(CollectorInterface parent) {
 	    super(parent);
