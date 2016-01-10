@@ -16,7 +16,6 @@
 package com.qwazr.database;
 
 import com.qwazr.cluster.ClusterServer;
-import com.qwazr.cluster.manager.ClusterManager;
 import com.qwazr.utils.server.AbstractServer;
 import com.qwazr.utils.server.RestApplication;
 import com.qwazr.utils.server.ServerException;
@@ -99,7 +98,6 @@ public class TableServer extends AbstractServer {
 	public static void main(String[] args) throws IOException, ParseException, ServletException, InstantiationException,
 					IllegalAccessException {
 		new TableServer().start(args);
-		ClusterManager.INSTANCE.registerMe(SERVICE_NAME_TABLE);
 	}
 
 }
