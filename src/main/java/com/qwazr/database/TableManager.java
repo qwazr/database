@@ -1,12 +1,12 @@
 /**
  * Copyright 2015-2016 Emmanuel Keller / QWAZR
- * <p/>
+ * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * <p/>
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- * <p/>
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -29,36 +29,45 @@ import javax.ws.rs.core.Response;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 public class TableManager {
 
+	public final static String SERVICE_NAME_TABLE = "table";
+
 	private final LockUtils.ReadWriteLock rwl = new LockUtils.ReadWriteLock();
 
-	public static volatile TableManager INSTANCE = null;
+	static volatile TableManager INSTANCE = null;
 
 	public File directory;
 
 	public final ExecutorService executor;
 
-	public static void load(File directory) throws IOException, URISyntaxException, ServerException {
+	public static Class<? extends TableServiceInterface> load(ExecutorService executor, File dataDirectory)
+			throws IOException {
 		if (INSTANCE != null)
 			throw new IOException("Already loaded");
-		INSTANCE = new TableManager(directory);
+		File tableDir = new File(dataDirectory, SERVICE_NAME_TABLE);
+		if (!tableDir.exists())
+			tableDir.mkdir();
+		try {
+			INSTANCE = new TableManager(executor, tableDir);
+			return TableServiceImpl.class;
+		} catch (ServerException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
-	private TableManager(File directory) throws ServerException, IOException {
+	public static TableManager getInstance() {
+		if (INSTANCE == null)
+			throw new RuntimeException("The table service is not enabled");
+		return INSTANCE;
+	}
+
+	private TableManager(ExecutorService executor, File directory) throws ServerException, IOException {
 		this.directory = directory;
-		executor = Executors.newFixedThreadPool(8);
-		Runtime.getRuntime().addShutdownHook(new Thread() {
-			@Override
-			public void run() {
-				executor.shutdown();
-			}
-		});
+		this.executor = executor;
 	}
 
 	private Table getTable(String tableName) throws IOException, ServerException, DatabaseException {
@@ -77,7 +86,7 @@ public class TableManager {
 			dbDirectory.mkdir();
 			if (!dbDirectory.exists())
 				throw new ServerException(Response.Status.INTERNAL_SERVER_ERROR,
-								"The directory cannot be created: " + dbDirectory.getAbsolutePath());
+						"The directory cannot be created: " + dbDirectory.getAbsolutePath());
 			Tables.getInstance(dbDirectory, true);
 		} finally {
 			rwl.w.unlock();
@@ -98,7 +107,7 @@ public class TableManager {
 	}
 
 	public Map<String, ColumnDefinition> getColumns(String tableName)
-					throws ServerException, DatabaseException, IOException {
+			throws ServerException, DatabaseException, IOException {
 		rwl.r.lock();
 		try {
 			return getTable(tableName).getColumns();
@@ -108,7 +117,7 @@ public class TableManager {
 	}
 
 	public void addColumn(String tableName, String columnName, ColumnDefinition columnDefinition)
-					throws IOException, ServerException {
+			throws IOException, ServerException {
 		rwl.w.lock();
 		try {
 			Table table = getTable(tableName);
@@ -148,7 +157,7 @@ public class TableManager {
 	}
 
 	public void upsertRow(String tableName, String row_id, Map<String, Object> nodeMap)
-					throws IOException, ServerException, DatabaseException {
+			throws IOException, ServerException, DatabaseException {
 		rwl.r.lock();
 		try {
 			Table table = getTable(tableName);
@@ -159,7 +168,7 @@ public class TableManager {
 	}
 
 	public int upsertRows(String tableName, List<Map<String, Object>> rows)
-					throws IOException, ServerException, DatabaseException {
+			throws IOException, ServerException, DatabaseException {
 		rwl.r.lock();
 		try {
 			Table table = getTable(tableName);
@@ -170,7 +179,7 @@ public class TableManager {
 	}
 
 	public LinkedHashMap<String, Object> getRow(String tableName, String key, Set<String> columns)
-					throws IOException, ServerException, DatabaseException {
+			throws IOException, ServerException, DatabaseException {
 		rwl.r.lock();
 		try {
 			Table table = getTable(tableName);
@@ -194,7 +203,7 @@ public class TableManager {
 	}
 
 	public TableRequestResult query(String tableName, TableRequest request)
-					throws ServerException, DatabaseException, IOException {
+			throws ServerException, DatabaseException, IOException {
 		rwl.r.lock();
 		try {
 
@@ -229,10 +238,10 @@ public class TableManager {
 
 			if (counters != null) {
 				for (Map.Entry<String, Map<String, CollectorInterface.LongCounter>> countersEntry : counters
-								.entrySet()) {
+						.entrySet()) {
 					LinkedHashMap<String, Long> counter = new LinkedHashMap<String, Long>();
 					for (Map.Entry<String, CollectorInterface.LongCounter> counterEntry : countersEntry.getValue()
-									.entrySet())
+							.entrySet())
 						counter.put(counterEntry.getKey(), counterEntry.getValue().count);
 					result.counters.put(countersEntry.getKey(), counter);
 				}

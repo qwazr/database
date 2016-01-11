@@ -1,12 +1,12 @@
 /**
  * Copyright 2015-2016 Emmanuel Keller / QWAZR
- * <p/>
+ * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * <p/>
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- * <p/>
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -44,7 +44,7 @@ public class TableServiceImpl implements TableServiceInterface {
 	}
 
 	@Override
-	public TableDefinition createTable(String tableName, Integer msTimeOut, Boolean local) {
+	public TableDefinition createTable(String tableName) {
 		try {
 			TableManager.INSTANCE.createTable(tableName);
 			return new TableDefinition(TableManager.INSTANCE.getColumns(tableName));
@@ -55,7 +55,7 @@ public class TableServiceImpl implements TableServiceInterface {
 	}
 
 	@Override
-	public TableDefinition getTable(String tableName, Integer msTimeOut, Boolean local) {
+	public TableDefinition getTable(String tableName) {
 		try {
 			return new TableDefinition(TableManager.INSTANCE.getColumns(tableName));
 		} catch (IOException | ServerException | DatabaseException e) {
@@ -65,7 +65,7 @@ public class TableServiceImpl implements TableServiceInterface {
 	}
 
 	@Override
-	public Boolean deleteTable(String tableName, Integer msTimeOut, Boolean local) {
+	public Boolean deleteTable(String tableName) {
 		try {
 			TableManager.INSTANCE.deleteTable(tableName);
 			return true;
@@ -76,7 +76,7 @@ public class TableServiceImpl implements TableServiceInterface {
 	}
 
 	@Override
-	public Map<String, ColumnDefinition> getColumns(String tableName, Integer msTimeOut, Boolean local) {
+	public Map<String, ColumnDefinition> getColumns(String tableName) {
 		try {
 			return TableManager.INSTANCE.getColumns(tableName);
 		} catch (ServerException | DatabaseException | IOException e) {
@@ -86,7 +86,7 @@ public class TableServiceImpl implements TableServiceInterface {
 	}
 
 	@Override
-	public ColumnDefinition getColumn(String tableName, String columnName, Integer msTimeOut, Boolean local) {
+	public ColumnDefinition getColumn(String tableName, String columnName) {
 		try {
 			return TableManager.INSTANCE.getColumns(tableName).get(columnName);
 		} catch (ServerException | DatabaseException | IOException e) {
@@ -96,8 +96,7 @@ public class TableServiceImpl implements TableServiceInterface {
 	}
 
 	@Override
-	public ColumnDefinition addColumn(String tableName, String columnName, ColumnDefinition columnDefinition,
-					Integer msTimeOut, Boolean local) {
+	public ColumnDefinition addColumn(String tableName, String columnName, ColumnDefinition columnDefinition) {
 		try {
 			TableManager.INSTANCE.addColumn(tableName, columnName, columnDefinition);
 			return columnDefinition;
@@ -108,7 +107,7 @@ public class TableServiceImpl implements TableServiceInterface {
 	}
 
 	@Override
-	public Boolean removeColumn(String table_name, String column_name, Integer msTimeOut, Boolean local) {
+	public Boolean removeColumn(String table_name, String column_name) {
 		return null;
 	}
 
@@ -126,7 +125,7 @@ public class TableServiceImpl implements TableServiceInterface {
 	};
 
 	private final int flushBuffer(String table_name, List<Map<String, Object>> buffer)
-					throws IOException, ServerException, DatabaseException {
+			throws IOException, ServerException, DatabaseException {
 		try {
 			if (buffer == null || buffer.isEmpty())
 				return 0;
