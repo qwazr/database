@@ -24,6 +24,7 @@ import com.qwazr.utils.http.HttpResponseEntityException;
 import com.qwazr.utils.http.HttpUtils;
 import com.qwazr.utils.json.client.JsonClientAbstract;
 import org.apache.http.HttpResponse;
+import org.apache.http.auth.Credentials;
 import org.apache.http.client.fluent.Request;
 
 import javax.ws.rs.WebApplicationException;
@@ -45,6 +46,10 @@ public class TableSingleClient extends JsonClientAbstract implements TableServic
 
 	public TableSingleClient(String url, int msTimeOut) throws URISyntaxException {
 		super(url, msTimeOut);
+	}
+
+	public TableSingleClient(String url, int msTimeOut, Credentials credentials) throws URISyntaxException {
+		super(url, msTimeOut, credentials);
 	}
 
 	@Override
