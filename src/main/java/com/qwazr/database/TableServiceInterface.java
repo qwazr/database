@@ -65,14 +65,14 @@ public interface TableServiceInterface extends ServiceInterface {
 	@Path("/{table_name}/column/{column_name}")
 	@Produces(ServiceInterface.APPLICATION_JSON_UTF8)
 	ColumnDefinition getColumn(@PathParam("table_name") String table_name,
-					@PathParam("column_name") String column_name);
+			@PathParam("column_name") String column_name);
 
 	@POST
 	@Path("/{table_name}/column/{column_name}")
 	@Consumes(ServiceInterface.APPLICATION_JSON_UTF8)
 	@Produces(ServiceInterface.APPLICATION_JSON_UTF8)
 	ColumnDefinition addColumn(@PathParam("table_name") String table_name, @PathParam("column_name") String column_name,
-					ColumnDefinition columnDefinition);
+			ColumnDefinition columnDefinition);
 
 	@DELETE
 	@Path("/{table_name}/column/{column_name}")
@@ -90,20 +90,20 @@ public interface TableServiceInterface extends ServiceInterface {
 	@Consumes(MediaType.TEXT_PLAIN)
 	@Produces(ServiceInterface.APPLICATION_JSON_UTF8)
 	Long upsertRows(@PathParam("table_name") String table_name, @QueryParam("buffer") Integer buffer,
-					InputStream inpustStream);
+			InputStream inpustStream);
 
 	@PUT
 	@Path("/{table_name}/row/{row_id}")
 	@Consumes(ServiceInterface.APPLICATION_JSON_UTF8)
 	@Produces(ServiceInterface.APPLICATION_JSON_UTF8)
 	Map<String, Object> upsertRow(@PathParam("table_name") String table_name, @PathParam("row_id") String row_id,
-					Map<String, Object> node);
+			Map<String, Object> node);
 
 	@GET
 	@Path("/{table_name}/row/{row_id}")
 	@Produces(ServiceInterface.APPLICATION_JSON_UTF8)
 	Map<String, Object> getRow(@PathParam("table_name") String table_name, @PathParam("row_id") String row_id,
-					@QueryParam("column") Set<String> columns);
+			@QueryParam("column") Set<String> columns);
 
 	@DELETE
 	@Path("/{table_name}/row/{row_id}")
@@ -114,6 +114,6 @@ public interface TableServiceInterface extends ServiceInterface {
 	@Path("/{table_name}/query")
 	@Consumes(ServiceInterface.APPLICATION_JSON_UTF8)
 	@Produces(ServiceInterface.APPLICATION_JSON_UTF8)
-	TableRequestResult queryRows(@PathParam("table_name") String graph_name, TableRequest request);
+	TableRequestResult queryRows(@PathParam("table_name") String table_name, TableRequest tableRequest);
 
 }
