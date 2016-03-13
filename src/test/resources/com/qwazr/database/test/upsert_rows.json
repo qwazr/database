@@ -1,0 +1,16 @@
+[
+  {
+    "$id$": "three",
+    "password": "password3",
+    "roles": [
+      "search"
+    ]
+  },
+  {
+    "$id$": "four",
+    "password": "password4",
+    "roles": [
+      "table"
+    ]
+  }
+]

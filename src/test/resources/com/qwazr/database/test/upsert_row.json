@@ -1,0 +1,7 @@
+{
+  "password": "test1234",
+  "roles": [
+    "search",
+    "table"
+  ]
+}

@@ -16,7 +16,9 @@
 package com.qwazr.database.model;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.qwazr.utils.json.JsonMapper;
 
+import java.io.IOException;
 import java.util.Map;
 
 public class ColumnDefinition {
@@ -68,4 +70,8 @@ public class ColumnDefinition {
 
 	public final static TypeReference<Map<String, ColumnDefinition>> MapStringColumnTypeRef = new TypeReference<Map<String, ColumnDefinition>>() {
 	};
+
+	public final static ColumnDefinition newColumnDefinition(String jsonString) throws IOException {
+		return JsonMapper.MAPPER.readValue(jsonString, ColumnDefinition.class);
+	}
 }

@@ -108,7 +108,7 @@ public class TableServiceImpl implements TableServiceInterface {
 
 	@Override
 	public Boolean removeColumn(String table_name, String column_name) {
-		return null;
+		throw new RuntimeException("Not yet implemented");
 	}
 
 	@Override

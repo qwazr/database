@@ -44,6 +44,9 @@ public class TableSingleClient extends JsonClientAbstract implements TableServic
 	public final static TypeReference<Map<String, Object>> MapStringObjectTypeRef = new TypeReference<Map<String, Object>>() {
 	};
 
+	public final static TypeReference<List<Map<String, Object>>> ListMapStringObjectTypeRef = new TypeReference<List<Map<String, Object>>>() {
+	};
+
 	public TableSingleClient(String url, int msTimeOut) throws URISyntaxException {
 		super(url, msTimeOut);
 	}
@@ -138,8 +141,11 @@ public class TableSingleClient extends JsonClientAbstract implements TableServic
 	@Override
 	public Map<String, Object> getRow(String table_name, String row_id, Set<String> columns) {
 		UBuilder uriBuilder = new UBuilder("/table/", table_name, "/row/", row_id);
+		if (columns != null)
+			for (String column : columns)
+				uriBuilder.addParameter("column", column);
 		Request request = Request.Get(uriBuilder.build());
-		return commonServiceRequest(request, columns, null, MapStringObjectTypeRef, 200);
+		return commonServiceRequest(request, null, null, MapStringObjectTypeRef, 200);
 	}
 
 	@Override
