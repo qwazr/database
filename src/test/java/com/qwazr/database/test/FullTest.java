@@ -53,8 +53,12 @@ public class FullTest {
 	public static final String COLUMN_NAME_PASSWORD = "password";
 	public static final String COLUMN_NAME_ROLES = "roles";
 	public static final String COLUMN_NAME_ROLES2 = "roles2";
-	public static final String ID_ONE = "one";
-	public static final String ID_TWO = "two";
+	public static final String ID1 = "one";
+	public static final String ID2 = "two";
+	public static final String ID3 = "three";
+	public static final String ID4 = "four";
+	public static final String PASS3 = "password3";
+	public static final String PASS4 = "password4";
 	public static final Set<String> COLUMNS;
 
 	static {
@@ -133,10 +137,10 @@ public class FullTest {
 	@Test
 	public void test300upsertRow() throws URISyntaxException {
 		TableServiceInterface client = getClient();
-		Assert.assertNotNull(client.upsertRow(TABLE_NAME, ID_ONE, UPSERT_ROW));
-		Assert.assertNotNull(client.upsertRow(TABLE_NAME, ID_TWO, UPSERT_ROW));
-		Assert.assertNotNull(client.getRow(TABLE_NAME, ID_ONE, COLUMNS));
-		Assert.assertNotNull(client.getRow(TABLE_NAME, ID_TWO, COLUMNS));
+		Assert.assertNotNull(client.upsertRow(TABLE_NAME, ID1, UPSERT_ROW));
+		Assert.assertNotNull(client.upsertRow(TABLE_NAME, ID2, UPSERT_ROW));
+		Assert.assertNotNull(client.getRow(TABLE_NAME, ID1, COLUMNS));
+		Assert.assertNotNull(client.getRow(TABLE_NAME, ID2, COLUMNS));
 	}
 
 	@Test
@@ -145,6 +149,21 @@ public class FullTest {
 		Long result = client.upsertRows(TABLE_NAME, UPSERT_ROWS);
 		Assert.assertNotNull(result);
 		Assert.assertEquals((long) result, UPSERT_ROW.size());
+	}
+
+	private void checkGetRow(String id, String column, String value, Map<String, Object> row) {
+		Assert.assertNotNull(row);
+		List<String> values = (List<String>) row.get(column);
+		Assert.assertNotNull(values);
+		Assert.assertFalse(values.isEmpty());
+		Assert.assertEquals(values.get(0), value);
+	}
+
+	@Test
+	public void test400getRow() throws URISyntaxException {
+		TableServiceInterface client = getClient();
+		checkGetRow(ID3, "password", PASS3, client.getRow(TABLE_NAME, ID3, COLUMNS));
+		checkGetRow(ID4, "password", PASS4, client.getRow(TABLE_NAME, ID4, COLUMNS));
 	}
 
 	private TableServiceInterface getClient() throws URISyntaxException {

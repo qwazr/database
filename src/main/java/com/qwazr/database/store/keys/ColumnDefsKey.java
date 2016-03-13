@@ -1,12 +1,12 @@
 /**
  * Copyright 2015-2016 Emmanuel Keller / QWAZR
- * <p/>
+ * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * <p/>
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- * <p/>
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -23,32 +23,31 @@ import org.iq80.leveldb.DBIterator;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 final public class ColumnDefsKey extends KeyAbstract<Map<String, ColumnDefinition.Internal>> {
 
-    public ColumnDefsKey() {
-	super(KeyEnum.COLUMN_DEF, null);
-    }
-
-    public Map<String, ColumnDefinition.Internal> getColumns(final KeyStore store) throws IOException {
-	final Map<String, ColumnDefinition.Internal> map = new LinkedHashMap<>();
-	final byte[] myKey = getCachedKey();
-	final DBIterator iterator = store.iterator();
-	iterator.seek(myKey);
-	while (iterator.hasNext()) {
-	    Map.Entry<byte[], byte[]> entry = iterator.next();
-	    byte[] key = entry.getKey();
-	    if (!ArrayUtils.startsWith(key, myKey))
-		break;
-	    String fieldName = CharsetUtils.decodeUtf8(ByteBuffer.wrap(key, myKey.length, key.length - myKey.length));
-	    ColumnDefinition.Internal colDef = ColumnDefKey.columnInternalDefinitionByteConverter
-			    .toValue(entry.getValue());
-	    map.put(fieldName, colDef);
+	public ColumnDefsKey() {
+		super(KeyEnum.COLUMN_DEF, null);
 	}
-	return map;
-    }
+
+	public Map<String, ColumnDefinition.Internal> getColumns(final KeyStore store) throws IOException {
+		final Map<String, ColumnDefinition.Internal> map = new LinkedHashMap<>();
+		final byte[] myKey = getCachedKey();
+		final DBIterator iterator = store.iterator();
+		iterator.seek(myKey);
+		while (iterator.hasNext()) {
+			Map.Entry<byte[], byte[]> entry = iterator.next();
+			byte[] key = entry.getKey();
+			if (!ArrayUtils.startsWith(key, myKey))
+				break;
+			String fieldName = CharsetUtils.decodeUtf8(ByteBuffer.wrap(key, myKey.length, key.length - myKey.length));
+			ColumnDefinition.Internal colDef = ColumnDefKey.columnInternalDefinitionByteConverter
+					.toValue(entry.getValue());
+			map.put(fieldName, colDef);
+		}
+		return map;
+	}
 
 }

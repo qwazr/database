@@ -233,6 +233,7 @@ public class Table implements Closeable {
 					new ColumnIndexesKey(colDef).select(keyStore, valueObject, docId);
 				ColumnStoreKey.newInstance(colDef, docId).setObjectValue(keyStore, valueObject);
 			}
+			primaryIndexKey.select(keyStore, docId);
 			docId = null;
 			return true;
 		} finally {
