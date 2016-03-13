@@ -155,12 +155,13 @@ public class FullTest {
 		Assert.assertEquals((long) result, UPSERT_ROWS.size());
 	}
 
-	private void checkGetRow(String id, String column, String value, Map<String, Object> row) {
+	private Map<String, Object> checkGetRow(String id, String column, String value, Map<String, Object> row) {
 		Assert.assertNotNull(row);
 		List<String> values = (List<String>) row.get(column);
 		Assert.assertNotNull(values);
 		Assert.assertFalse(values.isEmpty());
 		Assert.assertEquals(values.get(0), value);
+		return row;
 	}
 
 	@Test
@@ -168,6 +169,10 @@ public class FullTest {
 		TableServiceInterface client = getClient();
 		checkGetRow(ID3, "password", PASS3, client.getRow(TABLE_NAME, ID3, COLUMNS));
 		checkGetRow(ID4, "password", PASS4, client.getRow(TABLE_NAME, ID4, COLUMNS));
+		Map<String, Object> row = checkGetRow(ID1, "password", PASS1, client.getRow(TABLE_NAME, ID1, COLUMNS));
+		List<String> roles = (List<String>) row.get("roles");
+		Assert.assertNotNull(roles);
+		Assert.assertEquals(2, roles.size());
 	}
 
 	private TableServiceInterface getClient() throws URISyntaxException {
