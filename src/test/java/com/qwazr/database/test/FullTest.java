@@ -45,7 +45,9 @@ public class FullTest {
 	public static final String BASE_URL = "http://localhost:9091";
 	public static final ColumnDefinition COLUMN_DEF_PASSWORD = getColumnDefinition("column_def_password.json");
 	public static final ColumnDefinition COLUMN_DEF_ROLES = getColumnDefinition("column_def_roles.json");
-	public static final Map<String, Object> UPSERT_ROW = getTypeDef("upsert_row.json",
+	public static final Map<String, Object> UPSERT_ROW1 = getTypeDef("upsert_row1.json",
+			TableSingleClient.MapStringObjectTypeRef);
+	public static final Map<String, Object> UPSERT_ROW2 = getTypeDef("upsert_row2.json",
 			TableSingleClient.MapStringObjectTypeRef);
 	public static final List<Map<String, Object>> UPSERT_ROWS = getTypeDef("upsert_rows.json",
 			TableSingleClient.ListMapStringObjectTypeRef);
@@ -57,6 +59,8 @@ public class FullTest {
 	public static final String ID2 = "two";
 	public static final String ID3 = "three";
 	public static final String ID4 = "four";
+	public static final String PASS1 = "password1";
+	public static final String PASS2 = "password2";
 	public static final String PASS3 = "password3";
 	public static final String PASS4 = "password4";
 	public static final Set<String> COLUMNS;
@@ -137,10 +141,10 @@ public class FullTest {
 	@Test
 	public void test300upsertRow() throws URISyntaxException {
 		TableServiceInterface client = getClient();
-		Assert.assertNotNull(client.upsertRow(TABLE_NAME, ID1, UPSERT_ROW));
-		Assert.assertNotNull(client.upsertRow(TABLE_NAME, ID2, UPSERT_ROW));
-		Assert.assertNotNull(client.getRow(TABLE_NAME, ID1, COLUMNS));
-		Assert.assertNotNull(client.getRow(TABLE_NAME, ID2, COLUMNS));
+		Assert.assertNotNull(client.upsertRow(TABLE_NAME, ID1, UPSERT_ROW1));
+		Assert.assertNotNull(client.upsertRow(TABLE_NAME, ID2, UPSERT_ROW2));
+		checkGetRow(ID1, "password", PASS1, client.getRow(TABLE_NAME, ID1, COLUMNS));
+		checkGetRow(ID2, "password", PASS2, client.getRow(TABLE_NAME, ID2, COLUMNS));
 	}
 
 	@Test
@@ -148,7 +152,7 @@ public class FullTest {
 		TableServiceInterface client = getClient();
 		Long result = client.upsertRows(TABLE_NAME, UPSERT_ROWS);
 		Assert.assertNotNull(result);
-		Assert.assertEquals((long) result, UPSERT_ROW.size());
+		Assert.assertEquals((long) result, UPSERT_ROWS.size());
 	}
 
 	private void checkGetRow(String id, String column, String value, Map<String, Object> row) {
