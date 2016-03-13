@@ -1,4 +1,4 @@
 {
   "type": "STRING",
-  "mode": "INDEXED"
+  "mode": "STORED"
 }
