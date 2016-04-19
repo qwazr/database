@@ -68,11 +68,10 @@ public class Table implements Closeable {
 	};
 
 	private static final ByteConverter.JsonTypeByteConverter MapStringIntegerByteConverter = new ByteConverter.JsonTypeByteConverter(
-					MapStringIntegerTypeRef);
+			MapStringIntegerTypeRef);
 
 	Table(File directory) throws IOException, DatabaseException {
 		this.directory = directory;
-
 		logger.info("Load table: " + directory);
 		File dbFile = new File(directory, "storedb");
 		keyStore = new KeyStore(dbFile);
@@ -121,7 +120,7 @@ public class Table implements Closeable {
 
 			// Write the new column
 			new ColumnDefKey(columnName)
-							.setValue(keyStore, new ColumnDefinition.Internal(columnDefinition, columnd_id));
+					.setValue(keyStore, new ColumnDefinition.Internal(columnDefinition, columnd_id));
 			keyStore.commit();
 		} finally {
 			rwlColumns.w.unlock();
@@ -163,7 +162,7 @@ public class Table implements Closeable {
 	}
 
 	public LinkedHashMap<String, Object> getRow(String key, Set<String> columnNames)
-					throws IOException, DatabaseException {
+			throws IOException, DatabaseException {
 		if (key == null)
 			return null;
 		Integer docId = new PrimaryIdsKey(key).getValue(keyStore);
@@ -264,7 +263,7 @@ public class Table implements Closeable {
 	}
 
 	private Map<String, ColumnDefinition.Internal> getColumns(Set<String> columnNames)
-					throws DatabaseException, IOException {
+			throws DatabaseException, IOException {
 		if (columnNames == null || columnNames.isEmpty())
 			return Collections.emptyMap();
 		Map<String, ColumnDefinition.Internal> columnDefs = columnDefsKey.getColumns(keyStore);
@@ -279,7 +278,7 @@ public class Table implements Closeable {
 	}
 
 	private LinkedHashMap<String, Object> getRowByIdNoLock(Integer docId,
-					Map<String, ColumnDefinition.Internal> columns) throws DatabaseException, IOException {
+	                                                       Map<String, ColumnDefinition.Internal> columns) throws DatabaseException, IOException {
 		if (docId == null)
 			return null;
 		LinkedHashMap<String, Object> row = new LinkedHashMap<String, Object>();
@@ -289,7 +288,7 @@ public class Table implements Closeable {
 	}
 
 	public void getRows(RoaringBitmap bitmap, Set<String> columnNames, long start, long rows,
-					List<LinkedHashMap<String, Object>> results) throws IOException, DatabaseException {
+	                    List<LinkedHashMap<String, Object>> results) throws IOException, DatabaseException {
 		if (bitmap == null || bitmap.isEmpty())
 			return;
 		rwlColumns.r.lock();
@@ -310,7 +309,7 @@ public class Table implements Closeable {
 	}
 
 	public void getRows(Set<String> keys, Set<String> columnNames, List<LinkedHashMap<String, Object>> results)
-					throws IOException, DatabaseException {
+			throws IOException, DatabaseException {
 		if (keys == null || keys.isEmpty())
 			return;
 		ArrayList<Integer> ids = new ArrayList<Integer>(keys.size());
@@ -345,7 +344,7 @@ public class Table implements Closeable {
 	}
 
 	public QueryResult query(Query query, Map<String, Map<String, LongCounter>> facets)
-					throws DatabaseException, IOException {
+			throws DatabaseException, IOException {
 		rwlColumns.r.lock();
 		try {
 

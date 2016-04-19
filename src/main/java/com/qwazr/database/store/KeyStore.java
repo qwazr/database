@@ -33,7 +33,7 @@ public class KeyStore implements Closeable {
 	private final DB db;
 
 	public KeyStore(File file) throws IOException {
-		Options options = new Options();
+		final Options options = new Options();
 		options.createIfMissing(true);
 		db = JniDBFactory.factory.open(file, options);
 	}
