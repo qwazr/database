@@ -24,6 +24,7 @@ import com.qwazr.database.model.ColumnDefinition;
 import com.qwazr.database.model.TableDefinition;
 import com.qwazr.utils.IOUtils;
 import com.qwazr.utils.json.JsonMapper;
+import com.qwazr.utils.server.RemoteService;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.FixMethodOrder;
@@ -45,12 +46,12 @@ public class FullTest {
 	public static final String BASE_URL = "http://localhost:9091";
 	public static final ColumnDefinition COLUMN_DEF_PASSWORD = getColumnDefinition("column_def_password.json");
 	public static final ColumnDefinition COLUMN_DEF_ROLES = getColumnDefinition("column_def_roles.json");
-	public static final Map<String, Object> UPSERT_ROW1 = getTypeDef("upsert_row1.json",
-			TableSingleClient.MapStringObjectTypeRef);
-	public static final Map<String, Object> UPSERT_ROW2 = getTypeDef("upsert_row2.json",
-			TableSingleClient.MapStringObjectTypeRef);
-	public static final List<Map<String, Object>> UPSERT_ROWS = getTypeDef("upsert_rows.json",
-			TableSingleClient.ListMapStringObjectTypeRef);
+	public static final Map<String, Object> UPSERT_ROW1 =
+			getTypeDef("upsert_row1.json", TableSingleClient.MapStringObjectTypeRef);
+	public static final Map<String, Object> UPSERT_ROW2 =
+			getTypeDef("upsert_row2.json", TableSingleClient.MapStringObjectTypeRef);
+	public static final List<Map<String, Object>> UPSERT_ROWS =
+			getTypeDef("upsert_rows.json", TableSingleClient.ListMapStringObjectTypeRef);
 	public static final String TABLE_NAME = "test_table";
 	public static final String COLUMN_NAME_PASSWORD = "password";
 	public static final String COLUMN_NAME_ROLES = "roles";
@@ -176,7 +177,7 @@ public class FullTest {
 	}
 
 	private TableServiceInterface getClient() throws URISyntaxException {
-		return new TableSingleClient(BASE_URL, 60000);
+		return new TableSingleClient(new RemoteService(BASE_URL));
 	}
 
 	private static ColumnDefinition getColumnDefinition(String res) {

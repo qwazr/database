@@ -23,15 +23,14 @@ import com.qwazr.database.model.TableRequestResult;
 import com.qwazr.utils.http.HttpResponseEntityException;
 import com.qwazr.utils.http.HttpUtils;
 import com.qwazr.utils.json.client.JsonClientAbstract;
+import com.qwazr.utils.server.RemoteService;
 import org.apache.http.HttpResponse;
-import org.apache.http.auth.Credentials;
 import org.apache.http.client.fluent.Request;
 
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -41,18 +40,16 @@ public class TableSingleClient extends JsonClientAbstract implements TableServic
 	public final static TypeReference<Set<String>> SetStringTypeRef = new TypeReference<Set<String>>() {
 	};
 
-	public final static TypeReference<Map<String, Object>> MapStringObjectTypeRef = new TypeReference<Map<String, Object>>() {
-	};
+	public final static TypeReference<Map<String, Object>> MapStringObjectTypeRef =
+			new TypeReference<Map<String, Object>>() {
+			};
 
-	public final static TypeReference<List<Map<String, Object>>> ListMapStringObjectTypeRef = new TypeReference<List<Map<String, Object>>>() {
-	};
+	public final static TypeReference<List<Map<String, Object>>> ListMapStringObjectTypeRef =
+			new TypeReference<List<Map<String, Object>>>() {
+			};
 
-	public TableSingleClient(String url, int msTimeOut) throws URISyntaxException {
-		super(url, msTimeOut);
-	}
-
-	public TableSingleClient(String url, int msTimeOut, Credentials credentials) throws URISyntaxException {
-		super(url, msTimeOut, credentials);
+	public TableSingleClient(RemoteService remote) {
+		super(remote);
 	}
 
 	@Override
