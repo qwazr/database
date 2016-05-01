@@ -43,8 +43,8 @@ final public class ColumnDefsKey extends KeyAbstract<Map<String, ColumnDefinitio
 			if (!ArrayUtils.startsWith(key, myKey))
 				break;
 			String fieldName = CharsetUtils.decodeUtf8(ByteBuffer.wrap(key, myKey.length, key.length - myKey.length));
-			ColumnDefinition.Internal colDef = ColumnDefKey.columnInternalDefinitionByteConverter
-					.toValue(entry.getValue());
+			ColumnDefinition.Internal colDef =
+					ColumnDefKey.columnInternalDefinitionByteConverter.toValue(entry.getValue());
 			map.put(fieldName, colDef);
 		}
 		return map;

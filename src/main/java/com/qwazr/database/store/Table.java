@@ -64,11 +64,12 @@ public class Table implements Closeable {
 		});
 	}
 
-	public final static TypeReference<Map<String, Integer>> MapStringIntegerTypeRef = new TypeReference<Map<String, Integer>>() {
-	};
+	public final static TypeReference<Map<String, Integer>> MapStringIntegerTypeRef =
+			new TypeReference<Map<String, Integer>>() {
+			};
 
-	private static final ByteConverter.JsonTypeByteConverter MapStringIntegerByteConverter = new ByteConverter.JsonTypeByteConverter(
-			MapStringIntegerTypeRef);
+	private static final ByteConverter.JsonTypeByteConverter MapStringIntegerByteConverter =
+			new ByteConverter.JsonTypeByteConverter(MapStringIntegerTypeRef);
 
 	Table(File directory) throws IOException, DatabaseException {
 		this.directory = directory;
@@ -77,10 +78,6 @@ public class Table implements Closeable {
 		keyStore = new KeyStore(dbFile);
 		columnDefsKey = new ColumnDefsKey();
 		primaryIndexKey = new PrimaryIndexKey();
-	}
-
-	public void commit() throws IOException {
-		keyStore.commit();
 	}
 
 	@Override
@@ -121,7 +118,6 @@ public class Table implements Closeable {
 			// Write the new column
 			new ColumnDefKey(columnName)
 					.setValue(keyStore, new ColumnDefinition.Internal(columnDefinition, columnd_id));
-			keyStore.commit();
 		} finally {
 			rwlColumns.w.unlock();
 		}
@@ -141,7 +137,6 @@ public class Table implements Closeable {
 			new ColumnIndexesKey(colDef).deleteAll(keyStore);
 			// Remove the column definition
 			columnDefKey.deleteValue(keyStore);
-			keyStore.commit();
 		} finally {
 			rwlColumns.w.unlock();
 		}
@@ -194,7 +189,6 @@ public class Table implements Closeable {
 		deleteRow(docId);
 		primaryIndexKey.remove(keyStore, docId);
 		primaryIdsKey.deleteValue(keyStore);
-		keyStore.commit();
 		return true;
 	}
 
@@ -245,7 +239,6 @@ public class Table implements Closeable {
 
 	public boolean upsertRow(String key, Map<String, Object> row) throws IOException, DatabaseException {
 		boolean res = upsertRowNoCommit(key, row);
-		keyStore.commit();
 		return res;
 	}
 
@@ -254,7 +247,6 @@ public class Table implements Closeable {
 		for (Map<String, Object> row : rows)
 			if (upsertRowNoCommit(null, row))
 				count++;
-		keyStore.commit();
 		return count;
 	}
 
@@ -278,7 +270,7 @@ public class Table implements Closeable {
 	}
 
 	private LinkedHashMap<String, Object> getRowByIdNoLock(Integer docId,
-	                                                       Map<String, ColumnDefinition.Internal> columns) throws DatabaseException, IOException {
+			Map<String, ColumnDefinition.Internal> columns) throws DatabaseException, IOException {
 		if (docId == null)
 			return null;
 		LinkedHashMap<String, Object> row = new LinkedHashMap<String, Object>();
@@ -288,7 +280,7 @@ public class Table implements Closeable {
 	}
 
 	public void getRows(RoaringBitmap bitmap, Set<String> columnNames, long start, long rows,
-	                    List<LinkedHashMap<String, Object>> results) throws IOException, DatabaseException {
+			List<LinkedHashMap<String, Object>> results) throws IOException, DatabaseException {
 		if (bitmap == null || bitmap.isEmpty())
 			return;
 		rwlColumns.r.lock();

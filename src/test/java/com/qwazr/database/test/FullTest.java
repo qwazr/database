@@ -31,6 +31,7 @@ import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
 
+import javax.ws.rs.WebApplicationException;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -144,8 +145,8 @@ public class FullTest {
 		TableServiceInterface client = getClient();
 		Assert.assertNotNull(client.upsertRow(TABLE_NAME, ID1, UPSERT_ROW1));
 		Assert.assertNotNull(client.upsertRow(TABLE_NAME, ID2, UPSERT_ROW2));
-		checkGetRow(ID1, "password", PASS1, client.getRow(TABLE_NAME, ID1, COLUMNS));
-		checkGetRow(ID2, "password", PASS2, client.getRow(TABLE_NAME, ID2, COLUMNS));
+		checkGetRow("password", PASS1, client.getRow(TABLE_NAME, ID1, COLUMNS));
+		checkGetRow("password", PASS2, client.getRow(TABLE_NAME, ID2, COLUMNS));
 	}
 
 	@Test
@@ -156,7 +157,30 @@ public class FullTest {
 		Assert.assertEquals((long) result, UPSERT_ROWS.size());
 	}
 
-	private Map<String, Object> checkGetRow(String id, String column, String value, Map<String, Object> row) {
+	private void deleteAndCheck(String id) throws URISyntaxException {
+		TableServiceInterface client = getClient();
+		Assert.assertTrue(client.deleteRow(TABLE_NAME, id));
+		try {
+			client.getRow(TABLE_NAME, id, COLUMNS);
+			Assert.assertTrue("The 404 exception has not been thrown", false);
+		} catch (WebApplicationException e) {
+			Assert.assertEquals(404, e.getResponse().getStatus());
+		}
+	}
+
+	@Test
+	public void test360DeleteAndUpsertRow() throws URISyntaxException {
+		TableServiceInterface client = getClient();
+		deleteAndCheck(ID1);
+		deleteAndCheck(ID2);
+		Assert.assertNotNull(client.upsertRow(TABLE_NAME, ID2, UPSERT_ROW2));
+		Assert.assertNotNull(client.upsertRow(TABLE_NAME, ID1, UPSERT_ROW1));
+		deleteAndCheck(ID3);
+		deleteAndCheck(ID4);
+		Assert.assertEquals((long) UPSERT_ROWS.size(), (long) client.upsertRows(TABLE_NAME, UPSERT_ROWS));
+	}
+
+	private Map<String, Object> checkGetRow(String column, String value, Map<String, Object> row) {
 		Assert.assertNotNull(row);
 		List<String> values = (List<String>) row.get(column);
 		Assert.assertNotNull(values);
@@ -168,16 +192,21 @@ public class FullTest {
 	@Test
 	public void test400getRow() throws URISyntaxException {
 		TableServiceInterface client = getClient();
-		checkGetRow(ID3, "password", PASS3, client.getRow(TABLE_NAME, ID3, COLUMNS));
-		checkGetRow(ID4, "password", PASS4, client.getRow(TABLE_NAME, ID4, COLUMNS));
-		Map<String, Object> row = checkGetRow(ID1, "password", PASS1, client.getRow(TABLE_NAME, ID1, COLUMNS));
+		checkGetRow("password", PASS3, client.getRow(TABLE_NAME, ID3, COLUMNS));
+		checkGetRow("password", PASS4, client.getRow(TABLE_NAME, ID4, COLUMNS));
+		Map<String, Object> row = checkGetRow("password", PASS1, client.getRow(TABLE_NAME, ID1, COLUMNS));
 		List<String> roles = (List<String>) row.get("roles");
 		Assert.assertNotNull(roles);
 		Assert.assertEquals(2, roles.size());
 	}
 
-	private TableServiceInterface getClient() throws URISyntaxException {
-		return new TableSingleClient(new RemoteService(BASE_URL));
+	private static TableServiceInterface CLIENT = null;
+
+	private synchronized TableServiceInterface getClient() throws URISyntaxException {
+		if (CLIENT != null)
+			return CLIENT;
+		CLIENT = new TableSingleClient(new RemoteService(BASE_URL));
+		return CLIENT;
 	}
 
 	private static ColumnDefinition getColumnDefinition(String res) {

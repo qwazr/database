@@ -24,7 +24,6 @@ import com.qwazr.database.store.DatabaseException;
 import com.qwazr.database.store.Query;
 import com.qwazr.utils.json.JsonMapper;
 import com.qwazr.utils.server.ServerException;
-import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -121,8 +120,9 @@ public class TableServiceImpl implements TableServiceInterface {
 		}
 	}
 
-	public final static TypeReference<Map<String, Object>> MapStringColumnValueTypeRef = new TypeReference<Map<String, Object>>() {
-	};
+	public final static TypeReference<Map<String, Object>> MapStringColumnValueTypeRef =
+			new TypeReference<Map<String, Object>>() {
+			};
 
 	private final int flushBuffer(String table_name, List<Map<String, Object>> buffer)
 			throws IOException, ServerException, DatabaseException {
@@ -166,31 +166,21 @@ public class TableServiceImpl implements TableServiceInterface {
 		if (bufferSize == null || bufferSize < 1)
 			bufferSize = 50;
 
-		try {
-			InputStreamReader irs = null;
-			BufferedReader br = null;
-			try {
-				irs = new InputStreamReader(inputStream, "UTF-8");
-				br = new BufferedReader(irs);
-				long counter = 0;
-				String line;
-				BufferFlush buffer = new BufferFlush(bufferSize, table_name);
-				while ((line = br.readLine()) != null) {
-					line = line.trim();
-					if (line.isEmpty())
-						continue;
-					Map<String, Object> nodeMap = JsonMapper.MAPPER.readValue(line, MapStringColumnValueTypeRef);
-					if (buffer.addRow(nodeMap) == bufferSize)
-						counter += buffer.flush();
-				}
-				counter += buffer.flush();
-				return counter;
-			} finally {
-				if (br != null)
-					IOUtils.closeQuietly(br);
-				if (irs != null)
-					IOUtils.closeQuietly(irs);
+		try (final InputStreamReader irs = new InputStreamReader(inputStream, "UTF-8");
+				final BufferedReader br = new BufferedReader(irs)) {
+			long counter = 0;
+			String line;
+			BufferFlush buffer = new BufferFlush(bufferSize, table_name);
+			while ((line = br.readLine()) != null) {
+				line = line.trim();
+				if (line.isEmpty())
+					continue;
+				Map<String, Object> nodeMap = JsonMapper.MAPPER.readValue(line, MapStringColumnValueTypeRef);
+				if (buffer.addRow(nodeMap) == bufferSize)
+					counter += buffer.flush();
 			}
+			counter += buffer.flush();
+			return counter;
 		} catch (Exception e) {
 			logger.warn(e.getMessage(), e);
 			throw ServerException.getJsonException(e);

@@ -19,8 +19,6 @@ import org.fusesource.leveldbjni.JniDBFactory;
 import org.iq80.leveldb.DB;
 import org.iq80.leveldb.DBIterator;
 import org.iq80.leveldb.Options;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.io.File;
@@ -28,17 +26,12 @@ import java.io.IOException;
 
 public class KeyStore implements Closeable {
 
-	private static final Logger logger = LoggerFactory.getLogger(KeyStore.class);
-
 	private final DB db;
 
-	public KeyStore(File file) throws IOException {
+	KeyStore(File file) throws IOException {
 		final Options options = new Options();
 		options.createIfMissing(true);
 		db = JniDBFactory.factory.open(file, options);
-	}
-
-	public void commit() throws IOException {
 	}
 
 	@Override

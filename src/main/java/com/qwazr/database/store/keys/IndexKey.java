@@ -24,7 +24,8 @@ import java.io.IOException;
 
 public class IndexKey extends KeyAbstract<RoaringBitmap> {
 
-	final static ByteConverter.SerializableByteConverter<RoaringBitmap> roaringBitmapConverter = new ByteConverter.SerializableByteConverter<>();
+	final static ByteConverter.SerializableByteConverter<RoaringBitmap> roaringBitmapConverter =
+			new ByteConverter.SerializableByteConverter<>();
 
 	public IndexKey(KeyEnum keyType) {
 		super(keyType, roaringBitmapConverter);
@@ -63,20 +64,28 @@ public class IndexKey extends KeyAbstract<RoaringBitmap> {
 		setValue(store, bitmap);
 	}
 
+	/**
+	 * Look for the next available document ID.
+	 *
+	 * @param store the store
+	 * @return an available document ID
+	 * @throws IOException
+	 */
 	final protected Integer nextDocId(final KeyStore store) throws IOException {
-		RoaringBitmap bitmap = getValue(store);
+		final RoaringBitmap bitmap = getValue(store);
 		if (bitmap == null)
 			return 0;
 		if (bitmap.isEmpty())
 			return 0;
-		IntIterator reverseIterator = bitmap.getReverseIntIterator();
-		int highterId = reverseIterator.next();
-		bitmap = bitmap.clone();
-		bitmap.flip(0, Integer.MAX_VALUE);
-		IntIterator iterator = bitmap.getIntIterator();
-		if (iterator.hasNext())
-			return iterator.next();
-		return highterId + 1;
+		final IntIterator reverseIterator = bitmap.getReverseIntIterator();
+		final int nexHigherId = reverseIterator.next() + 1;
+
+		final RoaringBitmap inverseBitmap = bitmap.clone();
+		inverseBitmap.flip(0L, nexHigherId);
+		final IntIterator inverseIterator = inverseBitmap.getIntIterator();
+		if (inverseIterator.hasNext())
+			return inverseIterator.next();
+		return nexHigherId;
 	}
 
 }
