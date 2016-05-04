@@ -37,7 +37,7 @@ public class TableServer extends AbstractServer<ServerConfiguration> {
 	@Override
 	public ServletApplication load(Collection<Class<? extends ServiceInterface>> services) throws IOException {
 		File currentDataDir = getCurrentDataDir();
-		services.add(ClusterManager.load(executorService, getWebServicePublicAddress(), null));
+		services.add(ClusterManager.load(executorService, udpServer, getWebServicePublicAddress(), null));
 		services.add(TableManager.load(executorService, currentDataDir));
 		return null;
 	}
