@@ -25,12 +25,13 @@ import io.undertow.security.idm.IdentityManager;
 import javax.servlet.ServletException;
 import java.io.File;
 import java.io.IOException;
+import java.net.UnknownHostException;
 import java.util.Collection;
 import java.util.concurrent.Executors;
 
 public class TableServer extends AbstractServer<ServerConfiguration> {
 
-	private TableServer() {
+	private TableServer() throws UnknownHostException {
 		super(Executors.newSingleThreadExecutor(), new ServerConfiguration());
 	}
 
