@@ -20,6 +20,7 @@ import com.qwazr.database.model.TableRequest;
 import com.qwazr.database.model.TableRequestResult;
 import com.qwazr.database.store.*;
 import com.qwazr.utils.LockUtils;
+import com.qwazr.utils.server.ServerBuilder;
 import com.qwazr.utils.server.ServerException;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.FileFilterUtils;
@@ -44,16 +45,16 @@ public class TableManager {
 
 	public final ExecutorService executor;
 
-	public static Class<? extends TableServiceInterface> load(ExecutorService executor, File dataDirectory)
-			throws IOException {
+	public static void load(final ServerBuilder serverBuilder) throws IOException {
 		if (INSTANCE != null)
 			throw new IOException("Already loaded");
-		File tableDir = new File(dataDirectory, SERVICE_NAME_TABLE);
+		File tableDir = new File(serverBuilder.getServerConfiguration().dataDirectory, SERVICE_NAME_TABLE);
 		if (!tableDir.exists())
 			tableDir.mkdir();
 		try {
-			INSTANCE = new TableManager(executor, tableDir);
-			return TableServiceImpl.class;
+			INSTANCE = new TableManager(serverBuilder.getExecutorService(), tableDir);
+			if (serverBuilder != null)
+				serverBuilder.registerWebService(TableServiceImpl.class);
 		} catch (ServerException e) {
 			throw new RuntimeException(e);
 		}
@@ -219,7 +220,8 @@ public class TableManager {
 			if (request.counters != null && !request.counters.isEmpty()) {
 				counters = new LinkedHashMap<String, Map<String, CollectorInterface.LongCounter>>();
 				for (String col : request.counters) {
-					Map<String, CollectorInterface.LongCounter> termCount = new HashMap<String, CollectorInterface.LongCounter>();
+					Map<String, CollectorInterface.LongCounter> termCount =
+							new HashMap<String, CollectorInterface.LongCounter>();
 					counters.put(col, termCount);
 				}
 			}
