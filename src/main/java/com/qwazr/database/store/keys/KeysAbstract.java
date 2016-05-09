@@ -31,19 +31,20 @@ public abstract class KeysAbstract<T> extends KeyAbstract<T> {
 	final public int deleteAll(KeyStore store) throws IOException {
 		byte[] myKey = getCachedKey();
 		ByteBuffer bb = ByteBuffer.wrap(myKey);
-		DBIterator iterator = store.iterator();
-		iterator.seek(myKey);
-		int count = 0;
-		while (iterator.hasNext()) {
-			Map.Entry<byte[], byte[]> entry = iterator.next();
-			byte[] key = entry.getKey();
-			if (key.length < myKey.length)
-				break;
-			if (!bb.equals(ByteBuffer.wrap(key, 0, myKey.length)))
-				break;
-			store.delete(key);
-			count++;
+		try (final DBIterator iterator = store.iterator()) {
+			iterator.seek(myKey);
+			int count = 0;
+			while (iterator.hasNext()) {
+				Map.Entry<byte[], byte[]> entry = iterator.next();
+				byte[] key = entry.getKey();
+				if (key.length < myKey.length)
+					break;
+				if (!bb.equals(ByteBuffer.wrap(key, 0, myKey.length)))
+					break;
+				store.delete(key);
+				count++;
+			}
+			return count;
 		}
-		return count;
 	}
 }

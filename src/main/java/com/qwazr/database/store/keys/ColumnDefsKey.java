@@ -35,19 +35,21 @@ final public class ColumnDefsKey extends KeyAbstract<Map<String, ColumnDefinitio
 	public Map<String, ColumnDefinition.Internal> getColumns(final KeyStore store) throws IOException {
 		final Map<String, ColumnDefinition.Internal> map = new LinkedHashMap<>();
 		final byte[] myKey = getCachedKey();
-		final DBIterator iterator = store.iterator();
-		iterator.seek(myKey);
-		while (iterator.hasNext()) {
-			Map.Entry<byte[], byte[]> entry = iterator.next();
-			byte[] key = entry.getKey();
-			if (!ArrayUtils.startsWith(key, myKey))
-				break;
-			String fieldName = CharsetUtils.decodeUtf8(ByteBuffer.wrap(key, myKey.length, key.length - myKey.length));
-			ColumnDefinition.Internal colDef =
-					ColumnDefKey.columnInternalDefinitionByteConverter.toValue(entry.getValue());
-			map.put(fieldName, colDef);
+		try (final DBIterator iterator = store.iterator()) {
+			iterator.seek(myKey);
+			while (iterator.hasNext()) {
+				Map.Entry<byte[], byte[]> entry = iterator.next();
+				byte[] key = entry.getKey();
+				if (!ArrayUtils.startsWith(key, myKey))
+					break;
+				String fieldName =
+						CharsetUtils.decodeUtf8(ByteBuffer.wrap(key, myKey.length, key.length - myKey.length));
+				ColumnDefinition.Internal colDef =
+						ColumnDefKey.columnInternalDefinitionByteConverter.toValue(entry.getValue());
+				map.put(fieldName, colDef);
+			}
+			return map;
 		}
-		return map;
 	}
 
 }
