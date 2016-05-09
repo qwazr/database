@@ -26,35 +26,34 @@ import java.util.Map;
 
 public class QueryContext {
 
-    final KeyStore store;
-    final Map<String, ColumnDefinition.Internal> columns;
+	final KeyStore store;
+	final Map<String, ColumnDefinition.Internal> columns;
 
-    QueryContext(KeyStore store, Map<String, ColumnDefinition.Internal> columns) {
-	this.store = store;
-	this.columns = columns;
-    }
+	QueryContext(final KeyStore store, final Map<String, ColumnDefinition.Internal> columns) {
+		this.store = store;
+		this.columns = columns;
+	}
 
-    public final <T> RoaringBitmap getIndexedBitset(final String columnName, final T value)
-		    throws DatabaseException, IOException {
-	ColumnDefinition.Internal colDef = columns.get(columnName);
-	if (colDef == null)
-	    throw new DatabaseException("Unknown column: " + columnName);
-	if (colDef.mode != ColumnDefinition.Mode.INDEXED)
-	    throw new DatabaseException("The column is not indexed: " + columnName);
-	return ColumnIndexKey.newInstance(colDef, columnName).getValue(store);
-    }
+	public final <T> RoaringBitmap getIndexedBitset(final String columnName) throws IOException {
+		final ColumnDefinition.Internal colDef = columns.get(columnName);
+		if (colDef == null)
+			throw new DatabaseException("Unknown column: " + columnName);
+		if (colDef.mode != ColumnDefinition.Mode.INDEXED)
+			throw new DatabaseException("The column is not indexed: " + columnName);
+		return ColumnIndexKey.newInstance(colDef, columnName).getValue(store);
+	}
 
-    public final CollectorInterface newFacetCollector(final CollectorInterface collector, final String columnName,
-		    final Map<Object, CollectorInterface.LongCounter> facetMap) {
-	return collector.facets(this, columns.get(columnName), facetMap);
-    }
+	public final CollectorInterface newFacetCollector(final CollectorInterface collector, final String columnName,
+			final Map<Object, CollectorInterface.LongCounter> facetMap) {
+		return collector.facets(this, columns.get(columnName), facetMap);
+	}
 
-    public Integer getExistingDocId(String key) throws IOException {
-	return new PrimaryIdsKey(key).getValue(store);
-    }
+	public Integer getExistingDocId(final String key) throws IOException {
+		return new PrimaryIdsKey(key).getValue(store);
+	}
 
-    public void consumeFirstValue(final String columnName, final int docId, ValueConsumer consumer)
-		    throws DatabaseException, IOException {
-	ColumnStoreKey.newInstance(columns.get(columnName), docId).forFirst(store, consumer);
-    }
+	public void consumeFirstValue(final String columnName, final int docId, final ValueConsumer consumer)
+			throws IOException {
+		ColumnStoreKey.newInstance(columns.get(columnName), docId).forFirst(store, consumer);
+	}
 }

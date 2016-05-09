@@ -32,7 +32,7 @@ public class Tables {
 
 	private final static Map<File, Table> tables = new HashMap<>();
 
-	public static Table getInstance(File directory, boolean createIfNotExist) throws IOException, DatabaseException {
+	public static Table getInstance(final File directory, final boolean createIfNotExist) throws IOException {
 		final Table t = rwlTables.readEx(() -> tables.get(directory));
 		if (t != null)
 			return t;
@@ -48,29 +48,20 @@ public class Tables {
 		});
 	}
 
-	static void close(File directory) throws IOException {
-		rwlTables.r.lock();
-		try {
-			Table table = tables.get(directory);
-			if (table == null)
-				return;
-		} finally {
-			rwlTables.r.unlock();
-		}
-		rwlTables.w.lock();
-		try {
+	static void close(final File directory) throws IOException {
+		Table t = rwlTables.readEx(() -> tables.get(directory));
+		if (t == null)
+			return;
+		rwlTables.writeEx(() -> {
 			Table table = tables.get(directory);
 			if (table == null)
 				return;
 			tables.remove(directory);
-		} finally {
-			rwlTables.w.unlock();
-		}
+		});
 	}
 
 	public static void closeAll() {
-		rwlTables.w.lock();
-		try {
+		rwlTables.writeEx(() -> {
 			tables.forEach((file, table) -> {
 				try {
 					table.close();
@@ -79,8 +70,6 @@ public class Tables {
 				}
 			});
 			KeyStore.freeMemoryPool();
-		} finally {
-			rwlTables.w.unlock();
-		}
+		});
 	}
 }

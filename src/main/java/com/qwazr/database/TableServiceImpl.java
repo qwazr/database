@@ -57,7 +57,7 @@ public class TableServiceImpl implements TableServiceInterface {
 	public TableDefinition getTable(String tableName) {
 		try {
 			return new TableDefinition(TableManager.INSTANCE.getColumns(tableName));
-		} catch (IOException | ServerException | DatabaseException e) {
+		} catch (IOException | ServerException e) {
 			logger.warn(e.getMessage(), e);
 			throw ServerException.getJsonException(e);
 		}
@@ -68,7 +68,7 @@ public class TableServiceImpl implements TableServiceInterface {
 		try {
 			TableManager.INSTANCE.deleteTable(tableName);
 			return true;
-		} catch (IOException | ServerException | DatabaseException e) {
+		} catch (IOException | ServerException e) {
 			logger.warn(e.getMessage(), e);
 			throw ServerException.getJsonException(e);
 		}
@@ -78,7 +78,7 @@ public class TableServiceImpl implements TableServiceInterface {
 	public Map<String, ColumnDefinition> getColumns(String tableName) {
 		try {
 			return TableManager.INSTANCE.getColumns(tableName);
-		} catch (ServerException | DatabaseException | IOException e) {
+		} catch (ServerException | IOException e) {
 			logger.warn(e.getMessage(), e);
 			throw ServerException.getJsonException(e);
 		}
@@ -88,7 +88,7 @@ public class TableServiceImpl implements TableServiceInterface {
 	public ColumnDefinition getColumn(String tableName, String columnName) {
 		try {
 			return TableManager.INSTANCE.getColumns(tableName).get(columnName);
-		} catch (ServerException | DatabaseException | IOException e) {
+		} catch (ServerException | IOException e) {
 			logger.warn(e.getMessage(), e);
 			throw ServerException.getJsonException(e);
 		}
@@ -114,7 +114,7 @@ public class TableServiceImpl implements TableServiceInterface {
 	public Long upsertRows(String table_name, List<Map<String, Object>> rows) {
 		try {
 			return (long) TableManager.INSTANCE.upsertRows(table_name, rows);
-		} catch (IOException | ServerException | DatabaseException e) {
+		} catch (IOException | ServerException e) {
 			logger.warn(e.getMessage(), e);
 			throw ServerException.getJsonException(e);
 		}
@@ -192,7 +192,7 @@ public class TableServiceImpl implements TableServiceInterface {
 		try {
 			TableManager.INSTANCE.upsertRow(table_name, row_id, node);
 			return node;
-		} catch (ServerException | IOException | DatabaseException e) {
+		} catch (ServerException | IOException e) {
 			logger.warn(e.getMessage(), e);
 			throw ServerException.getJsonException(e);
 		}
@@ -202,7 +202,7 @@ public class TableServiceImpl implements TableServiceInterface {
 	public LinkedHashMap<String, Object> getRow(String table_name, String row_id, Set<String> columns) {
 		try {
 			return TableManager.INSTANCE.getRow(table_name, row_id, columns);
-		} catch (ServerException | IOException | DatabaseException e) {
+		} catch (ServerException | IOException e) {
 			logger.warn(e.getMessage(), e);
 			throw ServerException.getJsonException(e);
 		}
@@ -212,7 +212,7 @@ public class TableServiceImpl implements TableServiceInterface {
 	public Boolean deleteRow(String table_name, String row_id) {
 		try {
 			return TableManager.INSTANCE.deleteRow(table_name, row_id);
-		} catch (ServerException | IOException | DatabaseException e) {
+		} catch (ServerException | IOException e) {
 			logger.warn(e.getMessage(), e);
 			throw ServerException.getJsonException(e);
 		}
@@ -222,7 +222,7 @@ public class TableServiceImpl implements TableServiceInterface {
 	public TableRequestResult queryRows(String table_name, TableRequest request) {
 		try {
 			return TableManager.INSTANCE.query(table_name, request);
-		} catch (ServerException | IOException | Query.QueryException | DatabaseException e) {
+		} catch (ServerException | IOException | Query.QueryException e) {
 			logger.warn(e.getMessage(), e);
 			throw ServerException.getJsonException(e);
 		}

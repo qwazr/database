@@ -16,8 +16,7 @@
 package com.qwazr.database.store;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.qwazr.utils.threads.ThreadUtils;
-import com.qwazr.utils.threads.ThreadUtils.ProcedureExceptionCatcher;
+import com.qwazr.utils.concurrent.ThreadUtils;
 import org.roaringbitmap.RoaringBitmap;
 
 import java.io.IOException;
@@ -26,15 +25,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
 
 public abstract class Query {
 
 	final public static Query prepare(JsonNode node, QueryHook queryHook) throws QueryException {
 		if (!node.isObject())
 			throw new QueryException(
-							"Query error: An object was expected. But got " + node.getNodeType() + " Near: " + node
-											.asText());
+					"Query error: An object was expected. But got " + node.getNodeType() + " Near: " + node.asText());
 		if (node.size() == 0)
 			throw new QueryException("The query is empty: Near: " + node.asText());
 		if (node.size() > 1)
@@ -62,23 +59,22 @@ public abstract class Query {
 		return newQuery;
 	}
 
-	abstract RoaringBitmap execute(final QueryContext context, final ExecutorService executor) throws Exception;
+	abstract RoaringBitmap execute(final QueryContext context, final ExecutorService executor) throws IOException;
 
 	public static class TermQuery<T> extends Query {
 
 		private String field;
 		private final T value;
 
-		public TermQuery(String field, T value) {
+		public TermQuery(final String field, final T value) {
 			super();
 			this.field = field;
 			this.value = value;
 		}
 
 		@Override
-		final RoaringBitmap execute(final QueryContext context, final ExecutorService executor)
-						throws IOException, DatabaseException {
-			RoaringBitmap bitset = context.getIndexedBitset(field, value);
+		final RoaringBitmap execute(final QueryContext context, final ExecutorService executor) throws IOException {
+			RoaringBitmap bitset = context.getIndexedBitset(field);
 			if (bitset == null)
 				bitset = new RoaringBitmap();
 			return bitset;
@@ -104,17 +100,8 @@ public abstract class Query {
 		protected GroupQuery(JsonNode node, QueryHook queryHook) throws QueryException {
 			if (!node.isArray())
 				throw new QueryException("Array expected, but got " + node.getNodeType());
-
-			queries = new ArrayList<Query>(node.size());
-
-			node.forEach(new Consumer<JsonNode>() {
-
-				@Override
-				public void accept(JsonNode node) {
-					queries.add(Query.prepare(node, queryHook));
-				}
-			});
-
+			queries = new ArrayList<>(node.size());
+			node.forEach(n -> queries.add(Query.prepare(n, queryHook)));
 		}
 
 		protected GroupQuery() {
@@ -136,25 +123,24 @@ public abstract class Query {
 		}
 
 		@Override
-		final RoaringBitmap execute(final QueryContext context, final ExecutorService executor) throws Exception {
-			List<ProcedureExceptionCatcher> threads = new ArrayList<ProcedureExceptionCatcher>(queries.size());
-			final RoaringBitmap finalBitmap = new RoaringBitmap();
-			for (Query query : queries) {
-
-				threads.add(new ProcedureExceptionCatcher() {
-					@Override
-					public void execute() throws Exception {
-						RoaringBitmap bitmap = query.execute(context, executor);
-						if (bitmap != null) {
-							synchronized (finalBitmap) {
-								finalBitmap.or(bitmap);
-							}
-						}
+		final RoaringBitmap execute(final QueryContext context, final ExecutorService executor) throws IOException {
+			try {
+				final RoaringBitmap finalBitmap = new RoaringBitmap();
+				ThreadUtils.parallel(queries, query -> {
+					final RoaringBitmap bitmap = query.execute(context, executor);
+					if (bitmap == null)
+						return;
+					synchronized (finalBitmap) {
+						finalBitmap.or(bitmap);
 					}
 				});
+				return finalBitmap;
+			} catch (Exception e) {
+				if (e instanceof IOException)
+					throw (IOException) e;
+				else
+					throw new RuntimeException(e);
 			}
-			ThreadUtils.invokeAndJoin(executor, threads);
-			return finalBitmap;
 		}
 
 	}
@@ -169,29 +155,28 @@ public abstract class Query {
 		}
 
 		@Override
-		final RoaringBitmap execute(final QueryContext context, final ExecutorService executor) throws Exception {
-			List<ProcedureExceptionCatcher> threads = new ArrayList<ProcedureExceptionCatcher>(queries.size());
-			final RoaringBitmap finalBitmap = new RoaringBitmap();
-			final AtomicBoolean first = new AtomicBoolean(true);
-			for (Query query : queries) {
-
-				threads.add(new ProcedureExceptionCatcher() {
-					@Override
-					public void execute() throws Exception {
-						RoaringBitmap bitmap = query.execute(context, executor);
-						if (bitmap != null) {
-							synchronized (finalBitmap) {
-								if (first.getAndSet(false))
-									finalBitmap.or(bitmap);
-								else
-									finalBitmap.and(bitmap);
-							}
-						}
+		final RoaringBitmap execute(final QueryContext context, final ExecutorService executor) throws IOException {
+			try {
+				final RoaringBitmap finalBitmap = new RoaringBitmap();
+				final AtomicBoolean first = new AtomicBoolean(true);
+				ThreadUtils.parallel(queries, query -> {
+					final RoaringBitmap bitmap = query.execute(context, executor);
+					if (bitmap == null)
+						return;
+					synchronized (finalBitmap) {
+						if (first.getAndSet(false))
+							finalBitmap.or(bitmap);
+						else
+							finalBitmap.and(bitmap);
 					}
 				});
+				return finalBitmap;
+			} catch (Exception e) {
+				if (e instanceof IOException)
+					throw (IOException) e;
+				else
+					throw new RuntimeException(e);
 			}
-			ThreadUtils.invokeAndJoin(executor, threads);
-			return finalBitmap;
 		}
 	}
 

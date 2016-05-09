@@ -68,22 +68,21 @@ public class TableManager {
 		return INSTANCE;
 	}
 
-	private TableManager(ExecutorService executor, File directory) throws ServerException, IOException {
+	private TableManager(final ExecutorService executor, final File directory) throws ServerException, IOException {
 		this.directory = directory;
 		this.executor = executor;
 	}
 
-	private Table getTable(String tableName) throws IOException, ServerException, DatabaseException {
+	private Table getTable(final String tableName) throws IOException {
 		File dbDirectory = new File(directory, tableName);
 		if (!dbDirectory.exists())
 			throw new ServerException(Response.Status.NOT_FOUND, "Table not found: " + tableName);
 		return Tables.getInstance(dbDirectory, true);
 	}
 
-	public void createTable(String tableName) throws ServerException, IOException, DatabaseException {
-		rwl.w.lock();
-		try {
-			File dbDirectory = new File(directory, tableName);
+	public void createTable(final String tableName) throws IOException {
+		rwl.writeEx(() -> {
+			final File dbDirectory = new File(directory, tableName);
 			if (dbDirectory.exists())
 				throw new ServerException(Response.Status.CONFLICT, "The table already exists: " + tableName);
 			dbDirectory.mkdir();
@@ -91,171 +90,130 @@ public class TableManager {
 				throw new ServerException(Response.Status.INTERNAL_SERVER_ERROR,
 						"The directory cannot be created: " + dbDirectory.getAbsolutePath());
 			Tables.getInstance(dbDirectory, true);
-		} finally {
-			rwl.w.unlock();
-		}
+		});
 	}
 
 	public Set<String> getNameSet() {
-		rwl.r.lock();
-		try {
-			LinkedHashSet<String> names = new LinkedHashSet<String>();
+		return rwl.read(() -> {
+			final LinkedHashSet<String> names = new LinkedHashSet<>();
 			for (File file : directory.listFiles((FileFilter) FileFilterUtils.directoryFileFilter()))
 				if (!file.isHidden())
 					names.add(file.getName());
 			return names;
-		} finally {
-			rwl.r.unlock();
-		}
+		});
 	}
 
-	public Map<String, ColumnDefinition> getColumns(String tableName)
-			throws ServerException, DatabaseException, IOException {
-		rwl.r.lock();
-		try {
-			return getTable(tableName).getColumns();
-		} finally {
-			rwl.r.unlock();
-		}
+	public Map<String, ColumnDefinition> getColumns(final String tableName) throws IOException {
+		return rwl.readEx(() -> getTable(tableName).getColumns());
 	}
 
-	public void addColumn(String tableName, String columnName, ColumnDefinition columnDefinition)
-			throws IOException, ServerException {
-		rwl.w.lock();
-		try {
-			Table table = getTable(tableName);
+	public void addColumn(final String tableName, final String columnName, final ColumnDefinition columnDefinition)
+			throws IOException {
+		rwl.writeEx(() -> {
+			final Table table = getTable(tableName);
 			table.addColumn(columnName, columnDefinition);
-		} catch (Exception e) {
-			throw ServerException.getServerException(e);
-		} finally {
-			rwl.w.unlock();
-		}
+		});
 	}
 
-	public void removeColumn(String tableName, String columnName) throws IOException, ServerException {
-		rwl.w.lock();
-		try {
-			Table table = getTable(tableName);
+	public void removeColumn(final String tableName, final String columnName) throws IOException {
+		rwl.writeEx(() -> {
+			final Table table = getTable(tableName);
 			table.removeColumn(columnName);
-		} catch (Exception e) {
-			throw ServerException.getServerException(e);
-		} finally {
-			rwl.w.unlock();
-		}
+		});
 	}
 
-	public void deleteTable(String tableName) throws ServerException, IOException, DatabaseException {
-		rwl.w.lock();
-		try {
-			File dbDirectory = new File(directory, tableName);
+	public void deleteTable(final String tableName) throws IOException {
+		rwl.writeEx(() -> {
+			final File dbDirectory = new File(directory, tableName);
 			Table table = Tables.getInstance(dbDirectory, false);
 			if (table != null)
 				table.close();
 			if (!dbDirectory.exists())
 				throw new ServerException(Response.Status.NOT_FOUND, "Table not found: " + tableName);
 			FileUtils.deleteDirectory(dbDirectory);
-		} finally {
-			rwl.w.unlock();
-		}
+		});
 	}
 
-	public void upsertRow(String tableName, String row_id, Map<String, Object> nodeMap)
-			throws IOException, ServerException, DatabaseException {
-		rwl.r.lock();
-		try {
-			Table table = getTable(tableName);
+	public void upsertRow(final String tableName, final String row_id, final Map<String, Object> nodeMap)
+			throws IOException {
+		rwl.readEx(() -> {
+			final Table table = getTable(tableName);
 			table.upsertRow(row_id, nodeMap);
-		} finally {
-			rwl.r.unlock();
-		}
+		});
 	}
 
-	public int upsertRows(String tableName, List<Map<String, Object>> rows)
-			throws IOException, ServerException, DatabaseException {
-		rwl.r.lock();
-		try {
-			Table table = getTable(tableName);
+	public int upsertRows(final String tableName, final List<Map<String, Object>> rows) throws IOException {
+		return rwl.readEx(() -> {
+			final Table table = getTable(tableName);
 			return table.upsertRows(rows);
-		} finally {
-			rwl.r.unlock();
-		}
+		});
 	}
 
-	public LinkedHashMap<String, Object> getRow(String tableName, String key, Set<String> columns)
-			throws IOException, ServerException, DatabaseException {
-		rwl.r.lock();
-		try {
-			Table table = getTable(tableName);
-			LinkedHashMap<String, Object> row = table.getRow(key, columns);
+	public LinkedHashMap<String, Object> getRow(final String tableName, final String key, final Set<String> columns)
+			throws IOException {
+		return rwl.readEx(() -> {
+			final Table table = getTable(tableName);
+			final LinkedHashMap<String, Object> row = table.getRow(key, columns);
 			if (row == null)
 				throw new ServerException(Response.Status.NOT_FOUND, "Row not found: " + key);
 			return row;
-		} finally {
-			rwl.r.unlock();
-		}
+		});
 	}
 
-	public boolean deleteRow(String tableName, String key) throws IOException, ServerException, DatabaseException {
-		rwl.r.lock();
-		try {
-			Table table = getTable(tableName);
+	public boolean deleteRow(final String tableName, final String key) throws IOException {
+		return rwl.readEx(() -> {
+			final Table table = getTable(tableName);
 			return table.deleteRow(key);
-		} finally {
-			rwl.r.unlock();
-		}
+		});
 	}
 
-	public TableRequestResult query(String tableName, TableRequest request)
-			throws ServerException, DatabaseException, IOException {
-		rwl.r.lock();
-		try {
+	public TableRequestResult query(final String tableName, final TableRequest request) throws IOException {
+		return rwl.readEx(() -> {
 
-			long start = request.start == null ? 0 : request.start;
-			long rows = request.rows == null ? Long.MAX_VALUE : request.rows;
+			final long start = request.start == null ? 0 : request.start;
+			final long rows = request.rows == null ? Long.MAX_VALUE : request.rows;
 
-			Table table = getTable(tableName);
+			final Table table = getTable(tableName);
 
 			if (request.query == null)
 				throw new ServerException(Response.Status.NOT_ACCEPTABLE, "The query part is missing");
 
-			Map<String, Map<String, CollectorInterface.LongCounter>> counters = null;
+			final Map<String, Map<String, CollectorInterface.LongCounter>> counters;
 			if (request.counters != null && !request.counters.isEmpty()) {
-				counters = new LinkedHashMap<String, Map<String, CollectorInterface.LongCounter>>();
+				counters = new LinkedHashMap<>();
 				for (String col : request.counters) {
 					Map<String, CollectorInterface.LongCounter> termCount =
 							new HashMap<String, CollectorInterface.LongCounter>();
 					counters.put(col, termCount);
 				}
-			}
+			} else
+				counters = null;
 
-			Query query = Query.prepare(request.query, null);
+			final Query query = Query.prepare(request.query, null);
 
-			RoaringBitmap docBitset = table.query(query, counters).finalBitmap;
+			final RoaringBitmap docBitset = table.query(query, counters).finalBitmap;
 
 			if (docBitset == null || docBitset.isEmpty())
 				return new TableRequestResult(null);
 
-			long count = docBitset.getCardinality();
-			TableRequestResult result = new TableRequestResult(count);
+			final long count = docBitset.getCardinality();
+			final TableRequestResult result = new TableRequestResult(count);
 
 			table.getRows(docBitset, request.columns, start, rows, result.rows);
 
-			if (counters != null) {
-				for (Map.Entry<String, Map<String, CollectorInterface.LongCounter>> countersEntry : counters
-						.entrySet()) {
-					LinkedHashMap<String, Long> counter = new LinkedHashMap<String, Long>();
-					for (Map.Entry<String, CollectorInterface.LongCounter> counterEntry : countersEntry.getValue()
-							.entrySet())
-						counter.put(counterEntry.getKey(), counterEntry.getValue().count);
-					result.counters.put(countersEntry.getKey(), counter);
-				}
-			}
+			if (counters == null)
+				return result;
+
+			counters.forEach((countersEntryKey, countersEntry) -> {
+				final LinkedHashMap<String, Long> counter = new LinkedHashMap<>();
+				countersEntry.forEach((key, counterEntry) -> {
+					counter.put(key, counterEntry.count);
+				});
+				result.counters.put(countersEntryKey, counter);
+			});
 
 			return result;
-		} finally {
-			rwl.r.unlock();
-		}
-
+		});
 	}
 
 }

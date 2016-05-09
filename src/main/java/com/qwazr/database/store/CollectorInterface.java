@@ -25,168 +25,168 @@ import java.util.Map;
 
 public interface CollectorInterface {
 
-    static Collector build() {
-	return new Collector(null);
-    }
-
-    void collect(RoaringBitmap finalBitmap) throws IOException, DatabaseException;
-
-    void collect(int docId) throws IOException, DatabaseException;
-
-    int getCount();
-
-    DocumentsCollector documents(Collection<Integer> documentIds);
-
-    FacetsCollector facets(QueryContext context, ColumnDefinition.Internal columnDef,
-		    Map<Object, LongCounter> termCounter);
-
-    ScoresCollector scores();
-
-    abstract class CollectorAbstract implements CollectorInterface {
-
-	protected final CollectorInterface parent;
-
-	private CollectorAbstract(CollectorInterface parent) {
-	    this.parent = parent;
+	static Collector build() {
+		return new Collector(null);
 	}
 
-	@Override
-	final public DocumentsCollector documents(Collection<Integer> documentIds) {
-	    return new DocumentsCollector(this, documentIds);
+	void collect(RoaringBitmap finalBitmap) throws IOException;
+
+	void collect(int docId) throws IOException;
+
+	int getCount();
+
+	DocumentsCollector documents(Collection<Integer> documentIds);
+
+	FacetsCollector facets(QueryContext context, ColumnDefinition.Internal columnDef,
+			Map<Object, LongCounter> termCounter);
+
+	ScoresCollector scores();
+
+	abstract class CollectorAbstract implements CollectorInterface {
+
+		protected final CollectorInterface parent;
+
+		private CollectorAbstract(CollectorInterface parent) {
+			this.parent = parent;
+		}
+
+		@Override
+		final public DocumentsCollector documents(Collection<Integer> documentIds) {
+			return new DocumentsCollector(this, documentIds);
+		}
+
+		@Override
+		final public FacetsCollector facets(QueryContext context, ColumnDefinition.Internal columnDef,
+				Map<Object, LongCounter> termCounter) {
+			return new FacetsCollector(this, context, columnDef, termCounter);
+		}
+
+		@Override
+		final public ScoresCollector scores() {
+			return new ScoresCollector(this);
+		}
+
+		@Override
+		final public void collect(RoaringBitmap bitmap) throws IOException, DatabaseException {
+			for (Integer docId : bitmap)
+				collect(docId);
+		}
+
+		@Override
+		public int getCount() {
+			return parent.getCount();
+		}
 	}
 
-	@Override
-	final public FacetsCollector facets(QueryContext context, ColumnDefinition.Internal columnDef,
-			Map<Object, LongCounter> termCounter) {
-	    return new FacetsCollector(this, context, columnDef, termCounter);
+	class Collector extends CollectorAbstract {
+
+		private int count;
+
+		private Collector(CollectorInterface parent) {
+			super(parent);
+			count = 0;
+		}
+
+		@Override
+		public void collect(int docId) {
+			count++;
+		}
+
+		@Override
+		final public int getCount() {
+			return count;
+		}
+
 	}
 
-	@Override
-	final public ScoresCollector scores() {
-	    return new ScoresCollector(this);
+	class DocumentsCollector extends CollectorAbstract {
+
+		private final Collection<Integer> documentIds;
+
+		private DocumentsCollector(CollectorInterface parent, Collection<Integer> documentIds) {
+			super(parent);
+			this.documentIds = documentIds;
+		}
+
+		@Override
+		final public void collect(int docId) throws IOException, DatabaseException {
+			documentIds.add(docId);
+			parent.collect(docId);
+		}
 	}
 
-	@Override
-	final public void collect(RoaringBitmap bitmap) throws IOException, DatabaseException {
-	    for (Integer docId : bitmap)
-		collect(docId);
+	class LongCounter {
+		public long count = 1;
 	}
 
-	@Override
-	public int getCount() {
-	    return parent.getCount();
-	}
-    }
+	class FacetsCollector extends CollectorAbstract implements ValueConsumer {
 
-    class Collector extends CollectorAbstract {
+		private final QueryContext context;
+		private final ColumnDefinition.Internal columnDef;
+		private final Map<Object, LongCounter> termCounter;
 
-	private int count;
+		private FacetsCollector(CollectorInterface parent, QueryContext context, ColumnDefinition.Internal columnDef,
+				Map<Object, LongCounter> termCounter) {
+			super(parent);
+			this.context = context;
+			this.columnDef = columnDef;
+			this.termCounter = termCounter;
+		}
 
-	private Collector(CollectorInterface parent) {
-	    super(parent);
-	    count = 0;
-	}
+		@Override
+		final public void collect(int docId) throws IOException, DatabaseException {
+			parent.collect(docId);
+			ColumnStoreKey.newInstance(columnDef, docId).forEach(context.store, this);
+		}
 
-	@Override
-	public void collect(int docId) {
-	    count++;
-	}
+		@Override
+		final public void consume(final double value) {
+			LongCounter counter = termCounter.get(value);
+			if (counter == null)
+				termCounter.put(value, new LongCounter());
+			else
+				counter.count++;
+		}
 
-	@Override
-	final public int getCount() {
-	    return count;
-	}
+		@Override
+		public void consume(long value) {
+			LongCounter counter = termCounter.get(value);
+			if (counter == null)
+				termCounter.put(value, new LongCounter());
+			else
+				counter.count++;
+		}
 
-    }
+		@Override
+		public void consume(float value) {
+			LongCounter counter = termCounter.get(value);
+			if (counter == null)
+				termCounter.put(value, new LongCounter());
+			else
+				counter.count++;
+		}
 
-    class DocumentsCollector extends CollectorAbstract {
-
-	private final Collection<Integer> documentIds;
-
-	private DocumentsCollector(CollectorInterface parent, Collection<Integer> documentIds) {
-	    super(parent);
-	    this.documentIds = documentIds;
-	}
-
-	@Override
-	final public void collect(int docId) throws IOException, DatabaseException {
-	    documentIds.add(docId);
-	    parent.collect(docId);
-	}
-    }
-
-    class LongCounter {
-	public long count = 1;
-    }
-
-    class FacetsCollector extends CollectorAbstract implements ValueConsumer {
-
-	private final QueryContext context;
-	private final ColumnDefinition.Internal columnDef;
-	private final Map<Object, LongCounter> termCounter;
-
-	private FacetsCollector(CollectorInterface parent, QueryContext context, ColumnDefinition.Internal columnDef,
-			Map<Object, LongCounter> termCounter) {
-	    super(parent);
-	    this.context = context;
-	    this.columnDef = columnDef;
-	    this.termCounter = termCounter;
+		@Override
+		public void consume(String value) {
+			LongCounter counter = termCounter.get(value);
+			if (counter == null)
+				termCounter.put(value, new LongCounter());
+			else
+				counter.count++;
+		}
 	}
 
-	@Override
-	final public void collect(int docId) throws IOException, DatabaseException {
-	    parent.collect(docId);
-	    ColumnStoreKey.newInstance(columnDef, docId).forEach(context.store, this);
-	}
-
-	@Override
-	final public void consume(final double value) {
-	    LongCounter counter = termCounter.get(value);
-	    if (counter == null)
-		termCounter.put(value, new LongCounter());
-	    else
-		counter.count++;
-	}
-
-	@Override
-	public void consume(long value) {
-	    LongCounter counter = termCounter.get(value);
-	    if (counter == null)
-		termCounter.put(value, new LongCounter());
-	    else
-		counter.count++;
-	}
-
-	@Override
-	public void consume(float value) {
-	    LongCounter counter = termCounter.get(value);
-	    if (counter == null)
-		termCounter.put(value, new LongCounter());
-	    else
-		counter.count++;
-	}
-
-	@Override
-	public void consume(String value) {
-	    LongCounter counter = termCounter.get(value);
-	    if (counter == null)
-		termCounter.put(value, new LongCounter());
-	    else
-		counter.count++;
-	}
-    }
-
-    // TODO Make the implementation
+	// TODO Make the implementation
 	class ScoresCollector extends CollectorAbstract {
 
-	private ScoresCollector(CollectorInterface parent) {
-	    super(parent);
-	}
+		private ScoresCollector(CollectorInterface parent) {
+			super(parent);
+		}
 
-	@Override
-	final public void collect(int docId) throws IOException, DatabaseException {
-	    parent.collect(docId);
+		@Override
+		final public void collect(int docId) throws IOException, DatabaseException {
+			parent.collect(docId);
+		}
 	}
-    }
 
 }
