@@ -54,16 +54,15 @@ final public class ColumnStoreKey<T> extends KeyAbstract<T> {
 
 	final public static ColumnStoreKey<?> newInstance(ColumnDefinition.Internal colDef, int docId)
 			throws DatabaseException {
-		ByteConverter<?> byteConverter;
 		switch (colDef.type) {
-		case DOUBLE:
-			return new ColumnStoreKey<double[]>(colDef, docId, ByteConverter.DoubleArrayByteConverter.INSTANCE);
-		case INTEGER:
-			return new ColumnStoreKey<int[]>(colDef, docId, ByteConverter.IntArrayByteConverter.INSTANCE);
-		case LONG:
-			return new ColumnStoreKey<long[]>(colDef, docId, ByteConverter.LongArrayByteConverter.INSTANCE);
-		case STRING:
-			return new ColumnStoreKey<String[]>(colDef, docId, ByteConverter.StringArrayByteConverter.INSTANCE);
+			case DOUBLE:
+				return new ColumnStoreKey<>(colDef, docId, ByteConverter.DoubleArrayByteConverter.INSTANCE);
+			case INTEGER:
+				return new ColumnStoreKey<>(colDef, docId, ByteConverter.IntArrayByteConverter.INSTANCE);
+			case LONG:
+				return new ColumnStoreKey<>(colDef, docId, ByteConverter.LongArrayByteConverter.INSTANCE);
+			case STRING:
+				return new ColumnStoreKey<>(colDef, docId, ByteConverter.StringArrayByteConverter.INSTANCE);
 		}
 		throw new DatabaseException("unknown type: " + colDef.type);
 	}
@@ -76,33 +75,33 @@ final public class ColumnStoreKey<T> extends KeyAbstract<T> {
 		else if (value.getClass().isArray())
 			setValue(store, (T) value);
 		else
-			setValue(store, (T) objetToArray(value));
+			setValue(store, (T) objectToArray(value));
 	}
 
 	private Object collectionToArray(Collection<?> collection) throws DatabaseException {
 		switch (columnDef.type) {
-		case DOUBLE:
-			return ArrayUtils.toPrimitiveDouble((Collection<Double>) collection);
-		case INTEGER:
-			return ArrayUtils.toPrimitiveInt((Collection<Integer>) collection);
-		case LONG:
-			return ArrayUtils.toPrimitiveLong((Collection<Long>) collection);
-		case STRING:
-			return collection.toArray(new String[collection.size()]);
+			case DOUBLE:
+				return ArrayUtils.toPrimitiveDouble((Collection<Double>) collection);
+			case INTEGER:
+				return ArrayUtils.toPrimitiveInt((Collection<Integer>) collection);
+			case LONG:
+				return ArrayUtils.toPrimitiveLong((Collection<Long>) collection);
+			case STRING:
+				return collection.toArray(new String[collection.size()]);
 		}
 		throw new DatabaseException("unknown type: " + columnDef.type);
 	}
 
-	private Object objetToArray(Object object) throws DatabaseException {
+	private Object objectToArray(Object object) throws DatabaseException {
 		switch (columnDef.type) {
-		case DOUBLE:
-			return new double[] { (Double) object };
-		case INTEGER:
-			return new int[] { (Integer) object };
-		case LONG:
-			return new long[] { (Long) object };
-		case STRING:
-			return new String[] { (String) object };
+			case DOUBLE:
+				return new double[]{(Double) object};
+			case INTEGER:
+				return new int[]{(Integer) object};
+			case LONG:
+				return new long[]{(Long) object};
+			case STRING:
+				return new String[]{(String) object};
 		}
 		throw new DatabaseException("unknown type: " + columnDef.type);
 	}

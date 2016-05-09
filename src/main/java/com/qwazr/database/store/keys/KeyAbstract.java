@@ -45,23 +45,13 @@ public abstract class KeyAbstract<T> implements KeyInterface<T> {
 	final public synchronized byte[] getCachedKey() throws IOException {
 		if (keyBytes != null)
 			return keyBytes;
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		try {
-			DataOutputStream output = new DataOutputStream(baos);
-			try {
+		try (final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+			try (final DataOutputStream output = new DataOutputStream(baos)) {
 				buildKey(output);
 				output.flush();
-				output.close();
-				output = null;
 				keyBytes = baos.toByteArray();
 				return keyBytes;
-			} finally {
-				if (output != null)
-					IOUtils.close(output);
 			}
-		} finally {
-			if (baos != null)
-				IOUtils.close(baos);
 		}
 	}
 

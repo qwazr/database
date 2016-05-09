@@ -45,7 +45,7 @@ public class TableManager {
 
 	public final ExecutorService executor;
 
-	public static void load(final ServerBuilder serverBuilder) throws IOException {
+	public static synchronized void load(final ServerBuilder serverBuilder) throws IOException {
 		if (INSTANCE != null)
 			throw new IOException("Already loaded");
 		File tableDir = new File(serverBuilder.getServerConfiguration().dataDirectory, SERVICE_NAME_TABLE);
@@ -53,8 +53,10 @@ public class TableManager {
 			tableDir.mkdir();
 		try {
 			INSTANCE = new TableManager(serverBuilder.getExecutorService(), tableDir);
-			if (serverBuilder != null)
+			if (serverBuilder != null) {
 				serverBuilder.registerWebService(TableServiceImpl.class);
+				serverBuilder.registerShutdownListener(server -> Tables.closeAll());
+			}
 		} catch (ServerException e) {
 			throw new RuntimeException(e);
 		}

@@ -19,6 +19,8 @@ import org.fusesource.leveldbjni.JniDBFactory;
 import org.iq80.leveldb.DB;
 import org.iq80.leveldb.DBIterator;
 import org.iq80.leveldb.Options;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.io.File;
@@ -26,11 +28,35 @@ import java.io.IOException;
 
 public class KeyStore implements Closeable {
 
+	private static final Logger logger = LoggerFactory.getLogger(KeyStore.class);
+
 	private final DB db;
 	private final File file;
 
+	private static boolean MEMORY_POOL = false;
+
+	final static void checkMemoryPool() {
+		synchronized (KeyStore.class) {
+			if (MEMORY_POOL)
+				return;
+			JniDBFactory.pushMemoryPool(1024 * 512);
+			MEMORY_POOL = true;
+		}
+	}
+
+	final static void freeMemoryPool() {
+		synchronized (KeyStore.class) {
+			if (!MEMORY_POOL)
+				return;
+			JniDBFactory.popMemoryPool();
+			MEMORY_POOL = false;
+		}
+	}
+
 	KeyStore(File file) throws IOException {
+		checkMemoryPool();
 		final Options options = new Options();
+		options.logger(logger::info);
 		this.file = file;
 		options.createIfMissing(true);
 		db = JniDBFactory.factory.open(file, options);
