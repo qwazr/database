@@ -81,9 +81,13 @@ public class Table implements Closeable {
 		primaryIndexKey = new PrimaryIndexKey();
 	}
 
+	void closeNoLock() throws IOException {
+		keyStore.close();
+	}
+
 	@Override
 	public void close() throws IOException {
-		keyStore.close();
+		closeNoLock();
 		Tables.close(directory);
 	}
 
@@ -218,7 +222,8 @@ public class Table implements Closeable {
 					ColumnStoreKey.newInstance(colDef, docId).setObjectValue(keyStore, valueObject);
 				}
 				primaryIndexKey.select(keyStore, docId);
-				newDocIdUsed.set(true);
+				if (newDocIdUsed != null)
+					newDocIdUsed.set(true);
 				return true;
 			});
 		} finally {

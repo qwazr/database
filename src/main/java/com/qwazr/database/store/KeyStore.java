@@ -44,6 +44,7 @@ public class KeyStore implements Closeable {
 		}
 	}
 
+	//TODO
 	final static void freeMemoryPool() {
 		synchronized (KeyStore.class) {
 			if (!MEMORY_POOL)

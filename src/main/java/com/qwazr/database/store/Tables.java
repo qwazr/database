@@ -64,12 +64,12 @@ public class Tables {
 		rwlTables.writeEx(() -> {
 			tables.forEach((file, table) -> {
 				try {
-					table.close();
+					table.closeNoLock();
 				} catch (IOException e) {
 					logger.warn("Cannot clause the table: " + table, e);
 				}
 			});
-			KeyStore.freeMemoryPool();
+			tables.clear();
 		});
 	}
 }
