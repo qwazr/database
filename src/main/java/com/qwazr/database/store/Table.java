@@ -86,6 +86,11 @@ public class Table implements Closeable {
 		Tables.close(directory);
 	}
 
+	public void delete() throws IOException {
+		if (keyStore.exists())
+			keyStore.delete();
+	}
+
 	public Map<String, ColumnDefinition> getColumns() throws IOException {
 		rwlColumns.r.lock();
 		try {

@@ -27,9 +27,11 @@ import java.io.IOException;
 public class KeyStore implements Closeable {
 
 	private final DB db;
+	private final File file;
 
 	KeyStore(File file) throws IOException {
 		final Options options = new Options();
+		this.file = file;
 		options.createIfMissing(true);
 		db = JniDBFactory.factory.open(file, options);
 	}
@@ -37,6 +39,15 @@ public class KeyStore implements Closeable {
 	@Override
 	public void close() throws IOException {
 		db.close();
+	}
+
+	public boolean exists() {
+		return file.exists();
+	}
+
+	public void delete() throws IOException {
+		Options options = new Options();
+		JniDBFactory.factory.destroy(file, options);
 	}
 
 	public byte[] get(byte[] key) {
