@@ -77,7 +77,9 @@ public class FullTest {
 	public static void startDatabaseServer() throws Exception {
 		final File dataDir = Files.createTempDir();
 		System.setProperty("QWAZR_DATA", dataDir.getAbsolutePath());
-		TableServer.main(new String[] {});
+		System.setProperty("LISTEN_ADDR", "localhost");
+		System.setProperty("PUBLIC_ADDR", "localhost");
+		TableServer.main(new String[]{});
 	}
 
 	@Test
