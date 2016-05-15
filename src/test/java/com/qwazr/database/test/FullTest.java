@@ -22,6 +22,7 @@ import com.qwazr.database.TableServiceInterface;
 import com.qwazr.database.TableSingleClient;
 import com.qwazr.database.model.ColumnDefinition;
 import com.qwazr.database.model.TableDefinition;
+import com.qwazr.utils.CharsetUtils;
 import com.qwazr.utils.IOUtils;
 import com.qwazr.utils.json.JsonMapper;
 import com.qwazr.utils.server.RemoteService;
@@ -79,7 +80,7 @@ public class FullTest {
 		System.setProperty("QWAZR_DATA", dataDir.getAbsolutePath());
 		System.setProperty("LISTEN_ADDR", "localhost");
 		System.setProperty("PUBLIC_ADDR", "localhost");
-		TableServer.main(new String[]{});
+		TableServer.main(new String[] {});
 	}
 
 	@Test
@@ -214,7 +215,7 @@ public class FullTest {
 	private static ColumnDefinition getColumnDefinition(String res) {
 		InputStream is = FullTest.class.getResourceAsStream(res);
 		try {
-			return ColumnDefinition.newColumnDefinition(IOUtils.toString(is));
+			return ColumnDefinition.newColumnDefinition(IOUtils.toString(is, CharsetUtils.CharsetUTF8));
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		} finally {
