@@ -175,21 +175,14 @@ public class TableManager {
 
 			final Table table = getTable(tableName);
 
-			if (request.query == null)
-				throw new ServerException(Response.Status.NOT_ACCEPTABLE, "The query part is missing");
-
 			final Map<String, Map<String, CollectorInterface.LongCounter>> counters;
 			if (request.counters != null && !request.counters.isEmpty()) {
 				counters = new LinkedHashMap<>();
-				for (String col : request.counters) {
-					Map<String, CollectorInterface.LongCounter> termCount =
-							new HashMap<String, CollectorInterface.LongCounter>();
-					counters.put(col, termCount);
-				}
+				request.counters.forEach(col -> counters.put(col, new HashMap<>()));
 			} else
 				counters = null;
 
-			final Query query = Query.prepare(request.query, null);
+			final Query query = request.query == null ? null : Query.prepare(request.query, null);
 
 			final RoaringBitmap docBitset = table.query(query, counters).finalBitmap;
 

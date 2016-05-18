@@ -36,7 +36,7 @@ public abstract class Query {
 			throw new QueryException("The query is empty: Near: " + node.asText());
 		if (node.size() > 1)
 			throw new QueryException("Query error: More than one object has been found. Near: " + node.asText());
-		Query newQuery = null;
+		final Query newQuery;
 		if (node.has("$OR"))
 			newQuery = new OrGroup(node.get("$OR"), queryHook);
 		else if (node.has("$AND"))
@@ -46,11 +46,11 @@ public abstract class Query {
 			String field = entry.getKey();
 			JsonNode valueNode = entry.getValue();
 			if (valueNode.isTextual())
-				newQuery = new TermQuery<String>(field, valueNode.asText());
+				newQuery = new TermQuery<>(field, valueNode.asText());
 			else if (node.isFloatingPointNumber())
-				newQuery = new TermQuery<Double>(field, valueNode.asDouble());
+				newQuery = new TermQuery<>(field, valueNode.asDouble());
 			else if (node.isIntegralNumber())
-				newQuery = new TermQuery<Long>(field, valueNode.asLong());
+				newQuery = new TermQuery<>(field, valueNode.asLong());
 			else
 				throw new QueryException("Unexpected value: " + field + "  Type: " + valueNode.getNodeType());
 		}
@@ -105,7 +105,7 @@ public abstract class Query {
 		}
 
 		protected GroupQuery() {
-			queries = new ArrayList<Query>();
+			queries = new ArrayList<>();
 		}
 
 		final public void add(Query query) {
