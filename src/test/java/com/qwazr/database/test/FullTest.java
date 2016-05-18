@@ -147,6 +147,15 @@ public class FullTest {
 	}
 
 	@Test
+	public void test150MatchAllQueryEmpty() throws URISyntaxException {
+		TableServiceInterface client = getClient();
+		TableRequest request = new TableRequest(0, 1000, COLUMNS_WITHID, null, null);
+		TableRequestResult result = client.queryRows(TABLE_NAME, request);
+		Assert.assertNotNull(result);
+		Assert.assertEquals(new Long(0), result.count);
+	}
+
+	@Test
 	public void test300upsertRow() throws URISyntaxException {
 		TableServiceInterface client = getClient();
 		Assert.assertNotNull(client.upsertRow(TABLE_NAME, ID1, UPSERT_ROW1));

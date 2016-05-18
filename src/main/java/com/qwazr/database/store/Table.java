@@ -340,7 +340,7 @@ public class Table implements Closeable {
 				primaryIndexKey.remove(keyStore, finalBitmap);
 			} else
 				finalBitmap = primaryIndexKey.getValue(keyStore);
-			if (finalBitmap.isEmpty())
+			if (finalBitmap == null || finalBitmap.isEmpty())
 				return new QueryResult(context, finalBitmap);
 
 			// long newTime = System.currentTimeMillis();

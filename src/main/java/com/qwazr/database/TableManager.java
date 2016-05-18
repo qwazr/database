@@ -187,7 +187,7 @@ public class TableManager {
 			final RoaringBitmap docBitset = table.query(query, counters).finalBitmap;
 
 			if (docBitset == null || docBitset.isEmpty())
-				return new TableRequestResult(null);
+				return new TableRequestResult(0L);
 
 			final long count = docBitset.getCardinality();
 			final TableRequestResult result = new TableRequestResult(count);
