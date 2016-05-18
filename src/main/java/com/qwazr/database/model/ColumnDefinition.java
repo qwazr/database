@@ -57,6 +57,8 @@ public class ColumnDefinition {
 
 		public final int column_id;
 
+		public final static Internal PRIMARYKEY_COLUMN = new Internal();
+
 		public Internal() {
 			this(null, 0);
 		}
@@ -68,8 +70,9 @@ public class ColumnDefinition {
 
 	}
 
-	public final static TypeReference<Map<String, ColumnDefinition>> MapStringColumnTypeRef = new TypeReference<Map<String, ColumnDefinition>>() {
-	};
+	public final static TypeReference<Map<String, ColumnDefinition>> MapStringColumnTypeRef =
+			new TypeReference<Map<String, ColumnDefinition>>() {
+			};
 
 	public final static ColumnDefinition newColumnDefinition(String jsonString) throws IOException {
 		return JsonMapper.MAPPER.readValue(jsonString, ColumnDefinition.class);

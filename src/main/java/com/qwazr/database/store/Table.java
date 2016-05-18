@@ -20,6 +20,7 @@ import com.qwazr.database.model.ColumnDefinition;
 import com.qwazr.database.store.CollectorInterface.LongCounter;
 import com.qwazr.database.store.keys.*;
 import com.qwazr.utils.LockUtils;
+import com.qwazr.utils.server.ServerException;
 import org.roaringbitmap.IntIterator;
 import org.roaringbitmap.RoaringBitmap;
 import org.slf4j.Logger;
@@ -72,7 +73,7 @@ public class Table implements Closeable {
 	private static final ByteConverter.JsonTypeByteConverter MapStringIntegerByteConverter =
 			new ByteConverter.JsonTypeByteConverter(MapStringIntegerTypeRef);
 
-	Table(File directory) throws IOException, DatabaseException {
+	Table(File directory) throws IOException {
 		this.directory = directory;
 		logger.info("Load table: " + directory);
 		File dbFile = new File(directory, "storedb");
@@ -159,17 +160,9 @@ public class Table implements Closeable {
 		final Integer docId = new PrimaryIdsKey(key).getValue(keyStore);
 		if (docId == null)
 			return null;
-
 		return rwlColumns.readEx(() -> {
-			final LinkedHashMap<String, Object> row = new LinkedHashMap<String, Object>();
 			final Map<String, ColumnDefinition.Internal> columns = columnDefsKey.getColumns(keyStore);
-			for (String columnName : columnNames) {
-				ColumnDefinition.Internal colDef = columns.get(columnName);
-				if (colDef == null)
-					throw new DatabaseException("Unknown column: " + columnName);
-				row.put(columnName, ColumnStoreKey.newInstance(colDef, docId).getValue(keyStore));
-			}
-			return row;
+			return getRowByIdNoLock(docId, columns);
 		});
 	}
 
@@ -213,10 +206,10 @@ public class Table implements Closeable {
 					String colName = entry.getKey();
 					if (ID_COLUMN_NAME.equals(colName))
 						continue;
-					ColumnDefinition.Internal colDef = columns.get(colName);
+					final ColumnDefinition.Internal colDef = columns.get(colName);
 					if (colDef == null)
 						throw new DatabaseException("Unknown column: " + colName);
-					Object valueObject = entry.getValue();
+					final Object valueObject = entry.getValue();
 					if (colDef.mode == ColumnDefinition.Mode.INDEXED)
 						new ColumnIndexesKey(colDef).select(keyStore, valueObject, docId);
 					ColumnStoreKey.newInstance(colDef, docId).setObjectValue(keyStore, valueObject);
@@ -251,12 +244,16 @@ public class Table implements Closeable {
 	private Map<String, ColumnDefinition.Internal> getColumns(Set<String> columnNames) throws IOException {
 		if (columnNames == null || columnNames.isEmpty())
 			return Collections.emptyMap();
-		Map<String, ColumnDefinition.Internal> columnDefs = columnDefsKey.getColumns(keyStore);
-		Map<String, ColumnDefinition.Internal> columns = new LinkedHashMap<>();
+		final Map<String, ColumnDefinition.Internal> columnDefs = columnDefsKey.getColumns(keyStore);
+		final Map<String, ColumnDefinition.Internal> columns = new LinkedHashMap<>();
 		for (String columnName : columnNames) {
 			ColumnDefinition.Internal columnDef = columnDefs.get(columnName);
-			if (columnDef == null)
-				throw new DatabaseException("Column not found: " + columnName);
+			if (columnDef == null) {
+				if (columnName.equals(Table.ID_COLUMN_NAME))
+					columnDef = ColumnDefinition.Internal.PRIMARYKEY_COLUMN;
+				else
+					throw new DatabaseException("Column not found: " + columnName);
+			}
 			columns.put(columnName, columnDef);
 		}
 		return columns;
@@ -266,9 +263,17 @@ public class Table implements Closeable {
 			Map<String, ColumnDefinition.Internal> columns) throws IOException {
 		if (docId == null)
 			return null;
-		LinkedHashMap<String, Object> row = new LinkedHashMap<String, Object>();
-		for (Map.Entry<String, ColumnDefinition.Internal> entry : columns.entrySet())
-			row.put(entry.getKey(), ColumnStoreKey.newInstance(entry.getValue(), docId).getValue(keyStore));
+		final LinkedHashMap<String, Object> row = new LinkedHashMap<>();
+		columns.forEach((name, internal) -> {
+			try {
+				final Object value = internal == ColumnDefinition.Internal.PRIMARYKEY_COLUMN ?
+						primaryIndexKey.getKey(keyStore, docId) :
+						ColumnStoreKey.newInstance(internal, docId).getValue(keyStore);
+				row.put(name, value);
+			} catch (IOException e) {
+				throw new ServerException(e);
+			}
+		});
 		return row;
 	}
 
@@ -277,14 +282,14 @@ public class Table implements Closeable {
 		if (bitmap == null || bitmap.isEmpty())
 			return;
 		rwlColumns.readEx(() -> {
-			Map<String, ColumnDefinition.Internal> columns = getColumns(columnNames);
-			IntIterator docIterator = bitmap.getIntIterator();
+			final Map<String, ColumnDefinition.Internal> columns = getColumns(columnNames);
+			final IntIterator docIterator = bitmap.getIntIterator();
 			long s = start;
 			while (s-- > 0 && docIterator.hasNext())
 				docIterator.next();
 			long r = rows;
 			while (r-- > 0 && docIterator.hasNext()) {
-				LinkedHashMap<String, Object> row = getRowByIdNoLock(docIterator.next(), columns);
+				final LinkedHashMap<String, Object> row = getRowByIdNoLock(docIterator.next(), columns);
 				if (row != null)
 					results.add(row);
 			}
@@ -311,7 +316,7 @@ public class Table implements Closeable {
 	}
 
 	private ColumnDefinition.Internal getIndexedColumn(final String columnName) throws IOException {
-		ColumnDefinition.Internal columnDef = new ColumnDefKey(columnName).getValue(keyStore);
+		final ColumnDefinition.Internal columnDef = new ColumnDefKey(columnName).getValue(keyStore);
 		if (columnDef == null)
 			throw new DatabaseException("Column not found: " + columnName);
 		if (columnDef.mode != ColumnDefinition.Mode.INDEXED)
@@ -350,8 +355,8 @@ public class Table implements Closeable {
 			if (facets != null) {
 				facetsMap = new HashMap<>();
 				for (Map.Entry<String, Map<String, LongCounter>> entry : facets.entrySet()) {
-					String facetField = entry.getKey();
-					Map<Object, LongCounter> facetMap = new HashMap<Object, LongCounter>();
+					final String facetField = entry.getKey();
+					final Map<Object, LongCounter> facetMap = new HashMap<>();
 					facetsMap.put(facetField, facetMap);
 					collector = context.newFacetCollector(collector, facetField, facetMap);
 				}

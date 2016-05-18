@@ -24,6 +24,7 @@ import com.qwazr.database.model.ColumnDefinition;
 import com.qwazr.database.model.TableDefinition;
 import com.qwazr.database.model.TableRequest;
 import com.qwazr.database.model.TableRequestResult;
+import com.qwazr.database.store.Table;
 import com.qwazr.utils.CharsetUtils;
 import com.qwazr.utils.IOUtils;
 import com.qwazr.utils.json.JsonMapper;
@@ -39,10 +40,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URISyntaxException;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class FullTest {
@@ -69,11 +67,14 @@ public class FullTest {
 	public static final String PASS3 = "password3";
 	public static final String PASS4 = "password4";
 	public static final Set<String> COLUMNS;
+	public static final Set<String> COLUMNS_WITHID;
 
 	static {
-		COLUMNS = new HashSet<String>();
+		COLUMNS = new HashSet<>();
 		COLUMNS.add("roles");
 		COLUMNS.add("password");
+		COLUMNS_WITHID = new HashSet<>(COLUMNS);
+		COLUMNS_WITHID.add(Table.ID_COLUMN_NAME);
 	}
 
 	@BeforeClass
@@ -165,7 +166,7 @@ public class FullTest {
 	@Test
 	public void test355MatchAllQuery() throws URISyntaxException {
 		TableServiceInterface client = getClient();
-		TableRequest request = new TableRequest(0, 1000, null, null, null);
+		TableRequest request = new TableRequest(0, 1000, COLUMNS_WITHID, null, null);
 		TableRequestResult result = client.queryRows(TABLE_NAME, request);
 		Assert.assertNotNull(result);
 		Assert.assertEquals(new Long(4), result.count);

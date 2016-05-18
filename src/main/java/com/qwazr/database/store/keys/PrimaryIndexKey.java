@@ -35,16 +35,19 @@ public class PrimaryIndexKey extends IndexKey {
 	}
 
 	@Override
-	public void remove(final KeyStore store, final int docId) throws IOException {
-		PrimaryKeysKey primaryKeysKey = new PrimaryKeysKey(docId);
-		String key = primaryKeysKey.getValue(store);
+	final public void remove(final KeyStore store, final int docId) throws IOException {
+		final String key = getKey(store, docId);
 		if (key != null)
 			new PrimaryIdsKey(key).deleteValue(store);
 		new PrimaryKeysKey(docId).deleteValue(store);
 		super.remove(store, docId);
 	}
 
-	public void remove(final KeyStore store, final RoaringBitmap finalBitmap) throws IOException {
+	final public String getKey(final KeyStore store, final int docId) throws IOException {
+		return new PrimaryKeysKey(docId).getValue(store);
+	}
+
+	final public void remove(final KeyStore store, final RoaringBitmap finalBitmap) throws IOException {
 		if (finalBitmap == null || finalBitmap.isEmpty())
 			return;
 		IntIterator intIterator = finalBitmap.getIntIterator();
