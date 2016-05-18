@@ -22,6 +22,8 @@ import com.qwazr.database.TableServiceInterface;
 import com.qwazr.database.TableSingleClient;
 import com.qwazr.database.model.ColumnDefinition;
 import com.qwazr.database.model.TableDefinition;
+import com.qwazr.database.model.TableRequest;
+import com.qwazr.database.model.TableRequestResult;
 import com.qwazr.utils.CharsetUtils;
 import com.qwazr.utils.IOUtils;
 import com.qwazr.utils.json.JsonMapper;
@@ -126,7 +128,7 @@ public class FullTest {
 		checkColumn(client, COLUMN_NAME_ROLES2, COLUMN_DEF_ROLES);
 	}
 
-	// Not Yet implemented
+	// TODO Not Yet implemented
 	public void test130removeColumn() throws URISyntaxException {
 		TableServiceInterface client = getClient();
 		client.removeColumn(TABLE_NAME, COLUMN_NAME_ROLES2);
@@ -158,6 +160,17 @@ public class FullTest {
 		Long result = client.upsertRows(TABLE_NAME, UPSERT_ROWS);
 		Assert.assertNotNull(result);
 		Assert.assertEquals((long) result, UPSERT_ROWS.size());
+	}
+
+	@Test
+	public void test355MatchAllQuery() throws URISyntaxException {
+		TableServiceInterface client = getClient();
+		TableRequest request = new TableRequest(0, 1000, null, null, null);
+		TableRequestResult result = client.queryRows(TABLE_NAME, request);
+		Assert.assertNotNull(result);
+		Assert.assertEquals(new Long(4), result.count);
+		Assert.assertNotNull(result.rows);
+		Assert.assertEquals(4, result.rows.size());
 	}
 
 	private void deleteAndCheck(String id) throws URISyntaxException {
