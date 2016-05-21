@@ -54,7 +54,7 @@ public class KeyStore implements Closeable {
 		}
 	}
 
-	KeyStore(File file) throws IOException {
+	public KeyStore(final File file) throws IOException {
 		checkMemoryPool();
 		final Options options = new Options();
 		options.logger(logger::info);
@@ -64,32 +64,32 @@ public class KeyStore implements Closeable {
 	}
 
 	@Override
-	public void close() throws IOException {
+	final public void close() throws IOException {
 		db.close();
 	}
 
-	public boolean exists() {
+	final public boolean exists() {
 		return file.exists();
 	}
 
-	public void delete() throws IOException {
+	final public void delete() throws IOException {
 		Options options = new Options();
 		JniDBFactory.factory.destroy(file, options);
 	}
 
-	public byte[] get(byte[] key) {
+	final public byte[] get(final byte[] key) {
 		return db.get(key);
 	}
 
-	public void put(byte[] key, byte[] value) throws IOException {
+	final public void put(final byte[] key, final byte[] value) throws IOException {
 		db.put(key, value);
 	}
 
-	public void delete(byte[] key) throws IOException {
+	final public void delete(final byte[] key) throws IOException {
 		db.delete(key);
 	}
 
-	public DBIterator iterator() {
+	final public DBIterator iterator() {
 		return db.iterator();
 	}
 }
