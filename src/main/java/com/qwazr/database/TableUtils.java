@@ -57,15 +57,50 @@ public class TableUtils {
 	 * @param column       the name of the column
 	 * @param row          a row from a TableRequestResult
 	 * @param defaultValue the default value to return if no value was present
-	 * @param <T>          the type of the returned object
-	 * @return the first value found of the default value
+	 * @return the first value found or the default value
 	 */
-	public static <T> T getFirstIfAny(final String column, final Map<String, Object> row, final T defaultValue) {
-		final T[] array = (T[]) row.get(column);
+	public static String getFirstStringIfAny(final String column, final Map<String, Object> row,
+			final String defaultValue) {
+		final String[] array = (String[]) row.get(column);
 		if (array == null || array.length == 0)
 			return defaultValue;
-		final T value = array[0];
+		final String value = array[0];
 		return value == null ? defaultValue : value;
+	}
+
+	/**
+	 * @param column       the name of the column
+	 * @param row          a row from a TableRequestResult
+	 * @param defaultValue the default value to return if no value was present
+	 * @return the first value found or the default value
+	 */
+	public static Integer getFirstIntegerIfAny(final String column, final Map<String, Object> row,
+			final Integer defaultValue) {
+		final int[] array = (int[]) row.get(column);
+		return array == null || array.length == 0 ? defaultValue : array[0];
+	}
+
+	/**
+	 * @param column       the name of the column
+	 * @param row          a row from a TableRequestResult
+	 * @param defaultValue the default value to return if no value was present
+	 * @return the first value found or the default value
+	 */
+	public static Long getFirstLongIfAny(final String column, final Map<String, Object> row, final Long defaultValue) {
+		final long[] array = (long[]) row.get(column);
+		return array == null || array.length == 0 ? defaultValue : array[0];
+	}
+
+	/**
+	 * @param column       the name of the column
+	 * @param row          a row from a TableRequestResult
+	 * @param defaultValue the default value to return if no value was present
+	 * @return the first value found or the default value
+	 */
+	public static Double getFirstDoubleIfAny(final String column, final Map<String, Object> row,
+			final Double defaultValue) {
+		final double[] array = (double[]) row.get(column);
+		return array == null || array.length == 0 ? defaultValue : array[0];
 	}
 
 	/**
