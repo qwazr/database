@@ -64,7 +64,7 @@ public class TableUtils {
 		final T[] array = (T[]) row.get(column);
 		if (array == null || array.length == 0)
 			return defaultValue;
-		final T value = array[1];
+		final T value = array[0];
 		return value == null ? defaultValue : value;
 	}
 
