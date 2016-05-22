@@ -46,7 +46,7 @@ public class TableUtils {
 		return result;
 	}
 
-	interface FunctionEx<T, R, E extends Exception> {
+	public interface FunctionEx<T, R, E extends Exception> {
 
 		R apply(T value) throws E;
 	}
