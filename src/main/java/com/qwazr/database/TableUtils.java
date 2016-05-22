@@ -62,10 +62,9 @@ public class TableUtils {
 	public static String getFirstStringIfAny(final String column, final Map<String, Object> row,
 			final String defaultValue) {
 		final String[] array = (String[]) row.get(column);
-		if (array == null || array.length == 0)
-			return defaultValue;
-		final String value = array[0];
-		return value == null ? defaultValue : value;
+		if (array != null && array.length > 0)
+			return array[0];
+		return defaultValue;
 	}
 
 	/**
@@ -77,7 +76,9 @@ public class TableUtils {
 	public static Integer getFirstIntegerIfAny(final String column, final Map<String, Object> row,
 			final Integer defaultValue) {
 		final int[] array = (int[]) row.get(column);
-		return array == null || array.length == 0 ? defaultValue : array[0];
+		if (array != null && array.length > 0)
+			return array[0];
+		return defaultValue;
 	}
 
 	/**
@@ -88,7 +89,9 @@ public class TableUtils {
 	 */
 	public static Long getFirstLongIfAny(final String column, final Map<String, Object> row, final Long defaultValue) {
 		final long[] array = (long[]) row.get(column);
-		return array == null || array.length == 0 ? defaultValue : array[0];
+		if (array != null && array.length > 0)
+			return array[0];
+		return defaultValue;
 	}
 
 	/**
@@ -100,7 +103,9 @@ public class TableUtils {
 	public static Double getFirstDoubleIfAny(final String column, final Map<String, Object> row,
 			final Double defaultValue) {
 		final double[] array = (double[]) row.get(column);
-		return array == null || array.length == 0 ? defaultValue : array[0];
+		if (array != null && array.length > 0)
+			return array[0];
+		return defaultValue;
 	}
 
 	/**
