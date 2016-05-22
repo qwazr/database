@@ -18,8 +18,10 @@ package com.qwazr.database;
 import com.qwazr.database.model.TableRequest;
 import com.qwazr.database.model.TableRequestResult;
 
+import javax.ws.rs.WebApplicationException;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 
 public class TableUtils {
 
@@ -36,8 +38,8 @@ public class TableUtils {
 	 * @throws E
 	 */
 	public static <R, E extends Exception> TableRequestResult query(final TableServiceInterface tableService,
-			final String tableName, final TableRequest request,
-			final FunctionEx<LinkedHashMap<String, Object>, R, E> function) throws E {
+			final String tableName, final TableRequest request, final FunctionEx<Map<String, Object>, R, E> function)
+			throws E {
 		final TableRequestResult result = tableService.queryRows(tableName, request);
 		if (result == null || result.rows == null || result.rows.isEmpty())
 			return result;
@@ -64,5 +66,33 @@ public class TableUtils {
 			return defaultValue;
 		final T value = array[1];
 		return value == null ? defaultValue : value;
+	}
+
+	/**
+	 * Return the row for the given id
+	 *
+	 * @param tableService the client
+	 * @param tableName    the name of the table
+	 * @param id           the id of the requested row
+	 * @param columns      the columns to return
+	 * @param function     the callback function
+	 * @param <R>          the type of the result
+	 * @param <E>          any optional exception thrown
+	 * @return the row for the given id, or null if no row exists
+	 * @throws E
+	 */
+	public static <R, E extends Exception> R getRow(final TableServiceInterface tableService, final String tableName,
+			final String id, final Set<String> columns, final FunctionEx<Map<String, Object>, R, E> function) throws E {
+		final Map<String, Object> row;
+		try {
+			row = tableService.getRow(tableName, id, columns);
+		} catch (WebApplicationException e) {
+			if (e.getResponse().getStatus() == 404)
+				return null;
+			throw e;
+		}
+		if (row == null || row.isEmpty())
+			return null;
+		return function.apply(row);
 	}
 }
