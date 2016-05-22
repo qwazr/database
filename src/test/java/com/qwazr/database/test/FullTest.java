@@ -17,6 +17,7 @@ package com.qwazr.database.test;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.io.Files;
+import com.qwazr.database.TableBuilder;
 import com.qwazr.database.TableServer;
 import com.qwazr.database.TableServiceInterface;
 import com.qwazr.database.TableSingleClient;
@@ -40,7 +41,10 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URISyntaxException;
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class FullTest {
@@ -224,6 +228,55 @@ public class FullTest {
 		List<String> roles = (List<String>) row.get("roles");
 		Assert.assertNotNull(roles);
 		Assert.assertEquals(2, roles.size());
+	}
+
+	private static final String TB_NAME = "tb_test";
+	private static final String[] TB_COLS = { "col1", "col2", "col3", "col4" };
+
+	private TableBuilder getTableBuilder() {
+		final TableBuilder builder = new TableBuilder(TB_NAME);
+		builder.addColumn(TB_COLS[0], ColumnDefinition.Type.STRING, ColumnDefinition.Mode.INDEXED);
+		builder.addColumn(TB_COLS[1], ColumnDefinition.Type.INTEGER, ColumnDefinition.Mode.INDEXED);
+		builder.addColumn(TB_COLS[2], ColumnDefinition.Type.DOUBLE, ColumnDefinition.Mode.STORED);
+		builder.addColumn(TB_COLS[3], ColumnDefinition.Type.LONG, ColumnDefinition.Mode.STORED);
+		return builder;
+	}
+
+	private void checkColumns(Map<String, ColumnDefinition> columns, String... cols) {
+		Assert.assertNotNull(columns);
+		for (String col : cols)
+			Assert.assertTrue(columns.containsKey(col));
+	}
+
+	@Test
+	public void test900tableBuilder() throws URISyntaxException {
+		final TableServiceInterface client = getClient();
+		getTableBuilder().build(client);
+		final Map<String, ColumnDefinition> columns = client.getColumns(TB_NAME);
+		checkColumns(columns, TB_COLS);
+		Assert.assertEquals(TB_COLS.length, columns.size());
+	}
+
+	@Test
+	public void test901tableBuilderAddColumn() throws URISyntaxException {
+		final TableServiceInterface client = getClient();
+		getTableBuilder().addColumn("col5", ColumnDefinition.Type.STRING, ColumnDefinition.Mode.STORED).build(client);
+		final Map<String, ColumnDefinition> columns = client.getColumns(TB_NAME);
+		checkColumns(columns, TB_COLS);
+		checkColumns(columns, "col5");
+		Assert.assertEquals(TB_COLS.length + 1, columns.size());
+	}
+
+	@Test
+	public void test950deleteTable() throws URISyntaxException {
+		final TableServiceInterface client = getClient();
+		client.deleteTable(TB_NAME);
+		try {
+			client.getTable(TB_NAME);
+			Assert.fail("Table not deleted");
+		} catch (WebApplicationException e) {
+			Assert.assertEquals(404, e.getResponse().getStatus());
+		}
 	}
 
 	private static TableServiceInterface CLIENT = null;
