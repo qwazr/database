@@ -127,7 +127,7 @@ public class Table implements Closeable {
 		});
 	}
 
-	public void removeColumn(String columnName) throws IOException {
+	final public void removeColumn(final String columnName) throws IOException {
 		rwlColumns.writeEx(() -> {
 			// Check if the column exists
 			ColumnDefKey columnDefKey = new ColumnDefKey(columnName);
@@ -154,19 +154,22 @@ public class Table implements Closeable {
 		});
 	}
 
-	public LinkedHashMap<String, Object> getRow(final String key, final Set<String> columnNames) throws IOException {
+	final public LinkedHashMap<String, Object> getRow(final String key, final Set<String> columnNames)
+			throws IOException {
 		if (key == null)
 			return null;
 		final Integer docId = new PrimaryIdsKey(key).getValue(keyStore);
 		if (docId == null)
 			return null;
 		return rwlColumns.readEx(() -> {
-			final Map<String, ColumnDefinition.Internal> columns = columnDefsKey.getColumns(keyStore);
+			final Map<String, ColumnDefinition.Internal> columns = columnNames == null || columnNames.isEmpty() ?
+					columnDefsKey.getColumns(keyStore) :
+					getColumns(columnNames);
 			return getRowByIdNoLock(docId, columns);
 		});
 	}
 
-	public boolean deleteRow(String key) throws IOException {
+	final public boolean deleteRow(final String key) throws IOException {
 		if (key == null)
 			return false;
 		PrimaryIdsKey primaryIdsKey = new PrimaryIdsKey(key);
@@ -179,7 +182,7 @@ public class Table implements Closeable {
 		return true;
 	}
 
-	private boolean upsertRowNoCommit(String key, Map<String, Object> row) throws IOException {
+	private boolean upsertRowNoCommit(String key, final Map<String, Object> row) throws IOException {
 		if (row == null)
 			return false;
 		// Check if the primary key is present
@@ -225,11 +228,11 @@ public class Table implements Closeable {
 		}
 	}
 
-	public boolean upsertRow(String key, Map<String, Object> row) throws IOException {
+	final public boolean upsertRow(final String key, final Map<String, Object> row) throws IOException {
 		return upsertRowNoCommit(key, row);
 	}
 
-	public int upsertRows(Collection<Map<String, Object>> rows) throws IOException {
+	final public int upsertRows(final Collection<Map<String, Object>> rows) throws IOException {
 		int count = 0;
 		for (Map<String, Object> row : rows)
 			if (upsertRowNoCommit(null, row))
@@ -237,11 +240,11 @@ public class Table implements Closeable {
 		return count;
 	}
 
-	public int getSize() throws IOException {
+	final public int getSize() throws IOException {
 		return primaryIndexKey.getValue(keyStore).getCardinality();
 	}
 
-	private Map<String, ColumnDefinition.Internal> getColumns(Set<String> columnNames) throws IOException {
+	private Map<String, ColumnDefinition.Internal> getColumns(final Set<String> columnNames) throws IOException {
 		if (columnNames == null || columnNames.isEmpty())
 			return Collections.emptyMap();
 		final Map<String, ColumnDefinition.Internal> columnDefs = columnDefsKey.getColumns(keyStore);
@@ -259,8 +262,8 @@ public class Table implements Closeable {
 		return columns;
 	}
 
-	private LinkedHashMap<String, Object> getRowByIdNoLock(Integer docId,
-			Map<String, ColumnDefinition.Internal> columns) throws IOException {
+	private LinkedHashMap<String, Object> getRowByIdNoLock(final Integer docId,
+			final Map<String, ColumnDefinition.Internal> columns) throws IOException {
 		if (docId == null)
 			return null;
 		final LinkedHashMap<String, Object> row = new LinkedHashMap<>();
@@ -277,8 +280,8 @@ public class Table implements Closeable {
 		return row;
 	}
 
-	public void getRows(final RoaringBitmap bitmap, final Set<String> columnNames, final long start, final long rows,
-			final List<LinkedHashMap<String, Object>> results) throws IOException {
+	final public void getRows(final RoaringBitmap bitmap, final Set<String> columnNames, final long start,
+			final long rows, final List<LinkedHashMap<String, Object>> results) throws IOException {
 		if (bitmap == null || bitmap.isEmpty())
 			return;
 		rwlColumns.readEx(() -> {
@@ -296,8 +299,8 @@ public class Table implements Closeable {
 		});
 	}
 
-	public void getRows(Set<String> keys, Set<String> columnNames, List<LinkedHashMap<String, Object>> results)
-			throws IOException {
+	final public void getRows(final Set<String> keys, Set<String> columnNames,
+			final List<LinkedHashMap<String, Object>> results) throws IOException {
 		if (keys == null || keys.isEmpty())
 			return;
 		final ArrayList<Integer> ids = new ArrayList<>(keys.size());
@@ -324,11 +327,12 @@ public class Table implements Closeable {
 		return columnDef;
 	}
 
-	public QueryContext getNewQueryContext() throws IOException {
+	final public QueryContext getNewQueryContext() throws IOException {
 		return new QueryContext(keyStore, columnDefsKey.getColumns(keyStore));
 	}
 
-	public QueryResult query(final Query query, final Map<String, Map<String, LongCounter>> facets) throws IOException {
+	final public QueryResult query(final Query query, final Map<String, Map<String, LongCounter>> facets)
+			throws IOException {
 		return rwlColumns.readEx(() -> {
 			// long lastTime = System.currentTimeMillis();
 			final QueryContext context = getNewQueryContext();
