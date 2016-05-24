@@ -16,19 +16,12 @@
 package com.qwazr.database.test;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.io.Files;
 import com.qwazr.database.TableBuilder;
 import com.qwazr.database.TableServer;
 import com.qwazr.database.TableServiceInterface;
 import com.qwazr.database.TableSingleClient;
-import com.qwazr.database.model.ColumnDefinition;
-import com.qwazr.database.model.TableDefinition;
-import com.qwazr.database.model.TableRequest;
-import com.qwazr.database.model.TableRequestResult;
+import com.qwazr.database.model.*;
 import com.qwazr.database.store.Table;
 import com.qwazr.utils.CharsetUtils;
 import com.qwazr.utils.IOUtils;
@@ -56,8 +49,8 @@ public class FullTest {
 	public static final String BASE_URL = "http://localhost:9091";
 	public static final ColumnDefinition COLUMN_DEF_PASSWORD = getColumnDefinition("column_def_password.json");
 	public static final ColumnDefinition COLUMN_DEF_ROLES = getColumnDefinition("column_def_roles.json");
-	public static final ColumnDefinition COLUMN_DEF_DPT_ID = new ColumnDefinition(ColumnDefinition.Type.INTEGER,
-			ColumnDefinition.Mode.INDEXED);
+	public static final ColumnDefinition COLUMN_DEF_DPT_ID =
+			new ColumnDefinition(ColumnDefinition.Type.INTEGER, ColumnDefinition.Mode.INDEXED);
 
 	public static final Map<String, Object> UPSERT_ROW1 =
 			getTypeDef("upsert_row1.json", TableSingleClient.MapStringObjectTypeRef);
@@ -95,7 +88,7 @@ public class FullTest {
 		System.setProperty("QWAZR_DATA", dataDir.getAbsolutePath());
 		System.setProperty("LISTEN_ADDR", "localhost");
 		System.setProperty("PUBLIC_ADDR", "localhost");
-		TableServer.main(new String[]{});
+		TableServer.main(new String[] {});
 	}
 
 	@Test
@@ -199,20 +192,6 @@ public class FullTest {
 		Assert.assertEquals(4, result.rows.size());
 	}
 
-	@Test
-	public void test400FilterQuery() throws URISyntaxException {
-		final TableServiceInterface client = getClient();
-		final ObjectNode query = JsonMapper.MAPPER.createObjectNode();
-		final ArrayNode andGroup = JsonMapper.MAPPER.createArrayNode();
-		andGroup.addObject().put(COLUMN_NAME_DPT_ID, 1);
-		query.set(TableRequest.AND, andGroup);
-		TableRequest request = new TableRequest(0, 1000, COLUMNS_WITHID, null, query);
-		TableRequestResult result = client.queryRows(TABLE_NAME, request);
-		Assert.assertNotNull(result);
-		Assert.assertNotNull(result.count);
-		Assert.assertEquals(new Long(3), result.count);
-	}
-
 	private void deleteAndCheck(String id) throws URISyntaxException {
 		final TableServiceInterface client = getClient();
 		Assert.assertTrue(client.deleteRow(TABLE_NAME, id));
@@ -238,7 +217,7 @@ public class FullTest {
 
 	private Map<String, Object> checkGetRow(String column, String value, Map<String, Object> row) {
 		Assert.assertNotNull(row);
-		List<String> values = (List<String>) row.get(column);
+		final List<String> values = (List<String>) row.get(column);
 		Assert.assertNotNull(values);
 		Assert.assertFalse(values.isEmpty());
 		Assert.assertEquals(values.get(0), value);
@@ -246,18 +225,29 @@ public class FullTest {
 	}
 
 	@Test
-	public void test400getRow() throws URISyntaxException {
-		TableServiceInterface client = getClient();
+	public void test400FilterQuery() throws URISyntaxException {
+		final TableServiceInterface client = getClient();
+		final TableQuery.Group query = new TableQuery.And().add(COLUMN_NAME_DPT_ID, 1);
+		final TableRequest request = new TableRequest(0, 0, COLUMNS_WITHID, null, query.build());
+		final TableRequestResult result = client.queryRows(TABLE_NAME, request);
+		Assert.assertNotNull(result);
+		Assert.assertNotNull(result.count);
+		Assert.assertEquals(new Long(3), result.count);
+	}
+
+	@Test
+	public void test410GetRow() throws URISyntaxException {
+		final TableServiceInterface client = getClient();
 		checkGetRow("password", PASS3, client.getRow(TABLE_NAME, ID3, COLUMNS));
 		checkGetRow("password", PASS4, client.getRow(TABLE_NAME, ID4, COLUMNS));
-		Map<String, Object> row = checkGetRow("password", PASS1, client.getRow(TABLE_NAME, ID1, COLUMNS));
-		List<String> roles = (List<String>) row.get("roles");
+		final Map<String, Object> row = checkGetRow("password", PASS1, client.getRow(TABLE_NAME, ID1, COLUMNS));
+		final List<String> roles = (List<String>) row.get("roles");
 		Assert.assertNotNull(roles);
 		Assert.assertEquals(2, roles.size());
 	}
 
 	private static final String TB_NAME = "tb_test";
-	private static final String[] TB_COLS = {"col1", "col2", "col3", "col4"};
+	private static final String[] TB_COLS = { "col1", "col2", "col3", "col4" };
 
 	private TableBuilder getTableBuilder() {
 		final TableBuilder builder = new TableBuilder(TB_NAME);

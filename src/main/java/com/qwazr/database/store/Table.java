@@ -338,18 +338,10 @@ public class Table implements Closeable {
 			final QueryContext context = getNewQueryContext();
 
 			// First we search for the document using Bitset
-			final RoaringBitmap finalBitmap;
-			if (query != null) {
-				finalBitmap = query.execute(context, readExecutor);
-				primaryIndexKey.remove(keyStore, finalBitmap);
-			} else
-				finalBitmap = primaryIndexKey.getValue(keyStore);
+			final RoaringBitmap finalBitmap =
+					query != null ? query.execute(context, readExecutor) : primaryIndexKey.getValue(keyStore);
 			if (finalBitmap == null || finalBitmap.isEmpty())
 				return new QueryResult(context, finalBitmap);
-
-			// long newTime = System.currentTimeMillis();
-			// System.out.println("Bitmap : " + (newTime - lastTime));
-			// lastTime = newTime;
 
 			// Build the collector chain
 			CollectorInterface collector = CollectorInterface.build();
@@ -369,10 +361,6 @@ public class Table implements Closeable {
 
 			// Collect the data
 			collector.collect(finalBitmap);
-
-			// newTime = System.currentTimeMillis();
-			// System.out.println("Collect : " + (newTime - lastTime));
-			// lastTime = newTime;
 
 			return new QueryResult(context, finalBitmap);
 		});

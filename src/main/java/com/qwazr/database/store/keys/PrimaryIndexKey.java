@@ -50,9 +50,8 @@ public class PrimaryIndexKey extends IndexKey {
 	final public void remove(final KeyStore store, final RoaringBitmap finalBitmap) throws IOException {
 		if (finalBitmap == null || finalBitmap.isEmpty())
 			return;
-		IntIterator intIterator = finalBitmap.getIntIterator();
-		while (intIterator.hasNext()) {
+		final IntIterator intIterator = finalBitmap.getIntIterator();
+		while (intIterator.hasNext())
 			remove(store, intIterator.next());
-		}
 	}
 }
