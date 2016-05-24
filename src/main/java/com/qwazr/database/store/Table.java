@@ -146,7 +146,7 @@ public class Table implements Closeable {
 	private void deleteRow(final int docId) throws IOException {
 		rwlColumns.readEx(() -> {
 			for (ColumnDefinition.Internal colDef : columnDefsKey.getColumns(keyStore).values()) {
-				ColumnStoreKey<?> columnStoreKey = ColumnStoreKey.newInstance(colDef, docId);
+				ColumnStoreKey<?, ?> columnStoreKey = ColumnStoreKey.newInstance(colDef, docId);
 				if (colDef.mode == ColumnDefinition.Mode.INDEXED)
 					new ColumnIndexesKey(colDef).remove(keyStore, columnStoreKey);
 				columnStoreKey.deleteValue(keyStore);

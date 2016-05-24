@@ -26,12 +26,12 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.Collection;
 
-final public class ColumnStoreKey<T> extends KeyAbstract<T> {
+final public class ColumnStoreKey<T, V> extends KeyAbstract<T, V> {
 
 	final ColumnDefinition.Internal columnDef;
 	final int docId;
 
-	protected ColumnStoreKey(ColumnDefinition.Internal columnDef, int docId, ByteConverter<T> byteConverter) {
+	protected ColumnStoreKey(ColumnDefinition.Internal columnDef, int docId, ByteConverter<T, V> byteConverter) {
 		super(KeyEnum.COLUMN_STORE, byteConverter);
 		this.docId = docId;
 		this.columnDef = columnDef;
@@ -52,7 +52,7 @@ final public class ColumnStoreKey<T> extends KeyAbstract<T> {
 		byteConverter.forFirst(getValue(store), consumer);
 	}
 
-	final public static ColumnStoreKey<?> newInstance(ColumnDefinition.Internal colDef, int docId)
+	final public static ColumnStoreKey<?, ?> newInstance(ColumnDefinition.Internal colDef, int docId)
 			throws DatabaseException {
 		switch (colDef.type) {
 			case DOUBLE:

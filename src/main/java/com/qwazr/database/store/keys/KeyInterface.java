@@ -20,13 +20,13 @@ import com.qwazr.database.store.KeyStore;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
-interface KeyInterface<T> {
+interface KeyInterface<T, V> {
 
     void buildKey(final DataOutputStream output) throws IOException;
 
     byte[] getCachedKey() throws IOException;
 
-    T getValue(KeyStore store) throws IOException;
+    V getValue(KeyStore store) throws IOException;
 
     void setValue(KeyStore store, T value) throws IOException;
 

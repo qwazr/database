@@ -20,7 +20,7 @@ import com.qwazr.database.store.ByteConverter;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
-public class PrimaryKeysKey extends KeyAbstract<String> {
+public class PrimaryKeysKey extends KeyAbstract<String, String> {
 
 	private final int docId;
 

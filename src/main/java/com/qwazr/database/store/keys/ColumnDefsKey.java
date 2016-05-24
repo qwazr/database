@@ -26,7 +26,8 @@ import java.nio.ByteBuffer;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-final public class ColumnDefsKey extends KeyAbstract<Map<String, ColumnDefinition.Internal>> {
+final public class ColumnDefsKey
+		extends KeyAbstract<Map<String, ColumnDefinition.Internal>, Map<String, ColumnDefinition.Internal>> {
 
 	public ColumnDefsKey() {
 		super(KeyEnum.COLUMN_DEF, null);

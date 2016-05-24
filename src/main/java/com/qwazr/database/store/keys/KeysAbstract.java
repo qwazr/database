@@ -22,7 +22,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Map;
 
-public abstract class KeysAbstract<T> extends KeyAbstract<T> {
+public abstract class KeysAbstract<T, V> extends KeyAbstract<T, V> {
 
 	public KeysAbstract(KeyEnum keyType) {
 		super(keyType, null);

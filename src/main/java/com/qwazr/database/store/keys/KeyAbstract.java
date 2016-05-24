@@ -23,15 +23,15 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
-public abstract class KeyAbstract<T> implements KeyInterface<T> {
+public abstract class KeyAbstract<T, V> implements KeyInterface<T, V> {
 
 	private final KeyEnum keyType;
 
-	protected final ByteConverter<T> byteConverter;
+	protected final ByteConverter<T, V> byteConverter;
 
 	private byte[] keyBytes;
 
-	protected KeyAbstract(KeyEnum keyType, ByteConverter<T> byteConverter) {
+	protected KeyAbstract(KeyEnum keyType, ByteConverter<T, V> byteConverter) {
 		this.keyType = keyType;
 		this.byteConverter = byteConverter;
 		this.keyBytes = null;
@@ -56,7 +56,7 @@ public abstract class KeyAbstract<T> implements KeyInterface<T> {
 	}
 
 	@Override
-	final public T getValue(final KeyStore store) throws IOException {
+	final public V getValue(final KeyStore store) throws IOException {
 		byte[] bytes = store.get(getCachedKey());
 		if (bytes == null)
 			return null;

@@ -22,7 +22,7 @@ import org.roaringbitmap.RoaringBitmap;
 
 import java.io.IOException;
 
-public class IndexKey extends KeyAbstract<RoaringBitmap> {
+public class IndexKey extends KeyAbstract<RoaringBitmap, RoaringBitmap> {
 
 	final static ByteConverter.SerializableByteConverter<RoaringBitmap> roaringBitmapConverter =
 			new ByteConverter.SerializableByteConverter<>();

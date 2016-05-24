@@ -4,6 +4,9 @@
     "password": "password3",
     "roles": [
       "search"
+    ],
+    "dptId": [
+      1
     ]
   },
   {
@@ -11,6 +14,9 @@
     "password": "password4",
     "roles": [
       "table"
+    ],
+    "dptId": [
+      2
     ]
   }
 ]

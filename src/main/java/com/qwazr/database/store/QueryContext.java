@@ -34,13 +34,13 @@ public class QueryContext {
 		this.columns = columns;
 	}
 
-	public final <T> RoaringBitmap getIndexedBitset(final String columnName) throws IOException {
+	public final <T> RoaringBitmap getIndexedBitset(final String columnName, final T value) throws IOException {
 		final ColumnDefinition.Internal colDef = columns.get(columnName);
 		if (colDef == null)
 			throw new DatabaseException("Unknown column: " + columnName);
 		if (colDef.mode != ColumnDefinition.Mode.INDEXED)
 			throw new DatabaseException("The column is not indexed: " + columnName);
-		return ColumnIndexKey.newInstance(colDef, columnName).getValue(store);
+		return ColumnIndexKey.newInstance(colDef, value).getValue(store);
 	}
 
 	public final CollectorInterface newFacetCollector(final CollectorInterface collector, final String columnName,

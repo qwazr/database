@@ -47,11 +47,14 @@ public abstract class Query {
 			JsonNode valueNode = entry.getValue();
 			if (valueNode.isTextual())
 				newQuery = new TermQuery<>(field, valueNode.asText());
-			else if (node.isFloatingPointNumber())
-				newQuery = new TermQuery<>(field, valueNode.asDouble());
-			else if (node.isIntegralNumber())
-				newQuery = new TermQuery<>(field, valueNode.asLong());
-			else
+			else if (valueNode.isNumber()) {
+				if (valueNode.isInt())
+					newQuery = new TermQuery<>(field, valueNode.asInt());
+				else if (node.isLong())
+					newQuery = new TermQuery<>(field, valueNode.asLong());
+				else
+					newQuery = new TermQuery<>(field, valueNode.asDouble());
+			} else
 				throw new QueryException("Unexpected value: " + field + "  Type: " + valueNode.getNodeType());
 		}
 		if (queryHook != null)
@@ -74,7 +77,7 @@ public abstract class Query {
 
 		@Override
 		final RoaringBitmap execute(final QueryContext context, final ExecutorService executor) throws IOException {
-			RoaringBitmap bitset = context.getIndexedBitset(field);
+			RoaringBitmap bitset = context.getIndexedBitset(field, value);
 			if (bitset == null)
 				bitset = new RoaringBitmap();
 			return bitset;

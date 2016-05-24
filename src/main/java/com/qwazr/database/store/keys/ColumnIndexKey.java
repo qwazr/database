@@ -42,18 +42,17 @@ public class ColumnIndexKey<T> extends IndexKey {
 		output.write(valueByteConverter.toBytes(value));
 	}
 
-	public static ColumnIndexKey<?> newInstance(ColumnDefinition.Internal colDef, Object value)
+	final public static ColumnIndexKey<?> newInstance(final ColumnDefinition.Internal colDef, final Object value)
 			throws DatabaseException {
-		ByteConverter<?> byteConverter;
 		switch (colDef.type) {
-		case DOUBLE:
-			return new ColumnIndexKey<Object>(colDef.column_id, value, ByteConverter.DoubleByteConverter.INSTANCE);
-		case INTEGER:
-			return new ColumnIndexKey<Object>(colDef.column_id, value, ByteConverter.IntegerByteConverter.INSTANCE);
-		case LONG:
-			return new ColumnIndexKey<Object>(colDef.column_id, value, ByteConverter.LongByteConverter.INSTANCE);
-		case STRING:
-			return new ColumnIndexKey<Object>(colDef.column_id, value, ByteConverter.StringByteConverter.INSTANCE);
+			case DOUBLE:
+				return new ColumnIndexKey<>(colDef.column_id, value, ByteConverter.DoubleByteConverter.INSTANCE);
+			case INTEGER:
+				return new ColumnIndexKey<>(colDef.column_id, value, ByteConverter.IntegerByteConverter.INSTANCE);
+			case LONG:
+				return new ColumnIndexKey<>(colDef.column_id, value, ByteConverter.LongByteConverter.INSTANCE);
+			case STRING:
+				return new ColumnIndexKey<>(colDef.column_id, value, ByteConverter.StringByteConverter.INSTANCE);
 		}
 		throw new DatabaseException("unknown type: " + colDef.type);
 	}

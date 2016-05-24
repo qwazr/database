@@ -23,7 +23,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Set;
 
-public class PrimaryIdsKey extends KeyAbstract<Integer> {
+public class PrimaryIdsKey extends KeyAbstract<Number, Integer> {
 
 	private final String key;
 

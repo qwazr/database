@@ -3,5 +3,9 @@
   "roles": [
     "search",
     "table"
+  ],
+  "dptId": [
+    1,
+    2
   ]
 }

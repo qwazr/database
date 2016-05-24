@@ -24,7 +24,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.Collection;
 
-public class ColumnIndexesKey<T> extends KeysAbstract<T> {
+public class ColumnIndexesKey<T, V> extends KeysAbstract<T, V> {
 
 	final private ColumnDefinition.Internal colDef;
 	final private ArrayIterator arrayIterator;
@@ -33,20 +33,20 @@ public class ColumnIndexesKey<T> extends KeysAbstract<T> {
 		super(KeyEnum.COLUMN_INDEX);
 		this.colDef = colDef;
 		switch (colDef.type) {
-		case STRING:
-			arrayIterator = new StringArrayIterator();
-			break;
-		case LONG:
-			arrayIterator = new LongArrayIterator();
-			break;
-		case INTEGER:
-			arrayIterator = new IntArrayIterator();
-			break;
-		case DOUBLE:
-			arrayIterator = new DoubleArrayIterator();
-			break;
-		default:
-			throw new DatabaseException("Unsupported type: " + colDef.type);
+			case STRING:
+				arrayIterator = new StringArrayIterator();
+				break;
+			case LONG:
+				arrayIterator = new LongArrayIterator();
+				break;
+			case INTEGER:
+				arrayIterator = new IntArrayIterator();
+				break;
+			case DOUBLE:
+				arrayIterator = new DoubleArrayIterator();
+				break;
+			default:
+				throw new DatabaseException("Unsupported type: " + colDef.type);
 		}
 	}
 
@@ -56,7 +56,8 @@ public class ColumnIndexesKey<T> extends KeysAbstract<T> {
 		output.writeInt(colDef.column_id);
 	}
 
-	final public void remove(KeyStore store, ColumnStoreKey<?> columnStoreKey) throws DatabaseException, IOException {
+	final public void remove(KeyStore store, ColumnStoreKey<?, ?> columnStoreKey)
+			throws DatabaseException, IOException {
 		Object value = columnStoreKey.getValue(store);
 		if (value == null)
 			return;
@@ -74,67 +75,67 @@ public class ColumnIndexesKey<T> extends KeysAbstract<T> {
 			ColumnIndexKey.newInstance(colDef, value).select(store, docId);
 	}
 
-	private abstract class ArrayIterator<V> {
+	private abstract class ArrayIterator<T, V> {
 
-		private ByteConverter<V> byteConverter;
+		private ByteConverter<T, V> byteConverter;
 
-		protected ArrayIterator(ByteConverter<V> byteConverter) {
+		protected ArrayIterator(ByteConverter<T, V> byteConverter) {
 			this.byteConverter = byteConverter;
 		}
 
 		protected abstract void remove(KeyStore store, Object object, int docId) throws DatabaseException, IOException;
 	}
 
-	private class IntArrayIterator extends ArrayIterator<Integer> {
+	private class IntArrayIterator extends ArrayIterator<Number, Integer> {
 
 		protected IntArrayIterator() {
 			super(ByteConverter.IntegerByteConverter.INSTANCE);
 		}
 
 		@Override
-		protected void remove(KeyStore store, Object object, int docId) throws DatabaseException, IOException {
+		protected void remove(KeyStore store, Object object, int docId) throws IOException {
 			int[] array = (int[]) object;
 			for (int value : array)
 				ColumnIndexKey.newInstance(colDef, value).remove(store, docId);
 		}
 	}
 
-	private class DoubleArrayIterator extends ArrayIterator {
+	private class DoubleArrayIterator extends ArrayIterator<Number, Double> {
 
 		protected DoubleArrayIterator() {
 			super(ByteConverter.DoubleByteConverter.INSTANCE);
 		}
 
 		@Override
-		protected void remove(KeyStore store, Object object, int docId) throws DatabaseException, IOException {
+		protected void remove(KeyStore store, Object object, int docId) throws IOException {
 			double[] array = (double[]) object;
 			for (double value : array)
 				ColumnIndexKey.newInstance(colDef, value).remove(store, docId);
 		}
 	}
 
-	private class LongArrayIterator extends ArrayIterator {
+	private class LongArrayIterator extends ArrayIterator<Number, Long> {
 
 		protected LongArrayIterator() {
 			super(ByteConverter.LongByteConverter.INSTANCE);
 		}
 
 		@Override
-		protected void remove(KeyStore store, Object object, int docId) throws DatabaseException, IOException {
+		protected void remove(KeyStore store, Object object, int docId) throws IOException {
 			long[] array = (long[]) object;
 			for (long value : array)
 				ColumnIndexKey.newInstance(colDef, value).remove(store, docId);
 		}
 	}
 
-	private class StringArrayIterator extends ArrayIterator {
+	private class StringArrayIterator extends ArrayIterator<String, String> {
 
 		protected StringArrayIterator() {
 			super(ByteConverter.StringByteConverter.INSTANCE);
 		}
 
 		@Override
-		protected void remove(KeyStore store, Object object, int docId) throws DatabaseException, IOException {
+		protected void remove(KeyStore store, Object object, int docId) throws IOException {
 			String[] array = (String[]) object;
 			for (String value : array)
 				ColumnIndexKey.newInstance(colDef, value).remove(store, docId);

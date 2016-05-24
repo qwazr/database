@@ -2,5 +2,8 @@
   "password": "password2",
   "roles": [
     "search"
+  ],
+  "dptId": [
+    1
   ]
 }
