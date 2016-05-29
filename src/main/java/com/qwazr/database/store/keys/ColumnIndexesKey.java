@@ -33,20 +33,20 @@ public class ColumnIndexesKey<T, V> extends KeysAbstract<T, V> {
 		super(KeyEnum.COLUMN_INDEX);
 		this.colDef = colDef;
 		switch (colDef.type) {
-			case STRING:
-				arrayIterator = new StringArrayIterator();
-				break;
-			case LONG:
-				arrayIterator = new LongArrayIterator();
-				break;
-			case INTEGER:
-				arrayIterator = new IntArrayIterator();
-				break;
-			case DOUBLE:
-				arrayIterator = new DoubleArrayIterator();
-				break;
-			default:
-				throw new DatabaseException("Unsupported type: " + colDef.type);
+		case STRING:
+			arrayIterator = new StringArrayIterator();
+			break;
+		case LONG:
+			arrayIterator = new LongArrayIterator();
+			break;
+		case INTEGER:
+			arrayIterator = new IntArrayIterator();
+			break;
+		case DOUBLE:
+			arrayIterator = new DoubleArrayIterator();
+			break;
+		default:
+			throw new DatabaseException("Unsupported type: " + colDef.type);
 		}
 	}
 
@@ -56,15 +56,14 @@ public class ColumnIndexesKey<T, V> extends KeysAbstract<T, V> {
 		output.writeInt(colDef.column_id);
 	}
 
-	final public void remove(KeyStore store, ColumnStoreKey<?, ?> columnStoreKey)
-			throws DatabaseException, IOException {
+	final public void remove(KeyStore store, ColumnStoreKey<?, ?> columnStoreKey) throws IOException {
 		Object value = columnStoreKey.getValue(store);
 		if (value == null)
 			return;
 		arrayIterator.remove(store, value, columnStoreKey.docId);
 	}
 
-	final public void select(KeyStore store, Object value, int docId) throws IOException, DatabaseException {
+	final public void select(KeyStore store, Object value, int docId) throws IOException {
 		if (value instanceof Collection<?>) {
 			for (Object val : (Collection<?>) value)
 				ColumnIndexKey.newInstance(colDef, val).select(store, docId);
@@ -83,7 +82,7 @@ public class ColumnIndexesKey<T, V> extends KeysAbstract<T, V> {
 			this.byteConverter = byteConverter;
 		}
 
-		protected abstract void remove(KeyStore store, Object object, int docId) throws DatabaseException, IOException;
+		protected abstract void remove(KeyStore store, Object object, int docId) throws IOException;
 	}
 
 	private class IntArrayIterator extends ArrayIterator<Number, Integer> {

@@ -212,10 +212,15 @@ public class Table implements Closeable {
 					final ColumnDefinition.Internal colDef = columns.get(colName);
 					if (colDef == null)
 						throw new DatabaseException("Unknown column: " + colName);
+					final ColumnStoreKey<?, ?> columnStoreKey = ColumnStoreKey.newInstance(colDef, docId);
 					final Object valueObject = entry.getValue();
-					if (colDef.mode == ColumnDefinition.Mode.INDEXED)
-						new ColumnIndexesKey(colDef).select(keyStore, valueObject, docId);
-					ColumnStoreKey.newInstance(colDef, docId).setObjectValue(keyStore, valueObject);
+					if (colDef.mode == ColumnDefinition.Mode.INDEXED) {
+						final ColumnIndexesKey<?, ?> columnIndexesKey = new ColumnIndexesKey(colDef);
+						// TODO optimization : Check if values are identical, if they are we don't have to update anything
+						columnIndexesKey.remove(keyStore, columnStoreKey);
+						columnIndexesKey.select(keyStore, valueObject, docId);
+					}
+					columnStoreKey.setObjectValue(keyStore, valueObject);
 				}
 				primaryIndexKey.select(keyStore, docId);
 				if (newDocIdUsed != null)

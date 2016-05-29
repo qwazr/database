@@ -56,6 +56,8 @@ public class FullTest {
 			getTypeDef("upsert_row1.json", TableSingleClient.MapStringObjectTypeRef);
 	public static final Map<String, Object> UPSERT_ROW2 =
 			getTypeDef("upsert_row2.json", TableSingleClient.MapStringObjectTypeRef);
+	public static final Map<String, Object> UPSERT_ROW_2_2 =
+			getTypeDef("upsert_row2_2.json", TableSingleClient.MapStringObjectTypeRef);
 	public static final List<Map<String, Object>> UPSERT_ROWS =
 			getTypeDef("upsert_rows.json", TableSingleClient.ListMapStringObjectTypeRef);
 	public static final String TABLE_NAME = "test_table";
@@ -224,15 +226,21 @@ public class FullTest {
 		return row;
 	}
 
-	@Test
-	public void test400FilterQuery() throws URISyntaxException {
-		final TableServiceInterface client = getClient();
-		final TableQuery.Group query = new TableQuery.And().add(COLUMN_NAME_DPT_ID, 1);
+	private TableRequestResult checkResult(final TableServiceInterface client, final TableQuery.Group query,
+			final Long expectedCount) {
 		final TableRequest request = new TableRequest(0, 0, COLUMNS_WITHID, null, query.build());
 		final TableRequestResult result = client.queryRows(TABLE_NAME, request);
 		Assert.assertNotNull(result);
 		Assert.assertNotNull(result.count);
-		Assert.assertEquals(new Long(3), result.count);
+		if (expectedCount != null)
+			Assert.assertEquals(expectedCount, result.count);
+		return result;
+	}
+
+	@Test
+	public void test400FilterQuery() throws URISyntaxException {
+		final TableServiceInterface client = getClient();
+		checkResult(client, new TableQuery.And().add(COLUMN_NAME_DPT_ID, 1), 2L);
 	}
 
 	@Test
@@ -244,6 +252,16 @@ public class FullTest {
 		final List<String> roles = (List<String>) row.get("roles");
 		Assert.assertNotNull(roles);
 		Assert.assertEquals(2, roles.size());
+	}
+
+	@Test
+	public void test500UpsertIndexedRowAndFilter() throws URISyntaxException {
+		final TableServiceInterface client = getClient();
+		checkResult(client, new TableQuery.And().add(COLUMN_NAME_DPT_ID, 1), 2L);
+		checkResult(client, new TableQuery.And().add(COLUMN_NAME_DPT_ID, 2), 3L);
+		Assert.assertNotNull(client.upsertRow(TABLE_NAME, ID2, UPSERT_ROW_2_2));
+		checkResult(client, new TableQuery.And().add(COLUMN_NAME_DPT_ID, 1), 3L);
+		checkResult(client, new TableQuery.And().add(COLUMN_NAME_DPT_ID, 2), 2L);
 	}
 
 	private static final String TB_NAME = "tb_test";
