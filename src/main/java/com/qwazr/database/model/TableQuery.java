@@ -151,14 +151,14 @@ public abstract class TableQuery {
 	public static class Or extends Group {
 
 		public Or() {
-			super("$AND");
+			super("$OR");
 		}
 	}
 
 	public static class And extends Group {
 
 		public And() {
-			super("$OR");
+			super("$AND");
 		}
 	}
 
