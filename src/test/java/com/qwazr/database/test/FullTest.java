@@ -51,6 +51,8 @@ public class FullTest {
 	public static final ColumnDefinition COLUMN_DEF_ROLES = getColumnDefinition("column_def_roles.json");
 	public static final ColumnDefinition COLUMN_DEF_DPT_ID =
 			new ColumnDefinition(ColumnDefinition.Type.INTEGER, ColumnDefinition.Mode.INDEXED);
+	public static final ColumnDefinition COLUMN_DEF_CP =
+			new ColumnDefinition(ColumnDefinition.Type.STRING, ColumnDefinition.Mode.INDEXED);
 
 	public static final Map<String, Object> UPSERT_ROW1 =
 			getTypeDef("upsert_row1.json", TableSingleClient.MapStringObjectTypeRef);
@@ -65,6 +67,7 @@ public class FullTest {
 	public static final String COLUMN_NAME_ROLES = "roles";
 	public static final String COLUMN_NAME_ROLES2 = "roles2";
 	public static final String COLUMN_NAME_DPT_ID = "dptId";
+	public static final String COLUMN_NAME_CP = "cp";
 	public static final String ID1 = "one";
 	public static final String ID2 = "two";
 	public static final String ID3 = "three";
@@ -110,18 +113,26 @@ public class FullTest {
 	@Test
 	public void test100SetColumns() throws URISyntaxException {
 		TableServiceInterface client = getClient();
+
 		ColumnDefinition columnDefinition = client.addColumn(TABLE_NAME, COLUMN_NAME_PASSWORD, COLUMN_DEF_PASSWORD);
 		Assert.assertNotNull(columnDefinition);
 		checkColumnDefinitions(columnDefinition, COLUMN_DEF_PASSWORD);
+
 		columnDefinition = client.addColumn(TABLE_NAME, COLUMN_NAME_ROLES, COLUMN_DEF_ROLES);
 		Assert.assertNotNull(columnDefinition);
 		checkColumnDefinitions(columnDefinition, COLUMN_DEF_ROLES);
+
 		columnDefinition = client.addColumn(TABLE_NAME, COLUMN_NAME_ROLES2, COLUMN_DEF_ROLES);
 		Assert.assertNotNull(columnDefinition);
 		checkColumnDefinitions(columnDefinition, COLUMN_DEF_ROLES);
+
 		columnDefinition = client.addColumn(TABLE_NAME, COLUMN_NAME_DPT_ID, COLUMN_DEF_DPT_ID);
 		Assert.assertNotNull(columnDefinition);
 		checkColumnDefinitions(columnDefinition, COLUMN_DEF_DPT_ID);
+
+		columnDefinition = client.addColumn(TABLE_NAME, COLUMN_NAME_CP, COLUMN_DEF_CP);
+		Assert.assertNotNull(columnDefinition);
+		checkColumnDefinitions(columnDefinition, COLUMN_DEF_CP);
 	}
 
 	private void checkColumn(TableServiceInterface client, String columnName, ColumnDefinition columnDefinition) {
@@ -219,16 +230,20 @@ public class FullTest {
 
 	private Map<String, Object> checkGetRow(String column, String value, Map<String, Object> row) {
 		Assert.assertNotNull(row);
-		final List<String> values = (List<String>) row.get(column);
-		Assert.assertNotNull(values);
-		Assert.assertFalse(values.isEmpty());
-		Assert.assertEquals(values.get(0), value);
+		final Object col = row.get(column);
+		Assert.assertNotNull(col);
+		if (col instanceof List) {
+			final List<?> values = (List<?>) col;
+			Assert.assertFalse(values.isEmpty());
+			Assert.assertEquals(value, values.get(0));
+		} else
+			Assert.assertEquals(value, col);
 		return row;
 	}
 
 	private TableRequestResult checkResult(final TableServiceInterface client, final TableQuery.Group query,
 			final Long expectedCount) {
-		final TableRequest request = new TableRequest(0, 0, COLUMNS_WITHID, null, query.build());
+		final TableRequest request = new TableRequest(0, 1, COLUMNS_WITHID, null, query.build());
 		final TableRequestResult result = client.queryRows(TABLE_NAME, request);
 		Assert.assertNotNull(result);
 		Assert.assertNotNull(result.count);
@@ -241,6 +256,9 @@ public class FullTest {
 	public void test400FilterQuery() throws URISyntaxException {
 		final TableServiceInterface client = getClient();
 		checkResult(client, new TableQuery.And().add(COLUMN_NAME_DPT_ID, 1), 2L);
+		TableRequestResult result =
+				checkResult(client, new TableQuery.And().add(COLUMN_NAME_DPT_ID, 1).add(COLUMN_NAME_CP, "333"), 1L);
+		checkGetRow("$id$", ID3, result.rows.get(0));
 	}
 
 	@Test
