@@ -259,6 +259,7 @@ public class FullTest {
 		TableRequestResult result =
 				checkResult(client, new TableQuery.And().add(COLUMN_NAME_DPT_ID, 1).add(COLUMN_NAME_CP, "333"), 1L);
 		checkGetRow("$id$", ID3, result.rows.get(0));
+		checkResult(client, new TableQuery.Or().add(COLUMN_NAME_DPT_ID, 1).add(COLUMN_NAME_CP, "333"), 2L);
 	}
 
 	@Test
