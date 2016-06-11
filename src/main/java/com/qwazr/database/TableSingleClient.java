@@ -103,7 +103,7 @@ public class TableSingleClient extends JsonClientAbstract implements TableServic
 	}
 
 	@Override
-	public ColumnDefinition addColumn(String table_name, String column_name, ColumnDefinition columnDefinition) {
+	public ColumnDefinition setColumn(String table_name, String column_name, ColumnDefinition columnDefinition) {
 		UBuilder uriBuilder = new UBuilder("/table/", table_name, "/column/", column_name);
 		Request request = Request.Post(uriBuilder.build());
 		return commonServiceRequest(request, columnDefinition, null, ColumnDefinition.class, 200);

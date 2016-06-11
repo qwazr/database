@@ -26,6 +26,7 @@ import org.roaringbitmap.RoaringBitmap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.ws.rs.core.Response;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
@@ -106,24 +107,31 @@ public class Table implements Closeable {
 		});
 	}
 
-	public void addColumn(String columnName, ColumnDefinition columnDefinition) throws IOException {
+	private void addColumn(final Map<String, ColumnDefinition.Internal> columns, final String columnName,
+			final ColumnDefinition columnDefinition) throws IOException {
+		// Find the next available column id
+		BitSet bitset = new BitSet();
+		if (columns != null)
+			columns.forEach((s, columnInternalDefinition) -> bitset.set(columnInternalDefinition.column_id));
+		final int columnId = bitset.nextClearBit(0);
+
+		// Write the new column
+		new ColumnDefKey(columnName).setValue(keyStore, new ColumnDefinition.Internal(columnDefinition, columnId));
+	}
+
+	final public void setColumn(final String columnName, final ColumnDefinition columnDefinition) throws IOException {
 		rwlColumns.writeEx(() -> {
 			// Check if the column already exists
-			Map<String, ColumnDefinition.Internal> columns = columnDefsKey.getColumns(keyStore);
+			final Map<String, ColumnDefinition.Internal> columns = columnDefsKey.getColumns(keyStore);
 			if (columns != null) {
-				ColumnDefinition.Internal colDef = columns.get(columnName);
-				if (colDef != null)
-					throw new DatabaseException("Cannot add an already existing column: " + columnName);
+				final ColumnDefinition.Internal oldColDef = columns.get(columnName);
+				if (oldColDef != null) {
+					if (oldColDef.mode == columnDefinition.mode && oldColDef.type == columnDefinition.type)
+						return;
+					throw new ServerException(Response.Status.NOT_ACCEPTABLE, "The column cannot be changed.");
+				}
 			}
-
-			// Find the next available column id
-			BitSet bitset = new BitSet();
-			if (columns != null)
-				columns.forEach((s, columnInternalDefinition) -> bitset.set(columnInternalDefinition.column_id));
-			final int columnId = bitset.nextClearBit(0);
-
-			// Write the new column
-			new ColumnDefKey(columnName).setValue(keyStore, new ColumnDefinition.Internal(columnDefinition, columnId));
+			addColumn(columns, columnName, columnDefinition);
 		});
 	}
 

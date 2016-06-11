@@ -90,9 +90,9 @@ public class TableServiceImpl implements TableServiceInterface {
 	}
 
 	@Override
-	public ColumnDefinition addColumn(String tableName, String columnName, ColumnDefinition columnDefinition) {
+	public ColumnDefinition setColumn(String tableName, String columnName, ColumnDefinition columnDefinition) {
 		try {
-			TableManager.INSTANCE.addColumn(tableName, columnName, columnDefinition);
+			TableManager.INSTANCE.setColumn(tableName, columnName, columnDefinition);
 			return columnDefinition;
 		} catch (ServerException | IOException e) {
 			throw ServerException.getJsonException(logger, e);

@@ -28,7 +28,6 @@ import com.qwazr.utils.IOUtils;
 import com.qwazr.utils.json.JsonMapper;
 import com.qwazr.utils.server.RemoteService;
 import org.junit.Assert;
-import org.junit.BeforeClass;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
@@ -46,10 +45,13 @@ import java.util.Set;
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class FullTest {
 
+	public static final String DUMMY_NAME = "sdflkjsdlfksjflskdjf";
 	public static final String BASE_URL = "http://localhost:9091";
 	public static final ColumnDefinition COLUMN_DEF_PASSWORD = getColumnDefinition("column_def_password.json");
 	public static final ColumnDefinition COLUMN_DEF_ROLES = getColumnDefinition("column_def_roles.json");
-	public static final ColumnDefinition COLUMN_DEF_DPT_ID =
+	public static final ColumnDefinition COLUMN_DEF_DPT_ID_STORED =
+			new ColumnDefinition(ColumnDefinition.Type.INTEGER, ColumnDefinition.Mode.STORED);
+	public static final ColumnDefinition COLUMN_DEF_DPT_ID_INDEXED =
 			new ColumnDefinition(ColumnDefinition.Type.INTEGER, ColumnDefinition.Mode.INDEXED);
 	public static final ColumnDefinition COLUMN_DEF_CP =
 			new ColumnDefinition(ColumnDefinition.Type.STRING, ColumnDefinition.Mode.INDEXED);
@@ -87,8 +89,17 @@ public class FullTest {
 		COLUMNS_WITHID.add(Table.ID_COLUMN_NAME);
 	}
 
-	@BeforeClass
-	public static void startDatabaseServer() throws Exception {
+	private void checkErrorStatusCode(Runnable runnable, int expectedStatusCode) {
+		try {
+			runnable.run();
+			Assert.fail("WebApplicationException was not thrown");
+		} catch (WebApplicationException e) {
+			Assert.assertEquals(expectedStatusCode, e.getResponse().getStatus());
+		}
+	}
+
+	@Test
+	public void test000startServer() throws Exception {
 		final File dataDir = Files.createTempDir();
 		System.setProperty("QWAZR_DATA", dataDir.getAbsolutePath());
 		System.setProperty("LISTEN_ADDR", "localhost");
@@ -97,7 +108,7 @@ public class FullTest {
 	}
 
 	@Test
-	public void test000CreateTable() throws URISyntaxException {
+	public void test050CreateTable() throws URISyntaxException {
 		TableServiceInterface client = getClient();
 		TableDefinition tableDefinition = client.createTable(TABLE_NAME);
 		Assert.assertNotNull(tableDefinition);
@@ -114,23 +125,25 @@ public class FullTest {
 	public void test100SetColumns() throws URISyntaxException {
 		TableServiceInterface client = getClient();
 
-		ColumnDefinition columnDefinition = client.addColumn(TABLE_NAME, COLUMN_NAME_PASSWORD, COLUMN_DEF_PASSWORD);
+		checkErrorStatusCode(() -> client.setColumn(DUMMY_NAME, COLUMN_NAME_PASSWORD, COLUMN_DEF_PASSWORD), 404);
+
+		ColumnDefinition columnDefinition = client.setColumn(TABLE_NAME, COLUMN_NAME_PASSWORD, COLUMN_DEF_PASSWORD);
 		Assert.assertNotNull(columnDefinition);
 		checkColumnDefinitions(columnDefinition, COLUMN_DEF_PASSWORD);
 
-		columnDefinition = client.addColumn(TABLE_NAME, COLUMN_NAME_ROLES, COLUMN_DEF_ROLES);
+		columnDefinition = client.setColumn(TABLE_NAME, COLUMN_NAME_ROLES, COLUMN_DEF_ROLES);
 		Assert.assertNotNull(columnDefinition);
 		checkColumnDefinitions(columnDefinition, COLUMN_DEF_ROLES);
 
-		columnDefinition = client.addColumn(TABLE_NAME, COLUMN_NAME_ROLES2, COLUMN_DEF_ROLES);
+		columnDefinition = client.setColumn(TABLE_NAME, COLUMN_NAME_ROLES2, COLUMN_DEF_ROLES);
 		Assert.assertNotNull(columnDefinition);
 		checkColumnDefinitions(columnDefinition, COLUMN_DEF_ROLES);
 
-		columnDefinition = client.addColumn(TABLE_NAME, COLUMN_NAME_DPT_ID, COLUMN_DEF_DPT_ID);
+		columnDefinition = client.setColumn(TABLE_NAME, COLUMN_NAME_DPT_ID, COLUMN_DEF_DPT_ID_INDEXED);
 		Assert.assertNotNull(columnDefinition);
-		checkColumnDefinitions(columnDefinition, COLUMN_DEF_DPT_ID);
+		checkColumnDefinitions(columnDefinition, COLUMN_DEF_DPT_ID_INDEXED);
 
-		columnDefinition = client.addColumn(TABLE_NAME, COLUMN_NAME_CP, COLUMN_DEF_CP);
+		columnDefinition = client.setColumn(TABLE_NAME, COLUMN_NAME_CP, COLUMN_DEF_CP);
 		Assert.assertNotNull(columnDefinition);
 		checkColumnDefinitions(columnDefinition, COLUMN_DEF_CP);
 	}
@@ -145,24 +158,26 @@ public class FullTest {
 	@Test
 	public void test110getColumn() throws URISyntaxException {
 		TableServiceInterface client = getClient();
+		checkErrorStatusCode(() -> client.getColumn(TABLE_NAME, DUMMY_NAME), 204);
 		checkColumn(client, COLUMN_NAME_PASSWORD, COLUMN_DEF_PASSWORD);
 		checkColumn(client, COLUMN_NAME_ROLES, COLUMN_DEF_ROLES);
 		checkColumn(client, COLUMN_NAME_ROLES2, COLUMN_DEF_ROLES);
-		checkColumn(client, COLUMN_NAME_DPT_ID, COLUMN_DEF_DPT_ID);
+		checkColumn(client, COLUMN_NAME_DPT_ID, COLUMN_DEF_DPT_ID_INDEXED);
 	}
 
 	// TODO Not Yet implemented
 	public void test130removeColumn() throws URISyntaxException {
-		TableServiceInterface client = getClient();
+		final TableServiceInterface client = getClient();
 		client.removeColumn(TABLE_NAME, COLUMN_NAME_ROLES2);
-		Map<String, ColumnDefinition> columns = client.getColumns(TABLE_NAME);
+		final Map<String, ColumnDefinition> columns = client.getColumns(TABLE_NAME);
 		Assert.assertNull(columns.get(COLUMN_NAME_ROLES2));
 	}
 
 	@Test
 	public void test120getColumns() throws URISyntaxException {
-		TableServiceInterface client = getClient();
-		Map<String, ColumnDefinition> columns = client.getColumns(TABLE_NAME);
+		final TableServiceInterface client = getClient();
+		checkErrorStatusCode(() -> client.getColumns(DUMMY_NAME), 404);
+		final Map<String, ColumnDefinition> columns = client.getColumns(TABLE_NAME);
 		Assert.assertNotNull(columns);
 		checkColumnDefinitions(columns.get(COLUMN_NAME_PASSWORD), COLUMN_DEF_PASSWORD);
 		checkColumnDefinitions(columns.get(COLUMN_NAME_ROLES), COLUMN_DEF_ROLES);
@@ -172,6 +187,7 @@ public class FullTest {
 	public void test150MatchAllQueryEmpty() throws URISyntaxException {
 		TableServiceInterface client = getClient();
 		TableRequest request = new TableRequest(0, 1000, COLUMNS_WITHID, null, null);
+		checkErrorStatusCode(() -> client.queryRows(DUMMY_NAME, request), 404);
 		TableRequestResult result = client.queryRows(TABLE_NAME, request);
 		Assert.assertNotNull(result);
 		Assert.assertEquals(new Long(0), result.count);
@@ -180,6 +196,7 @@ public class FullTest {
 	@Test
 	public void test300upsertRow() throws URISyntaxException {
 		final TableServiceInterface client = getClient();
+		checkErrorStatusCode(() -> client.upsertRow(DUMMY_NAME, ID1, UPSERT_ROW1), 404);
 		Assert.assertNotNull(client.upsertRow(TABLE_NAME, ID1, UPSERT_ROW1));
 		Assert.assertNotNull(client.upsertRow(TABLE_NAME, ID2, UPSERT_ROW2));
 		checkGetRow("password", PASS1, client.getRow(TABLE_NAME, ID1, COLUMNS));
@@ -189,6 +206,7 @@ public class FullTest {
 	@Test
 	public void test350upsertRows() throws URISyntaxException {
 		final TableServiceInterface client = getClient();
+		checkErrorStatusCode(() -> client.upsertRows(DUMMY_NAME, UPSERT_ROWS), 404);
 		Long result = client.upsertRows(TABLE_NAME, UPSERT_ROWS);
 		Assert.assertNotNull(result);
 		Assert.assertEquals((long) result, UPSERT_ROWS.size());
@@ -197,8 +215,8 @@ public class FullTest {
 	@Test
 	public void test355MatchAllQuery() throws URISyntaxException {
 		final TableServiceInterface client = getClient();
-		TableRequest request = new TableRequest(0, 1000, COLUMNS_WITHID, null, null);
-		TableRequestResult result = client.queryRows(TABLE_NAME, request);
+		final TableRequest request = new TableRequest(0, 1000, COLUMNS_WITHID, null, null);
+		final TableRequestResult result = client.queryRows(TABLE_NAME, request);
 		Assert.assertNotNull(result);
 		Assert.assertEquals(new Long(4), result.count);
 		Assert.assertNotNull(result.rows);
@@ -219,6 +237,8 @@ public class FullTest {
 	@Test
 	public void test360DeleteAndUpsertRow() throws URISyntaxException {
 		final TableServiceInterface client = getClient();
+		checkErrorStatusCode(() -> client.deleteRow(DUMMY_NAME, ""), 405);
+		checkErrorStatusCode(() -> client.deleteRow(TABLE_NAME, null), 405);
 		deleteAndCheck(ID1);
 		deleteAndCheck(ID2);
 		Assert.assertNotNull(client.upsertRow(TABLE_NAME, ID2, UPSERT_ROW2));
@@ -265,6 +285,8 @@ public class FullTest {
 	@Test
 	public void test410GetRow() throws URISyntaxException {
 		final TableServiceInterface client = getClient();
+		checkErrorStatusCode(() -> client.getRow(DUMMY_NAME, ID3, COLUMNS), 404);
+		checkErrorStatusCode(() -> client.getRow(TABLE_NAME, DUMMY_NAME, COLUMNS), 404);
 		checkGetRow("password", PASS3, client.getRow(TABLE_NAME, ID3, COLUMNS));
 		checkGetRow("password", PASS4, client.getRow(TABLE_NAME, ID4, COLUMNS));
 		final Map<String, Object> row = checkGetRow("password", PASS1, client.getRow(TABLE_NAME, ID1, COLUMNS));
@@ -288,10 +310,10 @@ public class FullTest {
 
 	private TableBuilder getTableBuilder() {
 		final TableBuilder builder = new TableBuilder(TB_NAME);
-		builder.addColumn(TB_COLS[0], ColumnDefinition.Type.STRING, ColumnDefinition.Mode.INDEXED);
-		builder.addColumn(TB_COLS[1], ColumnDefinition.Type.INTEGER, ColumnDefinition.Mode.INDEXED);
-		builder.addColumn(TB_COLS[2], ColumnDefinition.Type.DOUBLE, ColumnDefinition.Mode.STORED);
-		builder.addColumn(TB_COLS[3], ColumnDefinition.Type.LONG, ColumnDefinition.Mode.STORED);
+		builder.setColumn(TB_COLS[0], ColumnDefinition.Type.STRING, ColumnDefinition.Mode.INDEXED);
+		builder.setColumn(TB_COLS[1], ColumnDefinition.Type.INTEGER, ColumnDefinition.Mode.INDEXED);
+		builder.setColumn(TB_COLS[2], ColumnDefinition.Type.DOUBLE, ColumnDefinition.Mode.STORED);
+		builder.setColumn(TB_COLS[3], ColumnDefinition.Type.LONG, ColumnDefinition.Mode.STORED);
 		return builder;
 	}
 
@@ -313,7 +335,7 @@ public class FullTest {
 	@Test
 	public void test901tableBuilderAddColumn() throws URISyntaxException {
 		final TableServiceInterface client = getClient();
-		getTableBuilder().addColumn("col5", ColumnDefinition.Type.STRING, ColumnDefinition.Mode.STORED).build(client);
+		getTableBuilder().setColumn("col5", ColumnDefinition.Type.STRING, ColumnDefinition.Mode.STORED).build(client);
 		final Map<String, ColumnDefinition> columns = client.getColumns(TB_NAME);
 		checkColumns(columns, TB_COLS);
 		checkColumns(columns, "col5");
@@ -324,12 +346,7 @@ public class FullTest {
 	public void test950deleteTable() throws URISyntaxException {
 		final TableServiceInterface client = getClient();
 		client.deleteTable(TB_NAME);
-		try {
-			client.getTable(TB_NAME);
-			Assert.fail("Table not deleted");
-		} catch (WebApplicationException e) {
-			Assert.assertEquals(404, e.getResponse().getStatus());
-		}
+		checkErrorStatusCode(() -> client.deleteTable(TB_NAME), 404);
 	}
 
 	private static TableServiceInterface CLIENT = null;

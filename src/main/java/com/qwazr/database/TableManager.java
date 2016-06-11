@@ -107,11 +107,11 @@ public class TableManager {
 		return rwl.readEx(() -> getTable(tableName).getColumns());
 	}
 
-	public void addColumn(final String tableName, final String columnName, final ColumnDefinition columnDefinition)
+	public void setColumn(final String tableName, final String columnName, final ColumnDefinition columnDefinition)
 			throws IOException {
 		rwl.writeEx(() -> {
 			final Table table = getTable(tableName);
-			table.addColumn(columnName, columnDefinition);
+			table.setColumn(columnName, columnDefinition);
 		});
 	}
 

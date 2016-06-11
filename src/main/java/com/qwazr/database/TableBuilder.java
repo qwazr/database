@@ -32,7 +32,7 @@ public class TableBuilder {
 		columns = new LinkedHashMap<>();
 	}
 
-	public TableBuilder addColumn(final String name, final ColumnDefinition.Type type,
+	public TableBuilder setColumn(final String name, final ColumnDefinition.Type type,
 			final ColumnDefinition.Mode mode) {
 		columns.put(name, new ColumnDefinition(type, mode));
 		return this;
@@ -55,7 +55,7 @@ public class TableBuilder {
 		final Map<String, ColumnDefinition> existingColumns = tableService.getColumns(tableName);
 		columns.forEach((columnName, columnDefinition) -> {
 			if (!existingColumns.containsKey(columnName))
-				tableService.addColumn(tableName, columnName, columnDefinition);
+				tableService.setColumn(tableName, columnName, columnDefinition);
 		});
 		existingColumns.keySet().forEach(columnName -> {
 			if (!columns.containsKey(columnName))

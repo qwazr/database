@@ -71,7 +71,7 @@ public interface TableServiceInterface extends ServiceInterface {
 	@Path("/{table_name}/column/{column_name}")
 	@Consumes(ServiceInterface.APPLICATION_JSON_UTF8)
 	@Produces(ServiceInterface.APPLICATION_JSON_UTF8)
-	ColumnDefinition addColumn(@PathParam("table_name") String table_name, @PathParam("column_name") String column_name,
+	ColumnDefinition setColumn(@PathParam("table_name") String table_name, @PathParam("column_name") String column_name,
 			ColumnDefinition columnDefinition);
 
 	@DELETE
