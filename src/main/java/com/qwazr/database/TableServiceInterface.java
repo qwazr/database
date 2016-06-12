@@ -79,6 +79,13 @@ public interface TableServiceInterface extends ServiceInterface {
 	@Produces(ServiceInterface.APPLICATION_JSON_UTF8)
 	Boolean removeColumn(@PathParam("table_name") String table_name, @PathParam("column_name") String column_name);
 
+	@GET
+	@Path("/{table_name}/row")
+	@Consumes(ServiceInterface.APPLICATION_JSON_UTF8)
+	@Produces(ServiceInterface.APPLICATION_JSON_UTF8)
+	List<String> getRows(@PathParam("table_name") String table_name, @QueryParam("start") Integer start,
+			@QueryParam("rows") Integer rows);
+
 	@POST
 	@Path("/{table_name}/row")
 	@Consumes(ServiceInterface.APPLICATION_JSON_UTF8)

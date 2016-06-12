@@ -199,6 +199,15 @@ public class TableServiceImpl implements TableServiceInterface {
 	}
 
 	@Override
+	public List<String> getRows(String table_name, Integer start, Integer rows) {
+		try {
+			return TableManager.INSTANCE.getPrimaryKeys(table_name, start, rows);
+		} catch (ServerException | IOException e) {
+			throw ServerException.getJsonException(logger, e);
+		}
+	}
+
+	@Override
 	public Boolean deleteRow(String table_name, String row_id) {
 		try {
 			return TableManager.INSTANCE.deleteRow(table_name, row_id);

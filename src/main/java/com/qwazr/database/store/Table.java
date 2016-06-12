@@ -331,6 +331,12 @@ public class Table implements Closeable {
 		});
 	}
 
+	final public List<String> getPrimaryKeys(final int start, final int rows) throws IOException {
+		final ArrayList<String> keys = new ArrayList<>(rows);
+		primaryIndexKey.fillKeys(keyStore, start, rows, keys::add);
+		return keys;
+	}
+
 	private ColumnDefinition.Internal getIndexedColumn(final String columnName) throws IOException {
 		final ColumnDefinition.Internal columnDef = new ColumnDefKey(columnName).getValue(keyStore);
 		if (columnDef == null)

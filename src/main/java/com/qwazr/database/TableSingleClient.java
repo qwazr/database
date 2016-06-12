@@ -40,6 +40,9 @@ public class TableSingleClient extends JsonClientAbstract implements TableServic
 	public final static TypeReference<Set<String>> SetStringTypeRef = new TypeReference<Set<String>>() {
 	};
 
+	public final static TypeReference<List<String>> ListStringTypeRef = new TypeReference<List<String>>() {
+	};
+
 	public final static TypeReference<Map<String, Object>> MapStringObjectTypeRef =
 			new TypeReference<Map<String, Object>>() {
 			};
@@ -143,6 +146,13 @@ public class TableSingleClient extends JsonClientAbstract implements TableServic
 				uriBuilder.addParameter("column", column);
 		Request request = Request.Get(uriBuilder.build());
 		return commonServiceRequest(request, null, null, MapStringObjectTypeRef, 200);
+	}
+
+	@Override
+	public List<String> getRows(String table_name, Integer start, Integer rows) {
+		UBuilder uriBuilder = new UBuilder("/table/", table_name, "/row").setParameter("start", start).setParameter("rows", rows);
+		Request request = Request.Get(uriBuilder.build());
+		return commonServiceRequest(request, null, null, ListStringTypeRef, 200);
 	}
 
 	@Override

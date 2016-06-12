@@ -16,6 +16,7 @@
 package com.qwazr.database.store.keys;
 
 import com.qwazr.database.store.KeyStore;
+import com.qwazr.utils.FunctionUtils;
 import org.roaringbitmap.IntIterator;
 import org.roaringbitmap.RoaringBitmap;
 
@@ -45,6 +46,16 @@ public class PrimaryIndexKey extends IndexKey {
 
 	final public String getKey(final KeyStore store, final int docId) throws IOException {
 		return new PrimaryKeysKey(docId).getValue(store);
+	}
+
+	final public void fillKeys(final KeyStore store, final int start, final int rows,
+			final FunctionUtils.ConsumerEx<String> keyConsumer) throws IOException {
+		super.range(store, start, rows, new FunctionUtils.IntConsumerEx() {
+			@Override
+			public void accept(int docId) throws IOException {
+				keyConsumer.accept(getKey(store, docId));
+			}
+		});
 	}
 
 	final public void remove(final KeyStore store, final RoaringBitmap finalBitmap) throws IOException {

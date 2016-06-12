@@ -110,15 +110,13 @@ public class TableManager {
 	public void setColumn(final String tableName, final String columnName, final ColumnDefinition columnDefinition)
 			throws IOException {
 		rwl.writeEx(() -> {
-			final Table table = getTable(tableName);
-			table.setColumn(columnName, columnDefinition);
+			getTable(tableName).setColumn(columnName, columnDefinition);
 		});
 	}
 
 	public void removeColumn(final String tableName, final String columnName) throws IOException {
 		rwl.writeEx(() -> {
-			final Table table = getTable(tableName);
-			table.removeColumn(columnName);
+			getTable(tableName).removeColumn(columnName);
 		});
 	}
 
@@ -137,15 +135,13 @@ public class TableManager {
 	public void upsertRow(final String tableName, final String row_id, final Map<String, Object> nodeMap)
 			throws IOException {
 		rwl.readEx(() -> {
-			final Table table = getTable(tableName);
-			table.upsertRow(row_id, nodeMap);
+			return getTable(tableName).upsertRow(row_id, nodeMap);
 		});
 	}
 
 	public int upsertRows(final String tableName, final List<Map<String, Object>> rows) throws IOException {
 		return rwl.readEx(() -> {
-			final Table table = getTable(tableName);
-			return table.upsertRows(rows);
+			return getTable(tableName).upsertRows(rows);
 		});
 	}
 
@@ -160,10 +156,16 @@ public class TableManager {
 		});
 	}
 
+	public List<String> getPrimaryKeys(final String tableName, final Integer start, final Integer rows)
+			throws IOException {
+		return rwl.readEx(() -> {
+			return getTable(tableName).getPrimaryKeys(start == null ? 0 : start, rows == null ? 10 : rows);
+		});
+	}
+
 	public boolean deleteRow(final String tableName, final String key) throws IOException {
 		return rwl.readEx(() -> {
-			final Table table = getTable(tableName);
-			return table.deleteRow(key);
+			return getTable(tableName).deleteRow(key);
 		});
 	}
 

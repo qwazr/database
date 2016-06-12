@@ -305,6 +305,30 @@ public class FullTest {
 		checkResult(client, new TableQuery.And().add(COLUMN_NAME_DPT_ID, 2), 2L);
 	}
 
+	private void checkRows(final List<String> rows, final String... keys) {
+		Assert.assertNotNull(rows);
+		Assert.assertEquals(keys.length, rows.size());
+		int i = 0;
+		for (String key : keys)
+			Assert.assertEquals(key, rows.get(i++));
+	}
+
+	@Test
+	public void test700getRows() throws URISyntaxException {
+		final TableServiceInterface client = getClient();
+		checkErrorStatusCode(() -> client.getRows(DUMMY_NAME, null, null), 404);
+		checkRows(client.getRows(TABLE_NAME, null, null), ID2, ID1, ID3, ID4);
+		checkRows(client.getRows(TABLE_NAME, 0, 0));
+		checkRows(client.getRows(TABLE_NAME, 2, 0));
+		checkRows(client.getRows(TABLE_NAME, 0, null), ID2, ID1, ID3, ID4);
+		checkRows(client.getRows(TABLE_NAME, null, 4), ID2, ID1, ID3, ID4);
+		checkRows(client.getRows(TABLE_NAME, 1, 2), ID1, ID3);
+		checkRows(client.getRows(TABLE_NAME, 0, 1), ID2);
+		checkRows(client.getRows(TABLE_NAME, 3, 1), ID4);
+		checkRows(client.getRows(TABLE_NAME, 100, 10));
+		checkRows(client.getRows(TABLE_NAME, 1000, null));
+	}
+
 	private static final String TB_NAME = "tb_test";
 	private static final String[] TB_COLS = { "col1", "col2", "col3", "col4" };
 
@@ -317,7 +341,7 @@ public class FullTest {
 		return builder;
 	}
 
-	private void checkColumns(Map<String, ColumnDefinition> columns, String... cols) {
+	private void checkColumns(final Map<String, ColumnDefinition> columns, final String... cols) {
 		Assert.assertNotNull(columns);
 		for (String col : cols)
 			Assert.assertTrue(columns.containsKey(col));
