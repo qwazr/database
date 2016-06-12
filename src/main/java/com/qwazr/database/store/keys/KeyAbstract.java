@@ -17,21 +17,24 @@ package com.qwazr.database.store.keys;
 
 import com.qwazr.database.store.ByteConverter;
 import com.qwazr.database.store.KeyStore;
-import com.qwazr.utils.IOUtils;
+import com.qwazr.utils.ArrayUtils;
+import com.qwazr.utils.FunctionUtils;
+import org.iq80.leveldb.DBIterator;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.Map;
 
-public abstract class KeyAbstract<T, V> implements KeyInterface<T, V> {
+public abstract class KeyAbstract<V> implements KeyInterface<V> {
 
 	private final KeyEnum keyType;
 
-	protected final ByteConverter<T, V> byteConverter;
+	protected final ByteConverter<V> byteConverter;
 
 	private byte[] keyBytes;
 
-	protected KeyAbstract(KeyEnum keyType, ByteConverter<T, V> byteConverter) {
+	protected KeyAbstract(final KeyEnum keyType, final ByteConverter<V> byteConverter) {
 		this.keyType = keyType;
 		this.byteConverter = byteConverter;
 		this.keyBytes = null;
@@ -64,13 +67,34 @@ public abstract class KeyAbstract<T, V> implements KeyInterface<T, V> {
 	}
 
 	@Override
-	final public void setValue(final KeyStore store, final T value) throws IOException {
+	final public void setValue(final KeyStore store, final V value) throws IOException {
 		store.put(getCachedKey(), byteConverter.toBytes(value));
 	}
 
 	@Override
 	final public void deleteValue(final KeyStore store) throws IOException {
 		store.delete(getCachedKey());
+	}
+
+	@Override
+	final public void prefixedKeys(final KeyStore store, int start, int rows,
+			final FunctionUtils.BiConsumerEx<byte[], byte[], IOException> consumer) throws IOException {
+		final byte[] prefixKey = getCachedKey();
+		try (final DBIterator iterator = store.iterator()) {
+			iterator.seek(prefixKey);
+			while (start-- > 0 && iterator.hasNext()) {
+				final Map.Entry<byte[], byte[]> entry = iterator.next();
+				if (!ArrayUtils.startsWith(entry.getKey(), prefixKey))
+					return;
+			}
+			while (rows-- > 0 && iterator.hasNext()) {
+				final Map.Entry<byte[], byte[]> entry = iterator.next();
+				final byte[] key = entry.getKey();
+				if (!ArrayUtils.startsWith(key, prefixKey))
+					return;
+				consumer.accept(key, entry.getValue());
+			}
+		}
 	}
 
 }

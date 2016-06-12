@@ -67,6 +67,20 @@ public interface TableServiceInterface extends ServiceInterface {
 	ColumnDefinition getColumn(@PathParam("table_name") String table_name,
 			@PathParam("column_name") String column_name);
 
+	@GET
+	@Path("/{table_name}/column/{column_name}/term")
+	@Produces(ServiceInterface.APPLICATION_JSON_UTF8)
+	List<Object> getColumnTerms(@PathParam("table_name") String table_name,
+			@PathParam("column_name") String column_name, @QueryParam("start") Integer start,
+			@QueryParam("rows") Integer rows);
+
+	@GET
+	@Path("/{table_name}/column/{column_name}/term/{term}")
+	@Produces(ServiceInterface.APPLICATION_JSON_UTF8)
+	List<String> getColumnTermKeys(@PathParam("table_name") String table_name,
+			@PathParam("column_name") String column_name, @PathParam("term") String term,
+			@QueryParam("start") Integer start, @QueryParam("rows") Integer rows);
+
 	@POST
 	@Path("/{table_name}/column/{column_name}")
 	@Consumes(ServiceInterface.APPLICATION_JSON_UTF8)

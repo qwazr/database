@@ -17,21 +17,26 @@ package com.qwazr.database.store.keys;
 
 import com.qwazr.database.model.ColumnDefinition;
 import com.qwazr.database.store.ByteConverter;
-import com.qwazr.database.store.DatabaseException;
+import com.qwazr.database.store.KeyStore;
+import com.qwazr.utils.server.ServerException;
 
+import javax.ws.rs.core.Response;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
 
-public class ColumnIndexKey<T> extends IndexKey {
+public class ColumnIndexKey<V> extends IndexKey {
 
 	final private int columnId;
-	final private T value;
-	final private ByteConverter valueByteConverter;
+	final private V value;
+	final private ByteConverter<V> valueByteConverter;
 
-	protected ColumnIndexKey(int columnId, T value, ByteConverter valueByteConverter) {
+	private ColumnIndexKey(int columnId, Object value, ByteConverter<V> valueByteConverter) throws IOException {
 		super(KeyEnum.COLUMN_INDEX);
 		this.columnId = columnId;
-		this.value = value;
+		this.value = value == null ? null : valueByteConverter.convert(value);
 		this.valueByteConverter = valueByteConverter;
 	}
 
@@ -39,21 +44,33 @@ public class ColumnIndexKey<T> extends IndexKey {
 	final public void buildKey(final DataOutputStream output) throws IOException {
 		super.buildKey(output);
 		output.writeInt(columnId);
-		output.write(valueByteConverter.toBytes(value));
+		if (value != null)
+			output.write(valueByteConverter.toBytes(value));
 	}
 
-	final public static ColumnIndexKey<?> newInstance(final ColumnDefinition.Internal colDef, final Object value)
-			throws DatabaseException {
+	public List<Object> getValues(final KeyStore store, final int start, final int rows) throws IOException {
+		final List<Object> values = new ArrayList<>();
+		final byte[] prefixKey = getCachedKey();
+		prefixedKeys(store, start, rows, (key, value) -> {
+			ByteBuffer valueBytes = ByteBuffer.wrap(key, prefixKey.length, key.length - prefixKey.length);
+			values.add(valueByteConverter.toValue(valueBytes));
+		});
+		return values;
+	}
+
+	final public static ColumnIndexKey<?> newInstance(final ColumnDefinition.Internal colDef, Object value)
+			throws IOException {
+
 		switch (colDef.type) {
-			case DOUBLE:
-				return new ColumnIndexKey<>(colDef.column_id, value, ByteConverter.DoubleByteConverter.INSTANCE);
-			case INTEGER:
-				return new ColumnIndexKey<>(colDef.column_id, value, ByteConverter.IntegerByteConverter.INSTANCE);
-			case LONG:
-				return new ColumnIndexKey<>(colDef.column_id, value, ByteConverter.LongByteConverter.INSTANCE);
-			case STRING:
-				return new ColumnIndexKey<>(colDef.column_id, value, ByteConverter.StringByteConverter.INSTANCE);
+		case DOUBLE:
+			return new ColumnIndexKey<>(colDef.column_id, value, ByteConverter.DoubleByteConverter.INSTANCE);
+		case INTEGER:
+			return new ColumnIndexKey<>(colDef.column_id, value, ByteConverter.IntegerByteConverter.INSTANCE);
+		case LONG:
+			return new ColumnIndexKey<>(colDef.column_id, value, ByteConverter.LongByteConverter.INSTANCE);
+		case STRING:
+			return new ColumnIndexKey<>(colDef.column_id, null, ByteConverter.StringByteConverter.INSTANCE);
 		}
-		throw new DatabaseException("unknown type: " + colDef.type);
+		throw new ServerException(Response.Status.NOT_ACCEPTABLE, "unknown type: " + colDef.type);
 	}
 }

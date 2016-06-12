@@ -17,17 +17,14 @@ package com.qwazr.database.store.keys;
 
 import com.qwazr.database.model.ColumnDefinition;
 import com.qwazr.database.store.KeyStore;
-import com.qwazr.utils.ArrayUtils;
 import com.qwazr.utils.CharsetUtils;
-import org.iq80.leveldb.DBIterator;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-final public class ColumnDefsKey
-		extends KeyAbstract<Map<String, ColumnDefinition.Internal>, Map<String, ColumnDefinition.Internal>> {
+final public class ColumnDefsKey extends KeyAbstract<Map<String, ColumnDefinition.Internal>> {
 
 	public ColumnDefsKey() {
 		super(KeyEnum.COLUMN_DEF, null);
@@ -35,22 +32,13 @@ final public class ColumnDefsKey
 
 	public Map<String, ColumnDefinition.Internal> getColumns(final KeyStore store) throws IOException {
 		final Map<String, ColumnDefinition.Internal> map = new LinkedHashMap<>();
-		final byte[] myKey = getCachedKey();
-		try (final DBIterator iterator = store.iterator()) {
-			iterator.seek(myKey);
-			while (iterator.hasNext()) {
-				Map.Entry<byte[], byte[]> entry = iterator.next();
-				byte[] key = entry.getKey();
-				if (!ArrayUtils.startsWith(key, myKey))
-					break;
-				String fieldName =
-						CharsetUtils.decodeUtf8(ByteBuffer.wrap(key, myKey.length, key.length - myKey.length));
-				ColumnDefinition.Internal colDef =
-						ColumnDefKey.columnInternalDefinitionByteConverter.toValue(entry.getValue());
-				map.put(fieldName, colDef);
-			}
-			return map;
-		}
+		final byte[] prefixKey = getCachedKey();
+		prefixedKeys(store, 0, Integer.MAX_VALUE, (key, value) -> {
+			String fieldName =
+					CharsetUtils.decodeUtf8(ByteBuffer.wrap(key, prefixKey.length, key.length - prefixKey.length));
+			ColumnDefinition.Internal colDef = ColumnDefKey.columnInternalDefinitionByteConverter.toValue(value);
+			map.put(fieldName, colDef);
+		});
+		return map;
 	}
-
 }

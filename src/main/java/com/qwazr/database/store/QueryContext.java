@@ -19,8 +19,10 @@ import com.qwazr.database.model.ColumnDefinition;
 import com.qwazr.database.store.keys.ColumnIndexKey;
 import com.qwazr.database.store.keys.ColumnStoreKey;
 import com.qwazr.database.store.keys.PrimaryIdsKey;
+import com.qwazr.utils.server.ServerException;
 import org.roaringbitmap.RoaringBitmap;
 
+import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.util.Map;
 
@@ -34,12 +36,12 @@ public class QueryContext {
 		this.columns = columns;
 	}
 
-	public final <T> RoaringBitmap getIndexedBitset(final String columnName, final T value) throws IOException {
+	public final RoaringBitmap getIndexedBitset(final String columnName, final Object value) throws IOException {
 		final ColumnDefinition.Internal colDef = columns.get(columnName);
 		if (colDef == null)
-			throw new DatabaseException("Unknown column: " + columnName);
+			throw new ServerException(Response.Status.NOT_ACCEPTABLE, "Unknown column: " + columnName);
 		if (colDef.mode != ColumnDefinition.Mode.INDEXED)
-			throw new DatabaseException("The column is not indexed: " + columnName);
+			throw new ServerException(Response.Status.NOT_ACCEPTABLE, "The column is not indexed: " + columnName);
 		return ColumnIndexKey.newInstance(colDef, value).getValue(store);
 	}
 

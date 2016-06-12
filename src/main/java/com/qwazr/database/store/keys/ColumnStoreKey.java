@@ -17,21 +17,22 @@ package com.qwazr.database.store.keys;
 
 import com.qwazr.database.model.ColumnDefinition;
 import com.qwazr.database.store.ByteConverter;
-import com.qwazr.database.store.DatabaseException;
 import com.qwazr.database.store.KeyStore;
 import com.qwazr.database.store.ValueConsumer;
 import com.qwazr.utils.ArrayUtils;
+import com.qwazr.utils.server.ServerException;
 
+import javax.ws.rs.core.Response;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.Collection;
 
-final public class ColumnStoreKey<T, V> extends KeyAbstract<T, V> {
+final public class ColumnStoreKey<V> extends KeyAbstract<V> {
 
 	final ColumnDefinition.Internal columnDef;
 	final int docId;
 
-	protected ColumnStoreKey(ColumnDefinition.Internal columnDef, int docId, ByteConverter<T, V> byteConverter) {
+	protected ColumnStoreKey(ColumnDefinition.Internal columnDef, int docId, ByteConverter<V> byteConverter) {
 		super(KeyEnum.COLUMN_STORE, byteConverter);
 		this.docId = docId;
 		this.columnDef = columnDef;
@@ -52,57 +53,56 @@ final public class ColumnStoreKey<T, V> extends KeyAbstract<T, V> {
 		byteConverter.forFirst(getValue(store), consumer);
 	}
 
-	final public static ColumnStoreKey<?, ?> newInstance(ColumnDefinition.Internal colDef, int docId)
-			throws DatabaseException {
+	final public static ColumnStoreKey<?> newInstance(ColumnDefinition.Internal colDef, int docId) {
 		switch (colDef.type) {
-			case DOUBLE:
-				return new ColumnStoreKey<>(colDef, docId, ByteConverter.DoubleArrayByteConverter.INSTANCE);
-			case INTEGER:
-				return new ColumnStoreKey<>(colDef, docId, ByteConverter.IntArrayByteConverter.INSTANCE);
-			case LONG:
-				return new ColumnStoreKey<>(colDef, docId, ByteConverter.LongArrayByteConverter.INSTANCE);
-			case STRING:
-				return new ColumnStoreKey<>(colDef, docId, ByteConverter.StringArrayByteConverter.INSTANCE);
+		case DOUBLE:
+			return new ColumnStoreKey<>(colDef, docId, ByteConverter.DoubleArrayByteConverter.INSTANCE);
+		case INTEGER:
+			return new ColumnStoreKey<>(colDef, docId, ByteConverter.IntArrayByteConverter.INSTANCE);
+		case LONG:
+			return new ColumnStoreKey<>(colDef, docId, ByteConverter.LongArrayByteConverter.INSTANCE);
+		case STRING:
+			return new ColumnStoreKey<>(colDef, docId, ByteConverter.StringArrayByteConverter.INSTANCE);
 		}
-		throw new DatabaseException("unknown type: " + colDef.type);
+		throw new ServerException(Response.Status.NOT_ACCEPTABLE, "unknown type: " + colDef.type);
 	}
 
-	final public void setObjectValue(KeyStore store, Object value) throws IOException, DatabaseException {
+	final public void setObjectValue(KeyStore store, Object value) throws IOException {
 		if (value == null)
 			return;
 		if (value instanceof Collection<?>)
-			setValue(store, (T) collectionToArray((Collection<?>) value));
+			setValue(store, (V) collectionToArray((Collection<?>) value));
 		else if (value.getClass().isArray())
-			setValue(store, (T) value);
+			setValue(store, (V) value);
 		else
-			setValue(store, (T) objectToArray(value));
+			setValue(store, (V) objectToArray(value));
 	}
 
-	private Object collectionToArray(Collection<?> collection) throws DatabaseException {
+	private Object collectionToArray(Collection<?> collection) {
 		switch (columnDef.type) {
-			case DOUBLE:
-				return ArrayUtils.toPrimitiveDouble((Collection<Double>) collection);
-			case INTEGER:
-				return ArrayUtils.toPrimitiveInt((Collection<Integer>) collection);
-			case LONG:
-				return ArrayUtils.toPrimitiveLong((Collection<Long>) collection);
-			case STRING:
-				return collection.toArray(new String[collection.size()]);
+		case DOUBLE:
+			return ArrayUtils.toPrimitiveDouble((Collection<Double>) collection);
+		case INTEGER:
+			return ArrayUtils.toPrimitiveInt((Collection<Integer>) collection);
+		case LONG:
+			return ArrayUtils.toPrimitiveLong((Collection<Long>) collection);
+		case STRING:
+			return collection.toArray(new String[collection.size()]);
 		}
-		throw new DatabaseException("unknown type: " + columnDef.type);
+		throw new ServerException(Response.Status.NOT_ACCEPTABLE, "unknown type: " + columnDef.type);
 	}
 
-	private Object objectToArray(Object object) throws DatabaseException {
+	private Object objectToArray(Object object) {
 		switch (columnDef.type) {
-			case DOUBLE:
-				return new double[]{(Double) object};
-			case INTEGER:
-				return new int[]{(Integer) object};
-			case LONG:
-				return new long[]{(Long) object};
-			case STRING:
-				return new String[]{(String) object};
+		case DOUBLE:
+			return new double[] { (Double) object };
+		case INTEGER:
+			return new int[] { (Integer) object };
+		case LONG:
+			return new long[] { (Long) object };
+		case STRING:
+			return new String[] { (String) object };
 		}
-		throw new DatabaseException("unknown type: " + columnDef.type);
+		throw new ServerException(Response.Status.NOT_ACCEPTABLE, "unknown type: " + columnDef.type);
 	}
 }

@@ -20,8 +20,10 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.qwazr.utils.CharsetUtils;
 import com.qwazr.utils.SerializationUtils;
 import com.qwazr.utils.json.JsonMapper;
+import com.qwazr.utils.server.ServerException;
 import org.xerial.snappy.Snappy;
 
+import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
@@ -29,28 +31,79 @@ import java.nio.CharBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
-public interface ByteConverter<T, V> {
+public interface ByteConverter<T> {
+
+	T convert(Object value) throws IOException;
 
 	byte[] toBytes(T value) throws IOException;
 
-	V toValue(byte[] bytes) throws IOException;
+	T toValue(byte[] bytes) throws IOException;
 
-	void forEach(V value, ValueConsumer consumer);
+	default T toValue(ByteBuffer byteBuffer) throws IOException {
+		final byte[] bytes = new byte[byteBuffer.remaining()];
+		System.arraycopy(byteBuffer.array(), byteBuffer.arrayOffset(), bytes, 0, bytes.length);
+		return toValue(bytes);
+	}
 
-	void forFirst(V value, ValueConsumer consumer);
+	default void forEach(T value, ValueConsumer consumer) {
+		throw new ServerException(Response.Status.NOT_ACCEPTABLE, "Function not implemented");
+	}
 
-	class IntegerByteConverter implements ByteConverter<Number, Integer> {
+	default void forFirst(T value, ValueConsumer consumer) {
+		throw new ServerException(Response.Status.NOT_ACCEPTABLE, "Function not implemented");
+	}
+
+	abstract class AbstractNumberConverter<T extends Number> implements ByteConverter<T> {
+
+		final public T convert(Object value) throws IOException {
+			if (value == null)
+				return null;
+			if (value instanceof Number)
+				return fromNumber((Number) value);
+			else if (value instanceof String) {
+				try {
+					return fromString((String) value);
+				} catch (NumberFormatException e) {
+					// Handled next
+				}
+			}
+			throw new ServerException(Response.Status.NOT_ACCEPTABLE,
+					"Cannot convert " + value.getClass() + " to a number");
+		}
+
+		abstract T fromNumber(Number number) throws IOException;
+
+		abstract T fromString(String string) throws IOException;
+
+	}
+
+	class IntegerByteConverter extends AbstractNumberConverter<Integer> {
 
 		public final static IntegerByteConverter INSTANCE = new IntegerByteConverter();
 
 		@Override
-		final public byte[] toBytes(final Number value) {
-			return ByteBuffer.allocate(4).putInt(value.intValue()).array();
+		final public byte[] toBytes(final Integer value) {
+			return ByteBuffer.allocate(4).putInt(value).array();
+		}
+
+		@Override
+		final Integer fromString(final String string) {
+			return Integer.parseInt(string);
+		}
+
+		@Override
+		final Integer fromNumber(final Number number) {
+			return number.intValue();
 		}
 
 		@Override
 		final public Integer toValue(final byte[] bytes) {
 			return ByteBuffer.wrap(bytes).getInt();
+		}
+
+		@Override
+		final public Integer toValue(final ByteBuffer byteBuffer) {
+			return byteBuffer.getInt();
 		}
 
 		@Override
@@ -66,18 +119,33 @@ public interface ByteConverter<T, V> {
 
 	}
 
-	class LongByteConverter implements ByteConverter<Number, Long> {
+	class LongByteConverter extends AbstractNumberConverter<Long> {
 
 		public final static LongByteConverter INSTANCE = new LongByteConverter();
 
 		@Override
-		final public byte[] toBytes(final Number value) {
-			return ByteBuffer.allocate(8).putLong(value.longValue()).array();
+		final public byte[] toBytes(final Long value) {
+			return ByteBuffer.allocate(8).putLong(value).array();
+		}
+
+		@Override
+		final Long fromString(final String string) {
+			return Long.parseLong(string);
+		}
+
+		@Override
+		final Long fromNumber(final Number number) {
+			return number.longValue();
 		}
 
 		@Override
 		final public Long toValue(final byte[] bytes) {
 			return ByteBuffer.wrap(bytes).getLong();
+		}
+
+		@Override
+		final public Long toValue(final ByteBuffer byteBuffer) {
+			return byteBuffer.getLong();
 		}
 
 		@Override
@@ -92,18 +160,33 @@ public interface ByteConverter<T, V> {
 		}
 	}
 
-	class DoubleByteConverter implements ByteConverter<Number, Double> {
+	class DoubleByteConverter extends AbstractNumberConverter<Double> {
 
 		public final static DoubleByteConverter INSTANCE = new DoubleByteConverter();
 
 		@Override
-		final public byte[] toBytes(Number value) {
-			return ByteBuffer.allocate(8).putDouble(value.doubleValue()).array();
+		final public byte[] toBytes(Double value) {
+			return ByteBuffer.allocate(8).putDouble(value).array();
+		}
+
+		@Override
+		final Double fromString(final String string) {
+			return Double.parseDouble(string);
+		}
+
+		@Override
+		final Double fromNumber(final Number number) {
+			return number.doubleValue();
 		}
 
 		@Override
 		final public Double toValue(byte[] bytes) {
 			return ByteBuffer.wrap(bytes).getDouble();
+		}
+
+		@Override
+		final public Double toValue(final ByteBuffer byteBuffer) {
+			return byteBuffer.getDouble();
 		}
 
 		@Override
@@ -118,18 +201,28 @@ public interface ByteConverter<T, V> {
 		}
 	}
 
-	class StringByteConverter implements ByteConverter<String, String> {
+	class StringByteConverter implements ByteConverter<String> {
 
 		public final static StringByteConverter INSTANCE = new StringByteConverter();
 
 		@Override
+		final public String convert(final Object value) {
+			return value instanceof String ? (String) value : value.toString();
+		}
+
+		@Override
 		final public byte[] toBytes(final String value) {
-			return CharsetUtils.encodeUtf8(value);
+			return CharsetUtils.encodeUtf8(value.toString());
 		}
 
 		@Override
 		final public String toValue(final byte[] bytes) {
 			return CharsetUtils.decodeUtf8(bytes);
+		}
+
+		@Override
+		final public String toValue(final ByteBuffer byteBuffer) throws IOException {
+			return CharsetUtils.decodeUtf8(byteBuffer);
 		}
 
 		@Override
@@ -144,7 +237,15 @@ public interface ByteConverter<T, V> {
 		}
 	}
 
-	class JsonByteConverter<T> implements ByteConverter<T, T> {
+	abstract class AbstractCastConvert<T> implements ByteConverter<T> {
+
+		@Override
+		final public T convert(final Object value) {
+			return (T) value;
+		}
+	}
+
+	class JsonByteConverter<T> extends AbstractCastConvert<T> {
 
 		private final Class<T> objectClass;
 
@@ -162,18 +263,9 @@ public interface ByteConverter<T, V> {
 			return JsonMapper.MAPPER.readValue(bytes, objectClass);
 		}
 
-		@Override
-		final public void forEach(T value, final ValueConsumer consumer) {
-			throw new RuntimeException("Function not implemented");
-		}
-
-		@Override
-		final public void forFirst(T value, ValueConsumer consumer) {
-			throw new RuntimeException("Function not implemented");
-		}
 	}
 
-	class JsonTypeByteConverter<T, V> implements ByteConverter<T, V> {
+	class JsonTypeByteConverter<T> extends AbstractCastConvert<T> {
 
 		private final TypeReference<T> typeReference;
 
@@ -182,31 +274,22 @@ public interface ByteConverter<T, V> {
 		}
 
 		@Override
-		final public byte[] toBytes(T value) throws JsonProcessingException {
+		final public byte[] toBytes(Object value) throws JsonProcessingException {
 			return JsonMapper.MAPPER.writeValueAsBytes(value);
 		}
 
 		@Override
-		final public V toValue(byte[] bytes) throws IOException {
+		final public T toValue(byte[] bytes) throws IOException {
 			return JsonMapper.MAPPER.readValue(bytes, typeReference);
 		}
 
-		@Override
-		final public void forEach(V value, final ValueConsumer consumer) {
-			throw new RuntimeException("Function not implemented");
-		}
-
-		@Override
-		final public void forFirst(V value, ValueConsumer consumer) {
-			throw new RuntimeException("Function not implemented");
-		}
 	}
 
-	class SerializableByteConverter<T extends Serializable> implements ByteConverter<T, T> {
+	class SerializableByteConverter<T extends Serializable> extends AbstractCastConvert<T> {
 
 		@Override
 		final public byte[] toBytes(T value) {
-			return SerializationUtils.serialize(value);
+			return SerializationUtils.serialize((Serializable) value);
 		}
 
 		@Override
@@ -214,24 +297,15 @@ public interface ByteConverter<T, V> {
 			return SerializationUtils.deserialize(bytes);
 		}
 
-		@Override
-		final public void forEach(T value, final ValueConsumer consumer) {
-			throw new RuntimeException("Function not implemented");
-		}
-
-		@Override
-		final public void forFirst(T value, ValueConsumer consumer) {
-			throw new RuntimeException("Function not implemented");
-		}
 	}
 
-	class IntArrayByteConverter implements ByteConverter<int[], int[]> {
+	class IntArrayByteConverter extends AbstractCastConvert<int[]> {
 
 		public final static IntArrayByteConverter INSTANCE = new IntArrayByteConverter();
 
 		@Override
 		final public byte[] toBytes(int[] intArray) throws IOException {
-			return Snappy.compress(intArray);
+			return Snappy.compress((int[]) intArray);
 		}
 
 		@Override
@@ -257,13 +331,13 @@ public interface ByteConverter<T, V> {
 		}
 	}
 
-	class LongArrayByteConverter implements ByteConverter<long[], long[]> {
+	class LongArrayByteConverter extends AbstractCastConvert<long[]> {
 
 		public final static LongArrayByteConverter INSTANCE = new LongArrayByteConverter();
 
 		@Override
 		final public byte[] toBytes(long[] intArray) throws IOException {
-			return Snappy.compress(intArray);
+			return Snappy.compress((long[]) intArray);
 		}
 
 		@Override
@@ -289,13 +363,13 @@ public interface ByteConverter<T, V> {
 		}
 	}
 
-	class DoubleArrayByteConverter implements ByteConverter<double[], double[]> {
+	class DoubleArrayByteConverter extends AbstractCastConvert<double[]> {
 
 		public final static DoubleArrayByteConverter INSTANCE = new DoubleArrayByteConverter();
 
 		@Override
 		final public byte[] toBytes(double[] doubleArray) throws IOException {
-			return Snappy.compress(doubleArray);
+			return Snappy.compress((double[]) doubleArray);
 		}
 
 		@Override
@@ -321,12 +395,12 @@ public interface ByteConverter<T, V> {
 		}
 	}
 
-	class StringArrayByteConverter implements ByteConverter<String[], String[]> {
+	class StringArrayByteConverter extends AbstractCastConvert<String[]> {
 
 		public final static StringArrayByteConverter INSTANCE = new StringArrayByteConverter();
 
 		@Override
-		final public byte[] toBytes(String[] stringArray) throws IOException {
+		final public byte[] toBytes(final String[] stringArray) throws IOException {
 			int l = 0;
 			for (String s : stringArray)
 				l += (s.length() + 1);

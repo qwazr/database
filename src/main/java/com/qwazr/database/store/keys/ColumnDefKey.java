@@ -22,13 +22,12 @@ import com.qwazr.utils.CharsetUtils;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
-final public class ColumnDefKey extends KeyAbstract<ColumnDefinition.Internal, ColumnDefinition.Internal> {
+final public class ColumnDefKey extends KeyAbstract<ColumnDefinition.Internal> {
 
 	private final byte[] fieldBytes;
 
 	static final ByteConverter.JsonByteConverter<ColumnDefinition.Internal> columnInternalDefinitionByteConverter =
-			new ByteConverter.JsonByteConverter<>(
-					ColumnDefinition.Internal.class);
+			new ByteConverter.JsonByteConverter<>(ColumnDefinition.Internal.class);
 
 	public ColumnDefKey(String fieldName) {
 		super(KeyEnum.COLUMN_DEF, columnInternalDefinitionByteConverter);

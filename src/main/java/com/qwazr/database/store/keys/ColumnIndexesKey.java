@@ -16,20 +16,20 @@
 package com.qwazr.database.store.keys;
 
 import com.qwazr.database.model.ColumnDefinition;
-import com.qwazr.database.store.ByteConverter;
-import com.qwazr.database.store.DatabaseException;
 import com.qwazr.database.store.KeyStore;
+import com.qwazr.utils.server.ServerException;
 
+import javax.ws.rs.core.Response;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.Collection;
 
-public class ColumnIndexesKey<T, V> extends KeysAbstract<T, V> {
+public class ColumnIndexesKey extends KeysAbstract {
 
 	final private ColumnDefinition.Internal colDef;
 	final private ArrayIterator arrayIterator;
 
-	public ColumnIndexesKey(ColumnDefinition.Internal colDef) throws DatabaseException {
+	public ColumnIndexesKey(ColumnDefinition.Internal colDef) {
 		super(KeyEnum.COLUMN_INDEX);
 		this.colDef = colDef;
 		switch (colDef.type) {
@@ -46,7 +46,7 @@ public class ColumnIndexesKey<T, V> extends KeysAbstract<T, V> {
 			arrayIterator = new DoubleArrayIterator();
 			break;
 		default:
-			throw new DatabaseException("Unsupported type: " + colDef.type);
+			throw new ServerException(Response.Status.NOT_ACCEPTABLE, "Unsupported type: " + colDef.type);
 		}
 	}
 
@@ -56,7 +56,7 @@ public class ColumnIndexesKey<T, V> extends KeysAbstract<T, V> {
 		output.writeInt(colDef.column_id);
 	}
 
-	final public void remove(KeyStore store, ColumnStoreKey<?, ?> columnStoreKey) throws IOException {
+	final public void remove(KeyStore store, ColumnStoreKey<?> columnStoreKey) throws IOException {
 		Object value = columnStoreKey.getValue(store);
 		if (value == null)
 			return;
@@ -74,22 +74,12 @@ public class ColumnIndexesKey<T, V> extends KeysAbstract<T, V> {
 			ColumnIndexKey.newInstance(colDef, value).select(store, docId);
 	}
 
-	private abstract class ArrayIterator<T, V> {
-
-		private ByteConverter<T, V> byteConverter;
-
-		protected ArrayIterator(ByteConverter<T, V> byteConverter) {
-			this.byteConverter = byteConverter;
-		}
+	private abstract class ArrayIterator {
 
 		protected abstract void remove(KeyStore store, Object object, int docId) throws IOException;
 	}
 
-	private class IntArrayIterator extends ArrayIterator<Number, Integer> {
-
-		protected IntArrayIterator() {
-			super(ByteConverter.IntegerByteConverter.INSTANCE);
-		}
+	private class IntArrayIterator extends ArrayIterator {
 
 		@Override
 		protected void remove(KeyStore store, Object object, int docId) throws IOException {
@@ -99,11 +89,7 @@ public class ColumnIndexesKey<T, V> extends KeysAbstract<T, V> {
 		}
 	}
 
-	private class DoubleArrayIterator extends ArrayIterator<Number, Double> {
-
-		protected DoubleArrayIterator() {
-			super(ByteConverter.DoubleByteConverter.INSTANCE);
-		}
+	private class DoubleArrayIterator extends ArrayIterator {
 
 		@Override
 		protected void remove(KeyStore store, Object object, int docId) throws IOException {
@@ -113,11 +99,7 @@ public class ColumnIndexesKey<T, V> extends KeysAbstract<T, V> {
 		}
 	}
 
-	private class LongArrayIterator extends ArrayIterator<Number, Long> {
-
-		protected LongArrayIterator() {
-			super(ByteConverter.LongByteConverter.INSTANCE);
-		}
+	private class LongArrayIterator extends ArrayIterator {
 
 		@Override
 		protected void remove(KeyStore store, Object object, int docId) throws IOException {
@@ -127,11 +109,7 @@ public class ColumnIndexesKey<T, V> extends KeysAbstract<T, V> {
 		}
 	}
 
-	private class StringArrayIterator extends ArrayIterator<String, String> {
-
-		protected StringArrayIterator() {
-			super(ByteConverter.StringByteConverter.INSTANCE);
-		}
+	private class StringArrayIterator extends ArrayIterator {
 
 		@Override
 		protected void remove(KeyStore store, Object object, int docId) throws IOException {

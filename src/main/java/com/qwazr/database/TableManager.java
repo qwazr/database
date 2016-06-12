@@ -120,6 +120,21 @@ public class TableManager {
 		});
 	}
 
+	public List<Object> getColumnTerms(final String tableName, final String columnName, final Integer start,
+			final Integer rows) throws IOException {
+		return rwl.readEx(() -> {
+			return getTable(tableName).getColumnTerms(columnName, start == null ? 0 : start, rows == null ? 10 : rows);
+		});
+	}
+
+	public List<String> getColumnTermKeys(final String tableName, final String columnName, final String term,
+			final Integer start, final Integer rows) throws IOException {
+		return rwl.readEx(() -> {
+			return getTable(tableName)
+					.getColumnTermKeys(columnName, term, start == null ? 0 : start, rows == null ? 10 : rows);
+		});
+	}
+
 	public void deleteTable(final String tableName) throws IOException {
 		rwl.writeEx(() -> {
 			final File dbDirectory = new File(directory, tableName);

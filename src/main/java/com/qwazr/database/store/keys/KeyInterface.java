@@ -16,21 +16,25 @@
 package com.qwazr.database.store.keys;
 
 import com.qwazr.database.store.KeyStore;
+import com.qwazr.utils.FunctionUtils;
 
 import java.io.DataOutputStream;
 import java.io.IOException;
 
-interface KeyInterface<T, V> {
+interface KeyInterface<T> {
 
-    void buildKey(final DataOutputStream output) throws IOException;
+	void buildKey(DataOutputStream output) throws IOException;
 
-    byte[] getCachedKey() throws IOException;
+	byte[] getCachedKey() throws IOException;
 
-    V getValue(KeyStore store) throws IOException;
+	T getValue(KeyStore store) throws IOException;
 
-    void setValue(KeyStore store, T value) throws IOException;
+	void setValue(KeyStore store, T value) throws IOException;
 
-    void deleteValue(KeyStore store) throws IOException;
+	void deleteValue(KeyStore store) throws IOException;
+
+	void prefixedKeys(KeyStore store, int start, int rows,
+			FunctionUtils.BiConsumerEx<byte[], byte[], IOException> consumer) throws IOException;
 
 }
 

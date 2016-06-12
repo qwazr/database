@@ -40,6 +40,9 @@ public class TableSingleClient extends JsonClientAbstract implements TableServic
 	public final static TypeReference<Set<String>> SetStringTypeRef = new TypeReference<Set<String>>() {
 	};
 
+	public final static TypeReference<List<Object>> ListObjectTypeRef = new TypeReference<List<Object>>() {
+	};
+
 	public final static TypeReference<List<String>> ListStringTypeRef = new TypeReference<List<String>>() {
 	};
 
@@ -106,6 +109,24 @@ public class TableSingleClient extends JsonClientAbstract implements TableServic
 	}
 
 	@Override
+	public List<Object> getColumnTerms(String table_name, String column_name, Integer start, Integer rows) {
+		UBuilder uriBuilder =
+				new UBuilder("/table/", table_name, "/column/", column_name, "/term").setParameter("start", start)
+						.setParameter("rows", rows);
+		Request request = Request.Get(uriBuilder.build());
+		return commonServiceRequest(request, null, null, ListObjectTypeRef, 200);
+	}
+
+	@Override
+	public List<String> getColumnTermKeys(String table_name, String column_name, String term, Integer start,
+			Integer rows) {
+		UBuilder uriBuilder = new UBuilder("/table/", table_name, "/column/", column_name, "/term/", term).
+				setParameter("start", start).setParameter("rows", rows);
+		Request request = Request.Get(uriBuilder.build());
+		return commonServiceRequest(request, null, null, ListStringTypeRef, 200);
+	}
+
+	@Override
 	public ColumnDefinition setColumn(String table_name, String column_name, ColumnDefinition columnDefinition) {
 		UBuilder uriBuilder = new UBuilder("/table/", table_name, "/column/", column_name);
 		Request request = Request.Post(uriBuilder.build());
@@ -150,7 +171,8 @@ public class TableSingleClient extends JsonClientAbstract implements TableServic
 
 	@Override
 	public List<String> getRows(String table_name, Integer start, Integer rows) {
-		UBuilder uriBuilder = new UBuilder("/table/", table_name, "/row").setParameter("start", start).setParameter("rows", rows);
+		UBuilder uriBuilder =
+				new UBuilder("/table/", table_name, "/row").setParameter("start", start).setParameter("rows", rows);
 		Request request = Request.Get(uriBuilder.build());
 		return commonServiceRequest(request, null, null, ListStringTypeRef, 200);
 	}

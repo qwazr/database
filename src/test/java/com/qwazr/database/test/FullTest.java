@@ -49,9 +49,7 @@ public class FullTest {
 	public static final String BASE_URL = "http://localhost:9091";
 	public static final ColumnDefinition COLUMN_DEF_PASSWORD = getColumnDefinition("column_def_password.json");
 	public static final ColumnDefinition COLUMN_DEF_ROLES = getColumnDefinition("column_def_roles.json");
-	public static final ColumnDefinition COLUMN_DEF_DPT_ID_STORED =
-			new ColumnDefinition(ColumnDefinition.Type.INTEGER, ColumnDefinition.Mode.STORED);
-	public static final ColumnDefinition COLUMN_DEF_DPT_ID_INDEXED =
+	public static final ColumnDefinition COLUMN_DEF_DPT_ID =
 			new ColumnDefinition(ColumnDefinition.Type.INTEGER, ColumnDefinition.Mode.INDEXED);
 	public static final ColumnDefinition COLUMN_DEF_CP =
 			new ColumnDefinition(ColumnDefinition.Type.STRING, ColumnDefinition.Mode.INDEXED);
@@ -139,9 +137,9 @@ public class FullTest {
 		Assert.assertNotNull(columnDefinition);
 		checkColumnDefinitions(columnDefinition, COLUMN_DEF_ROLES);
 
-		columnDefinition = client.setColumn(TABLE_NAME, COLUMN_NAME_DPT_ID, COLUMN_DEF_DPT_ID_INDEXED);
+		columnDefinition = client.setColumn(TABLE_NAME, COLUMN_NAME_DPT_ID, COLUMN_DEF_DPT_ID);
 		Assert.assertNotNull(columnDefinition);
-		checkColumnDefinitions(columnDefinition, COLUMN_DEF_DPT_ID_INDEXED);
+		checkColumnDefinitions(columnDefinition, COLUMN_DEF_DPT_ID);
 
 		columnDefinition = client.setColumn(TABLE_NAME, COLUMN_NAME_CP, COLUMN_DEF_CP);
 		Assert.assertNotNull(columnDefinition);
@@ -162,7 +160,7 @@ public class FullTest {
 		checkColumn(client, COLUMN_NAME_PASSWORD, COLUMN_DEF_PASSWORD);
 		checkColumn(client, COLUMN_NAME_ROLES, COLUMN_DEF_ROLES);
 		checkColumn(client, COLUMN_NAME_ROLES2, COLUMN_DEF_ROLES);
-		checkColumn(client, COLUMN_NAME_DPT_ID, COLUMN_DEF_DPT_ID_INDEXED);
+		checkColumn(client, COLUMN_NAME_DPT_ID, COLUMN_DEF_DPT_ID);
 	}
 
 	// TODO Not Yet implemented
@@ -262,13 +260,19 @@ public class FullTest {
 	}
 
 	private TableRequestResult checkResult(final TableServiceInterface client, final TableQuery.Group query,
-			final Long expectedCount) {
-		final TableRequest request = new TableRequest(0, 1, COLUMNS_WITHID, null, query.build());
+			final Long expectedCount, final String... keys) {
+		final TableRequest request = new TableRequest(0, 100, COLUMNS_WITHID, null, query.build());
 		final TableRequestResult result = client.queryRows(TABLE_NAME, request);
 		Assert.assertNotNull(result);
 		Assert.assertNotNull(result.count);
 		if (expectedCount != null)
 			Assert.assertEquals(expectedCount, result.count);
+		if (keys != null && keys.length > 0) {
+			Assert.assertEquals(keys.length, result.rows.size());
+			int i = 0;
+			for (Map<String, Object> row : result.rows)
+				Assert.assertEquals(keys[i++], row.get("$id$"));
+		}
 		return result;
 	}
 
@@ -276,10 +280,10 @@ public class FullTest {
 	public void test400FilterQuery() throws URISyntaxException {
 		final TableServiceInterface client = getClient();
 		checkResult(client, new TableQuery.And().add(COLUMN_NAME_DPT_ID, 1), 2L);
-		TableRequestResult result =
-				checkResult(client, new TableQuery.And().add(COLUMN_NAME_DPT_ID, 1).add(COLUMN_NAME_CP, "333"), 1L);
-		checkGetRow("$id$", ID3, result.rows.get(0));
-		checkResult(client, new TableQuery.Or().add(COLUMN_NAME_DPT_ID, 1).add(COLUMN_NAME_CP, "333"), 2L);
+		checkResult(client, new TableQuery.And().add(COLUMN_NAME_DPT_ID, 1).add(COLUMN_NAME_CP, "111"), 1L, ID1);
+		checkResult(client, new TableQuery.And().add(COLUMN_NAME_DPT_ID, 2).add(COLUMN_NAME_CP, "444"), 1L, ID4);
+		checkResult(client, new TableQuery.And().add(COLUMN_NAME_DPT_ID, 1).add(COLUMN_NAME_CP, "333"), 1L, ID3);
+		checkResult(client, new TableQuery.Or().add(COLUMN_NAME_DPT_ID, 1).add(COLUMN_NAME_CP, "333"), 2L, ID1, ID3);
 	}
 
 	@Test
@@ -327,6 +331,33 @@ public class FullTest {
 		checkRows(client.getRows(TABLE_NAME, 3, 1), ID4);
 		checkRows(client.getRows(TABLE_NAME, 100, 10));
 		checkRows(client.getRows(TABLE_NAME, 1000, null));
+	}
+
+	private void checkColumnsTerms(List<?> terms, Object... expectedTerms) {
+		Assert.assertNotNull(terms);
+		Assert.assertEquals(expectedTerms.length, terms.size());
+		for (Object expectedTerm : expectedTerms)
+			Assert.assertTrue(terms.contains(expectedTerm));
+	}
+
+	@Test
+	public void test800getColumnsTerms() throws URISyntaxException {
+		final TableServiceInterface client = getClient();
+		checkErrorStatusCode(() -> client.getColumnTerms(TABLE_NAME, DUMMY_NAME, null, null), 404);
+		checkColumnsTerms(client.getColumnTerms(TABLE_NAME, COLUMN_NAME_DPT_ID, 0, 100), 1, 2);
+		checkColumnsTerms(client.getColumnTerms(TABLE_NAME, COLUMN_NAME_DPT_ID, 0, 0));
+		checkColumnsTerms(client.getColumnTerms(TABLE_NAME, COLUMN_NAME_DPT_ID, 0, 1), 1);
+		checkColumnsTerms(client.getColumnTerms(TABLE_NAME, COLUMN_NAME_DPT_ID, 1, 1), 2);
+	}
+
+	@Test
+	public void test81getColumnsTerms() throws URISyntaxException {
+		final TableServiceInterface client = getClient();
+		checkErrorStatusCode(() -> client.getColumnTermKeys(TABLE_NAME, DUMMY_NAME, "1", null, null), 404);
+		checkErrorStatusCode(() -> client.getColumnTermKeys(TABLE_NAME, COLUMN_NAME_DPT_ID, DUMMY_NAME, null, null),
+				406);
+		checkColumnsTerms(client.getColumnTermKeys(TABLE_NAME, COLUMN_NAME_DPT_ID, "1", 0, 100), ID2, ID1, ID3);
+		checkColumnsTerms(client.getColumnTermKeys(TABLE_NAME, COLUMN_NAME_DPT_ID, "2", 0, 100), ID1, ID4);
 	}
 
 	private static final String TB_NAME = "tb_test";

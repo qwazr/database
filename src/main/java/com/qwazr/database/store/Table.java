@@ -141,7 +141,8 @@ public class Table implements Closeable {
 			ColumnDefKey columnDefKey = new ColumnDefKey(columnName);
 			ColumnDefinition.Internal colDef = columnDefKey.getValue(keyStore);
 			if (colDef == null)
-				throw new DatabaseException("Cannot delete an unknown column: " + columnName);
+				throw new ServerException(Response.Status.NOT_ACCEPTABLE,
+						"Cannot delete an unknown column: " + columnName);
 			// Delete stored values
 			new ColumnStoresKey(colDef.column_id).deleteAll(keyStore);
 			// Delete any index
@@ -154,7 +155,7 @@ public class Table implements Closeable {
 	private void deleteRow(final int docId) throws IOException {
 		rwlColumns.readEx(() -> {
 			for (ColumnDefinition.Internal colDef : columnDefsKey.getColumns(keyStore).values()) {
-				ColumnStoreKey<?, ?> columnStoreKey = ColumnStoreKey.newInstance(colDef, docId);
+				ColumnStoreKey<?> columnStoreKey = ColumnStoreKey.newInstance(colDef, docId);
 				if (colDef.mode == ColumnDefinition.Mode.INDEXED)
 					new ColumnIndexesKey(colDef).remove(keyStore, columnStoreKey);
 				columnStoreKey.deleteValue(keyStore);
@@ -199,7 +200,8 @@ public class Table implements Closeable {
 			if (o != null)
 				key = o.toString();
 			if (key == null)
-				throw new DatabaseException("The primary key is missing (" + ID_COLUMN_NAME + ")");
+				throw new ServerException(Response.Status.NOT_ACCEPTABLE,
+						"The primary key is missing (" + ID_COLUMN_NAME + ")");
 		}
 		PrimaryIdsKey primaryIdsKey = new PrimaryIdsKey(key);
 		Integer tempId = primaryIdsKey.getValue(keyStore);
@@ -219,11 +221,11 @@ public class Table implements Closeable {
 						continue;
 					final ColumnDefinition.Internal colDef = columns.get(colName);
 					if (colDef == null)
-						throw new DatabaseException("Unknown column: " + colName);
-					final ColumnStoreKey<?, ?> columnStoreKey = ColumnStoreKey.newInstance(colDef, docId);
+						throw new ServerException(Response.Status.NOT_ACCEPTABLE, "Unknown column: " + colName);
+					final ColumnStoreKey<?> columnStoreKey = ColumnStoreKey.newInstance(colDef, docId);
 					final Object valueObject = entry.getValue();
 					if (colDef.mode == ColumnDefinition.Mode.INDEXED) {
-						final ColumnIndexesKey<?, ?> columnIndexesKey = new ColumnIndexesKey(colDef);
+						final ColumnIndexesKey columnIndexesKey = new ColumnIndexesKey(colDef);
 						// TODO optimization : Check if values are identical, if they are we don't have to update anything
 						columnIndexesKey.remove(keyStore, columnStoreKey);
 						columnIndexesKey.select(keyStore, valueObject, docId);
@@ -254,7 +256,8 @@ public class Table implements Closeable {
 	}
 
 	final public int getSize() throws IOException {
-		return primaryIndexKey.getValue(keyStore).getCardinality();
+		final RoaringBitmap bitmap = primaryIndexKey.getValue(keyStore);
+		return bitmap == null ? 0 : bitmap.getCardinality();
 	}
 
 	private Map<String, ColumnDefinition.Internal> getColumns(final Set<String> columnNames) throws IOException {
@@ -268,7 +271,7 @@ public class Table implements Closeable {
 				if (columnName.equals(Table.ID_COLUMN_NAME))
 					columnDef = ColumnDefinition.Internal.PRIMARYKEY_COLUMN;
 				else
-					throw new DatabaseException("Column not found: " + columnName);
+					throw new ServerException(Response.Status.NOT_ACCEPTABLE, "Column not found: " + columnName);
 			}
 			columns.put(columnName, columnDef);
 		}
@@ -333,17 +336,38 @@ public class Table implements Closeable {
 
 	final public List<String> getPrimaryKeys(final int start, final int rows) throws IOException {
 		final ArrayList<String> keys = new ArrayList<>(rows);
-		primaryIndexKey.fillKeys(keyStore, start, rows, keys::add);
+		primaryIndexKey.fillKeys(keyStore, start, rows, primaryIndexKey.getValue(keyStore).getIntIterator(), keys::add);
 		return keys;
 	}
 
 	private ColumnDefinition.Internal getIndexedColumn(final String columnName) throws IOException {
 		final ColumnDefinition.Internal columnDef = new ColumnDefKey(columnName).getValue(keyStore);
 		if (columnDef == null)
-			throw new DatabaseException("Column not found: " + columnName);
+			throw new ServerException(Response.Status.NOT_FOUND, "Column not found: " + columnName);
 		if (columnDef.mode != ColumnDefinition.Mode.INDEXED)
-			throw new DatabaseException("The column is not indexed: " + columnName);
+			throw new ServerException(Response.Status.NOT_ACCEPTABLE, "The column is not indexed: " + columnName);
 		return columnDef;
+	}
+
+	final public List<Object> getColumnTerms(final String columnName, final int start, final int rows)
+			throws IOException {
+		return rwlColumns.readEx(() -> {
+			final ColumnIndexKey<?> indexKey = ColumnIndexKey.newInstance(getIndexedColumn(columnName), null);
+			return indexKey.getValues(keyStore, start, rows);
+		});
+	}
+
+	final public List<String> getColumnTermKeys(final String columnName, final Object term, final int start,
+			final int rows) throws IOException {
+		return rwlColumns.readEx(() -> {
+			final ColumnIndexKey<?> indexKey = ColumnIndexKey.newInstance(getIndexedColumn(columnName), term);
+			final List<String> keys = new ArrayList<>();
+			final RoaringBitmap columnBitmap = indexKey.getValue(keyStore);
+			if (columnBitmap == null || columnBitmap.isEmpty())
+				return keys;
+			primaryIndexKey.fillKeys(keyStore, start, rows, columnBitmap.getIntIterator(), keys::add);
+			return keys;
+		});
 	}
 
 	final public QueryContext getNewQueryContext() throws IOException {

@@ -20,7 +20,6 @@ import com.qwazr.database.model.ColumnDefinition;
 import com.qwazr.database.model.TableDefinition;
 import com.qwazr.database.model.TableRequest;
 import com.qwazr.database.model.TableRequestResult;
-import com.qwazr.database.store.DatabaseException;
 import com.qwazr.database.store.Query;
 import com.qwazr.utils.json.JsonMapper;
 import com.qwazr.utils.server.ServerException;
@@ -81,9 +80,29 @@ public class TableServiceImpl implements TableServiceInterface {
 	}
 
 	@Override
-	public ColumnDefinition getColumn(String tableName, String columnName) {
+	public ColumnDefinition getColumn(final String tableName, final String columnName) {
 		try {
 			return TableManager.INSTANCE.getColumns(tableName).get(columnName);
+		} catch (ServerException | IOException e) {
+			throw ServerException.getJsonException(logger, e);
+		}
+	}
+
+	@Override
+	public List<Object> getColumnTerms(final String tableName, final String columnName, final Integer start,
+			final Integer rows) {
+		try {
+			return TableManager.INSTANCE.getColumnTerms(tableName, columnName, start, rows);
+		} catch (ServerException | IOException e) {
+			throw ServerException.getJsonException(logger, e);
+		}
+	}
+
+	@Override
+	public List<String> getColumnTermKeys(final String tableName, final String columnName, final String term,
+			final Integer start, final Integer rows) {
+		try {
+			return TableManager.INSTANCE.getColumnTermKeys(tableName, columnName, term, start, rows);
 		} catch (ServerException | IOException e) {
 			throw ServerException.getJsonException(logger, e);
 		}
@@ -144,7 +163,7 @@ public class TableServiceImpl implements TableServiceInterface {
 			return buffer.size();
 		}
 
-		private int flush() throws ServerException, DatabaseException, IOException {
+		private int flush() throws IOException {
 			if (buffer.size() == 0)
 				return 0;
 			int res = TableManager.INSTANCE.upsertRows(tableName, buffer);

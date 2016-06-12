@@ -67,7 +67,7 @@ public interface CollectorInterface {
 		}
 
 		@Override
-		final public void collect(RoaringBitmap bitmap) throws IOException, DatabaseException {
+		final public void collect(RoaringBitmap bitmap) throws IOException {
 			for (Integer docId : bitmap)
 				collect(docId);
 		}
@@ -109,7 +109,7 @@ public interface CollectorInterface {
 		}
 
 		@Override
-		final public void collect(int docId) throws IOException, DatabaseException {
+		final public void collect(int docId) throws IOException {
 			documentIds.add(docId);
 			parent.collect(docId);
 		}
@@ -134,7 +134,7 @@ public interface CollectorInterface {
 		}
 
 		@Override
-		final public void collect(int docId) throws IOException, DatabaseException {
+		final public void collect(int docId) throws IOException {
 			parent.collect(docId);
 			ColumnStoreKey.newInstance(columnDef, docId).forEach(context.store, this);
 		}
@@ -184,7 +184,7 @@ public interface CollectorInterface {
 		}
 
 		@Override
-		final public void collect(int docId) throws IOException, DatabaseException {
+		final public void collect(int docId) throws IOException {
 			parent.collect(docId);
 		}
 	}

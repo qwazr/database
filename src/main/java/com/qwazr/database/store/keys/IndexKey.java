@@ -17,13 +17,12 @@ package com.qwazr.database.store.keys;
 
 import com.qwazr.database.store.ByteConverter;
 import com.qwazr.database.store.KeyStore;
-import com.qwazr.utils.FunctionUtils;
 import org.roaringbitmap.IntIterator;
 import org.roaringbitmap.RoaringBitmap;
 
 import java.io.IOException;
 
-public class IndexKey extends KeyAbstract<RoaringBitmap, RoaringBitmap> {
+public class IndexKey extends KeyAbstract<RoaringBitmap> {
 
 	final static ByteConverter.SerializableByteConverter<RoaringBitmap> roaringBitmapConverter =
 			new ByteConverter.SerializableByteConverter<>();
@@ -85,18 +84,6 @@ public class IndexKey extends KeyAbstract<RoaringBitmap, RoaringBitmap> {
 		if (inverseIterator.hasNext())
 			return inverseIterator.next();
 		return nexHigherId;
-	}
-
-	final public void range(final KeyStore store, int start, int rows, final FunctionUtils.IntConsumerEx docIdConsumer)
-			throws IOException {
-		final RoaringBitmap bitmap = getValue(store);
-		if (bitmap == null || bitmap.isEmpty())
-			return;
-		final IntIterator iterator = bitmap.getIntIterator();
-		while (iterator.hasNext() && start-- > 0)
-			iterator.next();
-		while (iterator.hasNext() && rows-- > 0)
-			docIdConsumer.accept(iterator.next());
 	}
 
 }

@@ -18,7 +18,7 @@ package com.qwazr.database.store.keys;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
-final public class ColumnStoresKey<T, V> extends KeysAbstract<T, V> {
+final public class ColumnStoresKey extends KeysAbstract {
 
 	private final int columnId;
 

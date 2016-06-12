@@ -48,14 +48,12 @@ public class PrimaryIndexKey extends IndexKey {
 		return new PrimaryKeysKey(docId).getValue(store);
 	}
 
-	final public void fillKeys(final KeyStore store, final int start, final int rows,
-			final FunctionUtils.ConsumerEx<String> keyConsumer) throws IOException {
-		super.range(store, start, rows, new FunctionUtils.IntConsumerEx() {
-			@Override
-			public void accept(int docId) throws IOException {
-				keyConsumer.accept(getKey(store, docId));
-			}
-		});
+	final public void fillKeys(final KeyStore store, int start, int rows, final IntIterator iterator,
+			final FunctionUtils.ConsumerEx<String, IOException> keyConsumer) throws IOException {
+		while (iterator.hasNext() && start-- > 0)
+			iterator.next();
+		while (iterator.hasNext() && rows-- > 0)
+			keyConsumer.accept(getKey(store, iterator.next()));
 	}
 
 	final public void remove(final KeyStore store, final RoaringBitmap finalBitmap) throws IOException {
