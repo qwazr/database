@@ -83,7 +83,7 @@ public class ColumnIndexesKey extends KeysAbstract {
 
 		@Override
 		protected void remove(KeyStore store, Object object, int docId) throws IOException {
-			int[] array = (int[]) object;
+			final int[] array = (int[]) object;
 			for (int value : array)
 				ColumnIndexKey.newInstance(colDef, value).remove(store, docId);
 		}
@@ -92,8 +92,8 @@ public class ColumnIndexesKey extends KeysAbstract {
 	private class DoubleArrayIterator extends ArrayIterator {
 
 		@Override
-		protected void remove(KeyStore store, Object object, int docId) throws IOException {
-			double[] array = (double[]) object;
+		final protected void remove(final KeyStore store, final Object object, final int docId) throws IOException {
+			final double[] array = (double[]) object;
 			for (double value : array)
 				ColumnIndexKey.newInstance(colDef, value).remove(store, docId);
 		}
@@ -102,8 +102,8 @@ public class ColumnIndexesKey extends KeysAbstract {
 	private class LongArrayIterator extends ArrayIterator {
 
 		@Override
-		protected void remove(KeyStore store, Object object, int docId) throws IOException {
-			long[] array = (long[]) object;
+		final protected void remove(final KeyStore store, final Object object, final int docId) throws IOException {
+			final long[] array = (long[]) object;
 			for (long value : array)
 				ColumnIndexKey.newInstance(colDef, value).remove(store, docId);
 		}
@@ -112,8 +112,8 @@ public class ColumnIndexesKey extends KeysAbstract {
 	private class StringArrayIterator extends ArrayIterator {
 
 		@Override
-		protected void remove(KeyStore store, Object object, int docId) throws IOException {
-			String[] array = (String[]) object;
+		final protected void remove(final KeyStore store, final Object object, final int docId) throws IOException {
+			final String[] array = (String[]) object;
 			for (String value : array)
 				ColumnIndexKey.newInstance(colDef, value).remove(store, docId);
 		}

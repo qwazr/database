@@ -39,7 +39,7 @@ public class IndexKey extends KeyAbstract<RoaringBitmap> {
 	 * @throws IOException
 	 */
 	public void remove(final KeyStore store, final int docId) throws IOException {
-		RoaringBitmap bitmap = getValue(store);
+		final RoaringBitmap bitmap = getValue(store);
 		if (bitmap == null)
 			return;
 		bitmap.remove(docId);

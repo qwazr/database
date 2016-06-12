@@ -69,7 +69,7 @@ public class ColumnIndexKey<V> extends IndexKey {
 		case LONG:
 			return new ColumnIndexKey<>(colDef.column_id, value, ByteConverter.LongByteConverter.INSTANCE);
 		case STRING:
-			return new ColumnIndexKey<>(colDef.column_id, null, ByteConverter.StringByteConverter.INSTANCE);
+			return new ColumnIndexKey<>(colDef.column_id, value, ByteConverter.StringByteConverter.INSTANCE);
 		}
 		throw new ServerException(Response.Status.NOT_ACCEPTABLE, "unknown type: " + colDef.type);
 	}
