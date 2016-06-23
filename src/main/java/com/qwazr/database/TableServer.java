@@ -25,7 +25,7 @@ import java.io.IOException;
 public class TableServer {
 
 	public static GenericServer start()
-			throws InstantiationException, IllegalAccessException, ServletException, IOException {
+			throws Exception {
 		final ServerBuilder builder = new ServerBuilder();
 		ClusterManager.load(builder, null);
 		TableManager.load(builder);
@@ -33,7 +33,7 @@ public class TableServer {
 	}
 
 	public static void main(String[] args)
-			throws IOException, ServletException, InstantiationException, IllegalAccessException {
+			throws Exception {
 		start();
 	}
 
