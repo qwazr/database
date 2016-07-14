@@ -25,8 +25,10 @@ import com.qwazr.database.model.*;
 import com.qwazr.database.store.Table;
 import com.qwazr.utils.CharsetUtils;
 import com.qwazr.utils.IOUtils;
+import com.qwazr.utils.http.HttpClients;
 import com.qwazr.utils.json.JsonMapper;
 import com.qwazr.utils.server.RemoteService;
+import org.apache.http.pool.PoolStats;
 import org.junit.Assert;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
@@ -333,6 +335,13 @@ public class FullTest {
 		checkRows(client.getRows(TABLE_NAME, 1000, null));
 	}
 
+	@Test
+	public void test999httpClient() {
+		Assert.assertEquals(0, HttpClients.CNX_MANAGER.getTotalStats().getLeased());
+		Assert.assertEquals(0, HttpClients.CNX_MANAGER.getTotalStats().getPending());
+		Assert.assertTrue(HttpClients.CNX_MANAGER.getTotalStats().getAvailable() > 0);
+	}
+
 	private void checkColumnsTerms(List<?> terms, Object... expectedTerms) {
 		Assert.assertNotNull(terms);
 		Assert.assertEquals(expectedTerms.length, terms.size());
@@ -433,5 +442,13 @@ public class FullTest {
 		} finally {
 			IOUtils.close(is);
 		}
+	}
+
+	@Test
+	public void testZZZhttpClient() {
+		final PoolStats stats = HttpClients.CNX_MANAGER.getTotalStats();
+		Assert.assertEquals(0, HttpClients.CNX_MANAGER.getTotalStats().getLeased());
+		Assert.assertEquals(0, stats.getPending());
+		Assert.assertTrue(stats.getAvailable() > 0);
 	}
 }
