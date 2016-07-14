@@ -20,6 +20,7 @@ import com.qwazr.database.model.ColumnDefinition;
 import com.qwazr.database.model.TableDefinition;
 import com.qwazr.database.model.TableRequest;
 import com.qwazr.database.model.TableRequestResult;
+import com.qwazr.database.store.KeyStore;
 import com.qwazr.database.store.Query;
 import com.qwazr.utils.json.JsonMapper;
 import com.qwazr.utils.server.ServerException;
@@ -42,10 +43,12 @@ public class TableServiceImpl implements TableServiceInterface {
 	}
 
 	@Override
-	public TableDefinition createTable(String tableName) {
+	public TableDefinition createTable(final String tableName, KeyStore.Impl storeImplementation) {
 		try {
-			TableManager.INSTANCE.createTable(tableName);
-			return new TableDefinition(TableManager.INSTANCE.getColumns(tableName));
+			if (storeImplementation == null)
+				storeImplementation = KeyStore.Impl.leveldb;
+			TableManager.INSTANCE.createTable(tableName, storeImplementation);
+			return new TableDefinition(storeImplementation, TableManager.INSTANCE.getColumns(tableName));
 		} catch (Exception e) {
 			throw ServerException.getJsonException(LOGGER, e);
 		}
@@ -54,7 +57,7 @@ public class TableServiceImpl implements TableServiceInterface {
 	@Override
 	public TableDefinition getTable(String tableName) {
 		try {
-			return new TableDefinition(TableManager.INSTANCE.getColumns(tableName));
+			return new TableDefinition(null, TableManager.INSTANCE.getColumns(tableName));
 		} catch (IOException | ServerException e) {
 			throw ServerException.getJsonException(LOGGER, e);
 		}

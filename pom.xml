@@ -13,6 +13,10 @@
         <version>1.0.1-SNAPSHOT</version>
     </parent>
 
+    <properties>
+        <lmdbjni.version>0.4.6</lmdbjni.version>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>io.undertow</groupId>
@@ -42,6 +46,26 @@
             <groupId>org.fusesource.leveldbjni</groupId>
             <artifactId>leveldbjni-all</artifactId>
             <version>1.8</version>
+        </dependency>
+        <dependency>
+            <groupId>org.deephacks.lmdbjni</groupId>
+            <artifactId>lmdbjni</artifactId>
+            <version>0.4.6</version>
+        </dependency>
+        <dependency>
+            <groupId>org.deephacks.lmdbjni</groupId>
+            <artifactId>lmdbjni-linux64</artifactId>
+            <version>${lmdbjni.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.deephacks.lmdbjni</groupId>
+            <artifactId>lmdbjni-osx64</artifactId>
+            <version>${lmdbjni.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.deephacks.lmdbjni</groupId>
+            <artifactId>lmdbjni-win64</artifactId>
+            <version>${lmdbjni.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>

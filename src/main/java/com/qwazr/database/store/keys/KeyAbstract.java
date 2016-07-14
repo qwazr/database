@@ -16,10 +16,10 @@
 package com.qwazr.database.store.keys;
 
 import com.qwazr.database.store.ByteConverter;
+import com.qwazr.database.store.KeyIterator;
 import com.qwazr.database.store.KeyStore;
 import com.qwazr.utils.ArrayUtils;
 import com.qwazr.utils.FunctionUtils;
-import org.iq80.leveldb.DBIterator;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -80,8 +80,7 @@ public abstract class KeyAbstract<V> implements KeyInterface<V> {
 	final public void prefixedKeys(final KeyStore store, int start, int rows,
 			final FunctionUtils.BiConsumerEx<byte[], byte[], IOException> consumer) throws IOException {
 		final byte[] prefixKey = getCachedKey();
-		try (final DBIterator iterator = store.iterator()) {
-			iterator.seek(prefixKey);
+		try (final KeyIterator iterator = store.iterator(prefixKey)) {
 			while (start-- > 0 && iterator.hasNext()) {
 				final Map.Entry<byte[], byte[]> entry = iterator.next();
 				if (!ArrayUtils.startsWith(entry.getKey(), prefixKey))

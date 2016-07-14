@@ -19,6 +19,7 @@ import com.qwazr.database.model.ColumnDefinition;
 import com.qwazr.database.model.TableDefinition;
 import com.qwazr.database.model.TableRequest;
 import com.qwazr.database.model.TableRequestResult;
+import com.qwazr.database.store.KeyStore;
 import com.qwazr.utils.server.ServiceInterface;
 import com.qwazr.utils.server.ServiceName;
 
@@ -44,7 +45,8 @@ public interface TableServiceInterface extends ServiceInterface {
 	@Path("/{table_name}")
 	@Consumes(ServiceInterface.APPLICATION_JSON_UTF8)
 	@Produces(ServiceInterface.APPLICATION_JSON_UTF8)
-	TableDefinition createTable(@PathParam("table_name") String table_name);
+	TableDefinition createTable(@PathParam("table_name") String table_name,
+			@QueryParam("implementation") KeyStore.Impl storeImplementation);
 
 	@GET
 	@Path("/{table_name}")

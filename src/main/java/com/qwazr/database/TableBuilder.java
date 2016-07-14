@@ -16,6 +16,7 @@
 package com.qwazr.database;
 
 import com.qwazr.database.model.ColumnDefinition;
+import com.qwazr.database.store.KeyStore;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -25,10 +26,13 @@ public class TableBuilder {
 
 	public final String tableName;
 
+	public final KeyStore.Impl implementation;
+
 	public final Map<String, ColumnDefinition> columns;
 
-	public TableBuilder(final String tableName) {
+	public TableBuilder(final String tableName, final KeyStore.Impl implementation) {
 		this.tableName = tableName;
+		this.implementation = implementation;
 		columns = new LinkedHashMap<>();
 	}
 
@@ -51,7 +55,7 @@ public class TableBuilder {
 	public void build(final TableServiceInterface tableService) {
 		final Set<String> tables = tableService.list(null, null);
 		if (!tables.contains(tableName))
-			tableService.createTable(tableName);
+			tableService.createTable(tableName, implementation);
 		final Map<String, ColumnDefinition> existingColumns = tableService.getColumns(tableName);
 		columns.forEach((columnName, columnDefinition) -> {
 			if (!existingColumns.containsKey(columnName))

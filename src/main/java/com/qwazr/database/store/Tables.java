@@ -15,61 +15,56 @@
  */
 package com.qwazr.database.store;
 
-import com.qwazr.utils.LockUtils;
+import com.qwazr.utils.server.ServerException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class Tables {
 
-	private final static LockUtils.ReadWriteLock rwlTables = new LockUtils.ReadWriteLock();
+	private static final Logger LOGGER = LoggerFactory.getLogger(Table.class);
 
-	private static final Logger logger = LoggerFactory.getLogger(Table.class);
+	private final static ConcurrentHashMap<File, Table> tables = new ConcurrentHashMap<>();
 
-	private final static Map<File, Table> tables = new HashMap<>();
-
-	public static Table getInstance(final File directory, final boolean createIfNotExist) throws IOException {
-		final Table t = rwlTables.readEx(() -> tables.get(directory));
-		if (t != null)
-			return t;
-		if (!createIfNotExist)
-			return null;
-		return rwlTables.writeEx(() -> {
-			Table table = tables.get(directory);
-			if (table != null)
-				return table;
-			table = new Table(directory);
-			tables.put(directory, table);
-			return table;
+	public static Table getInstance(final File directory, final KeyStore.Impl storeImpl) {
+		return tables.computeIfAbsent(directory, file -> {
+			final KeyStore.Impl si = storeImpl == null ? KeyStore.Impl.detect(directory) : storeImpl;
+			if (si == null)
+				throw new ServerException("Cannot detect the store type: " + directory);
+			try {
+				return new Table(file, storeImpl);
+			} catch (IOException e) {
+				throw new ServerException(e);
+			}
 		});
 	}
 
-	static void close(final File directory) throws IOException {
-		Table t = rwlTables.readEx(() -> tables.get(directory));
-		if (t == null)
+	static public void delete(final File directory) throws IOException {
+		final Table table = tables.get(directory);
+		if (table == null)
 			return;
-		rwlTables.writeEx(() -> {
-			Table table = tables.get(directory);
-			if (table == null)
-				return;
-			tables.remove(directory);
-		});
+		table.close();
+		table.delete();
+	}
+
+	static synchronized void close(final File directory) throws IOException {
+		final Table table = tables.remove(directory);
+		if (table == null)
+			return;
+		table.closeNoLock();
 	}
 
 	public static void closeAll() {
-		rwlTables.writeEx(() -> {
-			tables.forEach((file, table) -> {
-				try {
-					table.closeNoLock();
-				} catch (IOException e) {
-					logger.warn("Cannot clause the table: " + table, e);
-				}
-			});
-			tables.clear();
+		tables.forEach((file, table) -> {
+			try {
+				table.closeNoLock();
+			} catch (IOException e) {
+				LOGGER.warn("Cannot clause the table: " + table, e);
+			}
 		});
+		tables.clear();
 	}
 }

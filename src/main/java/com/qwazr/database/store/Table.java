@@ -74,11 +74,15 @@ public class Table implements Closeable {
 	private static final ByteConverter.JsonTypeByteConverter MapStringIntegerByteConverter =
 			new ByteConverter.JsonTypeByteConverter(MapStringIntegerTypeRef);
 
-	Table(File directory) throws IOException {
+	Table(final File directory, final KeyStore.Impl storeImpl) throws IOException {
 		this.directory = directory;
 		logger.info("Load table: " + directory);
-		File dbFile = new File(directory, "storedb");
-		keyStore = new KeyStore(dbFile);
+		File dbFile = new File(directory, storeImpl.directoryName);
+		try {
+			keyStore = storeImpl.storeClass.getConstructor(File.class).newInstance(dbFile);
+		} catch (ReflectiveOperationException e) {
+			throw new ServerException(e);
+		}
 		columnDefsKey = new ColumnDefsKey();
 		primaryIndexKey = new PrimaryIndexKey();
 	}

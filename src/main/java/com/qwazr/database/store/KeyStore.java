@@ -15,81 +15,43 @@
  **/
 package com.qwazr.database.store;
 
-import org.fusesource.leveldbjni.JniDBFactory;
-import org.iq80.leveldb.DB;
-import org.iq80.leveldb.DBIterator;
-import org.iq80.leveldb.Options;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 
-public class KeyStore implements Closeable {
+public interface KeyStore extends Closeable {
 
-	private static final Logger logger = LoggerFactory.getLogger(KeyStore.class);
+	boolean exists();
 
-	private final DB db;
-	private final File file;
+	void delete() throws IOException;
 
-	private static boolean MEMORY_POOL = false;
+	byte[] get(byte[] key);
 
-	final static void checkMemoryPool() {
-		synchronized (KeyStore.class) {
-			if (MEMORY_POOL)
-				return;
-			JniDBFactory.pushMemoryPool(1024 * 512);
-			MEMORY_POOL = true;
+	void put(byte[] key, byte[] value) throws IOException;
+
+	void delete(byte[] key) throws IOException;
+
+	KeyIterator iterator(byte[] key);
+
+	enum Impl {
+
+		leveldb(KeyStoreLevelDb.class, "storedb"), lmdb(KeyStoreLmdb.class, "lmdb");
+
+		final public Class<? extends KeyStore> storeClass;
+		final public String directoryName;
+
+		Impl(Class<? extends KeyStore> storeClass, final String directoryName) {
+			this.storeClass = storeClass;
+			this.directoryName = directoryName;
 		}
-	}
 
-	//TODO
-	final static void freeMemoryPool() {
-		synchronized (KeyStore.class) {
-			if (!MEMORY_POOL)
-				return;
-			JniDBFactory.popMemoryPool();
-			MEMORY_POOL = false;
+		final public static Impl detect(final File directory) {
+			if (!directory.exists())
+				return null;
+			for (Impl impl : values())
+				if (new File(directory, impl.directoryName).exists())
+					return impl;
+			return null;
 		}
-	}
-
-	public KeyStore(final File file) throws IOException {
-		checkMemoryPool();
-		final Options options = new Options();
-		options.logger(logger::info);
-		this.file = file;
-		options.createIfMissing(true);
-		db = JniDBFactory.factory.open(file, options);
-	}
-
-	@Override
-	final public void close() throws IOException {
-		db.close();
-	}
-
-	final public boolean exists() {
-		return file.exists();
-	}
-
-	final public void delete() throws IOException {
-		Options options = new Options();
-		JniDBFactory.factory.destroy(file, options);
-	}
-
-	final public byte[] get(final byte[] key) {
-		return db.get(key);
-	}
-
-	final public void put(final byte[] key, final byte[] value) throws IOException {
-		db.put(key, value);
-	}
-
-	final public void delete(final byte[] key) throws IOException {
-		db.delete(key);
-	}
-
-	final public DBIterator iterator() {
-		return db.iterator();
 	}
 }

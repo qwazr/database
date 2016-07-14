@@ -22,11 +22,13 @@ import com.qwazr.database.TableServer;
 import com.qwazr.database.TableServiceInterface;
 import com.qwazr.database.TableSingleClient;
 import com.qwazr.database.model.*;
+import com.qwazr.database.store.KeyStore;
 import com.qwazr.database.store.Table;
 import com.qwazr.utils.CharsetUtils;
 import com.qwazr.utils.IOUtils;
 import com.qwazr.utils.http.HttpClients;
 import com.qwazr.utils.json.JsonMapper;
+import com.qwazr.utils.server.GenericServer;
 import com.qwazr.utils.server.RemoteService;
 import org.apache.http.pool.PoolStats;
 import org.junit.Assert;
@@ -45,7 +47,7 @@ import java.util.Map;
 import java.util.Set;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
-public class FullTest {
+public abstract class FullTest {
 
 	public static final String DUMMY_NAME = "sdflkjsdlfksjflskdjf";
 	public static final String BASE_URL = "http://localhost:9091";
@@ -98,19 +100,23 @@ public class FullTest {
 		}
 	}
 
+	private static GenericServer genericServer = null;
+
 	@Test
 	public void test000startServer() throws Exception {
+		if (genericServer != null)
+			return;
 		final File dataDir = Files.createTempDir();
 		System.setProperty("QWAZR_DATA", dataDir.getAbsolutePath());
 		System.setProperty("LISTEN_ADDR", "localhost");
 		System.setProperty("PUBLIC_ADDR", "localhost");
-		TableServer.main(new String[] {});
+		genericServer = TableServer.start();
 	}
 
 	@Test
 	public void test050CreateTable() throws URISyntaxException {
 		TableServiceInterface client = getClient();
-		TableDefinition tableDefinition = client.createTable(TABLE_NAME);
+		TableDefinition tableDefinition = client.createTable(TABLE_NAME, getStoreImplementation());
 		Assert.assertNotNull(tableDefinition);
 	}
 
@@ -154,6 +160,8 @@ public class FullTest {
 		Assert.assertNotNull(cd);
 		checkColumnDefinitions(cd, columnDefinition);
 	}
+
+	protected abstract KeyStore.Impl getStoreImplementation();
 
 	@Test
 	public void test110getColumn() throws URISyntaxException {
@@ -335,13 +343,6 @@ public class FullTest {
 		checkRows(client.getRows(TABLE_NAME, 1000, null));
 	}
 
-	@Test
-	public void test999httpClient() {
-		Assert.assertEquals(0, HttpClients.CNX_MANAGER.getTotalStats().getLeased());
-		Assert.assertEquals(0, HttpClients.CNX_MANAGER.getTotalStats().getPending());
-		Assert.assertTrue(HttpClients.CNX_MANAGER.getTotalStats().getAvailable() > 0);
-	}
-
 	private void checkColumnsTerms(List<?> terms, Object... expectedTerms) {
 		Assert.assertNotNull(terms);
 		Assert.assertEquals(expectedTerms.length, terms.size());
@@ -373,7 +374,7 @@ public class FullTest {
 	private static final String[] TB_COLS = { "col1", "col2", "col3", "col4" };
 
 	private TableBuilder getTableBuilder() {
-		final TableBuilder builder = new TableBuilder(TB_NAME);
+		final TableBuilder builder = new TableBuilder(TB_NAME, getStoreImplementation());
 		builder.setColumn(TB_COLS[0], ColumnDefinition.Type.STRING, ColumnDefinition.Mode.INDEXED);
 		builder.setColumn(TB_COLS[1], ColumnDefinition.Type.INTEGER, ColumnDefinition.Mode.INDEXED);
 		builder.setColumn(TB_COLS[2], ColumnDefinition.Type.DOUBLE, ColumnDefinition.Mode.STORED);
@@ -411,6 +412,8 @@ public class FullTest {
 		final TableServiceInterface client = getClient();
 		client.deleteTable(TB_NAME);
 		checkErrorStatusCode(() -> client.deleteTable(TB_NAME), 404);
+		client.deleteTable(TABLE_NAME);
+		checkErrorStatusCode(() -> client.deleteTable(TABLE_NAME), 404);
 	}
 
 	private static TableServiceInterface CLIENT = null;
@@ -451,4 +454,5 @@ public class FullTest {
 		Assert.assertEquals(0, stats.getPending());
 		Assert.assertTrue(stats.getAvailable() > 0);
 	}
+
 }

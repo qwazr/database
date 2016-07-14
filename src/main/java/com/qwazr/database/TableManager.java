@@ -77,10 +77,10 @@ public class TableManager {
 		File dbDirectory = new File(directory, tableName);
 		if (!dbDirectory.exists())
 			throw new ServerException(Response.Status.NOT_FOUND, "Table not found: " + tableName);
-		return Tables.getInstance(dbDirectory, true);
+		return Tables.getInstance(dbDirectory, null);
 	}
 
-	public void createTable(final String tableName) throws IOException {
+	public void createTable(final String tableName, final KeyStore.Impl storeImpl) throws IOException {
 		rwl.writeEx(() -> {
 			final File dbDirectory = new File(directory, tableName);
 			if (dbDirectory.exists())
@@ -89,7 +89,7 @@ public class TableManager {
 			if (!dbDirectory.exists())
 				throw new ServerException(Response.Status.INTERNAL_SERVER_ERROR,
 						"The directory cannot be created: " + dbDirectory.getAbsolutePath());
-			Tables.getInstance(dbDirectory, true);
+			Tables.getInstance(dbDirectory, storeImpl);
 		});
 	}
 
@@ -122,42 +122,33 @@ public class TableManager {
 
 	public List<Object> getColumnTerms(final String tableName, final String columnName, final Integer start,
 			final Integer rows) throws IOException {
-		return rwl.readEx(() -> {
-			return getTable(tableName).getColumnTerms(columnName, start == null ? 0 : start, rows == null ? 10 : rows);
-		});
+		return rwl.readEx(() -> getTable(tableName).getColumnTerms(columnName, start == null ? 0 : start,
+				rows == null ? 10 : rows));
 	}
 
 	public List<String> getColumnTermKeys(final String tableName, final String columnName, final String term,
 			final Integer start, final Integer rows) throws IOException {
-		return rwl.readEx(() -> {
-			return getTable(tableName)
-					.getColumnTermKeys(columnName, term, start == null ? 0 : start, rows == null ? 10 : rows);
-		});
+		return rwl.readEx(() -> getTable(tableName).getColumnTermKeys(columnName, term, start == null ? 0 : start,
+				rows == null ? 10 : rows));
 	}
 
 	public void deleteTable(final String tableName) throws IOException {
 		rwl.writeEx(() -> {
 			final File dbDirectory = new File(directory, tableName);
-			Table table = Tables.getInstance(dbDirectory, false);
-			if (table != null)
-				table.close();
 			if (!dbDirectory.exists())
 				throw new ServerException(Response.Status.NOT_FOUND, "Table not found: " + tableName);
+			Tables.delete(dbDirectory);
 			FileUtils.deleteDirectory(dbDirectory);
 		});
 	}
 
 	public void upsertRow(final String tableName, final String row_id, final Map<String, Object> nodeMap)
 			throws IOException {
-		rwl.readEx(() -> {
-			return getTable(tableName).upsertRow(row_id, nodeMap);
-		});
+		rwl.readEx(() -> getTable(tableName).upsertRow(row_id, nodeMap));
 	}
 
 	public int upsertRows(final String tableName, final List<Map<String, Object>> rows) throws IOException {
-		return rwl.readEx(() -> {
-			return getTable(tableName).upsertRows(rows);
-		});
+		return rwl.readEx(() -> getTable(tableName).upsertRows(rows));
 	}
 
 	public LinkedHashMap<String, Object> getRow(final String tableName, final String key, final Set<String> columns)
@@ -173,15 +164,12 @@ public class TableManager {
 
 	public List<String> getPrimaryKeys(final String tableName, final Integer start, final Integer rows)
 			throws IOException {
-		return rwl.readEx(() -> {
-			return getTable(tableName).getPrimaryKeys(start == null ? 0 : start, rows == null ? 10 : rows);
-		});
+		return rwl.readEx(
+				() -> getTable(tableName).getPrimaryKeys(start == null ? 0 : start, rows == null ? 10 : rows));
 	}
 
 	public boolean deleteRow(final String tableName, final String key) throws IOException {
-		return rwl.readEx(() -> {
-			return getTable(tableName).deleteRow(key);
-		});
+		return rwl.readEx(() -> getTable(tableName).deleteRow(key));
 	}
 
 	public TableRequestResult query(final String tableName, final TableRequest request) throws IOException {
@@ -216,9 +204,7 @@ public class TableManager {
 
 			counters.forEach((countersEntryKey, countersEntry) -> {
 				final LinkedHashMap<String, Long> counter = new LinkedHashMap<>();
-				countersEntry.forEach((key, counterEntry) -> {
-					counter.put(key, counterEntry.count);
-				});
+				countersEntry.forEach((key, counterEntry) -> counter.put(key, counterEntry.count));
 				result.counters.put(countersEntryKey, counter);
 			});
 

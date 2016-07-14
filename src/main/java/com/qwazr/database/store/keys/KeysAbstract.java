@@ -15,8 +15,8 @@
  **/
 package com.qwazr.database.store.keys;
 
+import com.qwazr.database.store.KeyIterator;
 import com.qwazr.database.store.KeyStore;
-import org.iq80.leveldb.DBIterator;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -31,8 +31,7 @@ public abstract class KeysAbstract<T> extends KeyAbstract<T> {
 	final public int deleteAll(KeyStore store) throws IOException {
 		byte[] myKey = getCachedKey();
 		ByteBuffer bb = ByteBuffer.wrap(myKey);
-		try (final DBIterator iterator = store.iterator()) {
-			iterator.seek(myKey);
+		try (final KeyIterator iterator = store.iterator(myKey)) {
 			int count = 0;
 			while (iterator.hasNext()) {
 				Map.Entry<byte[], byte[]> entry = iterator.next();
