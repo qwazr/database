@@ -34,7 +34,7 @@ import java.util.*;
 
 public class TableServiceImpl implements TableServiceInterface {
 
-	private static final Logger logger = LoggerFactory.getLogger(TableServiceImpl.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(TableServiceImpl.class);
 
 	@Override
 	public Set<String> list(Integer msTimeOut, Boolean local) {
@@ -47,7 +47,7 @@ public class TableServiceImpl implements TableServiceInterface {
 			TableManager.INSTANCE.createTable(tableName);
 			return new TableDefinition(TableManager.INSTANCE.getColumns(tableName));
 		} catch (Exception e) {
-			throw ServerException.getJsonException(logger, e);
+			throw ServerException.getJsonException(LOGGER, e);
 		}
 	}
 
@@ -56,7 +56,7 @@ public class TableServiceImpl implements TableServiceInterface {
 		try {
 			return new TableDefinition(TableManager.INSTANCE.getColumns(tableName));
 		} catch (IOException | ServerException e) {
-			throw ServerException.getJsonException(logger, e);
+			throw ServerException.getJsonException(LOGGER, e);
 		}
 	}
 
@@ -66,7 +66,7 @@ public class TableServiceImpl implements TableServiceInterface {
 			TableManager.INSTANCE.deleteTable(tableName);
 			return true;
 		} catch (IOException | ServerException e) {
-			throw ServerException.getJsonException(logger, e);
+			throw ServerException.getJsonException(LOGGER, e);
 		}
 	}
 
@@ -75,7 +75,7 @@ public class TableServiceImpl implements TableServiceInterface {
 		try {
 			return TableManager.INSTANCE.getColumns(tableName);
 		} catch (ServerException | IOException e) {
-			throw ServerException.getJsonException(logger, e);
+			throw ServerException.getJsonException(LOGGER, e);
 		}
 	}
 
@@ -84,7 +84,7 @@ public class TableServiceImpl implements TableServiceInterface {
 		try {
 			return TableManager.INSTANCE.getColumns(tableName).get(columnName);
 		} catch (ServerException | IOException e) {
-			throw ServerException.getJsonException(logger, e);
+			throw ServerException.getJsonException(LOGGER, e);
 		}
 	}
 
@@ -94,7 +94,7 @@ public class TableServiceImpl implements TableServiceInterface {
 		try {
 			return TableManager.INSTANCE.getColumnTerms(tableName, columnName, start, rows);
 		} catch (ServerException | IOException e) {
-			throw ServerException.getJsonException(logger, e);
+			throw ServerException.getJsonException(LOGGER, e);
 		}
 	}
 
@@ -104,7 +104,7 @@ public class TableServiceImpl implements TableServiceInterface {
 		try {
 			return TableManager.INSTANCE.getColumnTermKeys(tableName, columnName, term, start, rows);
 		} catch (ServerException | IOException e) {
-			throw ServerException.getJsonException(logger, e);
+			throw ServerException.getJsonException(LOGGER, e);
 		}
 	}
 
@@ -114,7 +114,7 @@ public class TableServiceImpl implements TableServiceInterface {
 			TableManager.INSTANCE.setColumn(tableName, columnName, columnDefinition);
 			return columnDefinition;
 		} catch (ServerException | IOException e) {
-			throw ServerException.getJsonException(logger, e);
+			throw ServerException.getJsonException(LOGGER, e);
 		}
 	}
 
@@ -128,7 +128,7 @@ public class TableServiceImpl implements TableServiceInterface {
 		try {
 			return (long) TableManager.INSTANCE.upsertRows(table_name, rows);
 		} catch (IOException | ServerException e) {
-			throw ServerException.getJsonException(logger, e);
+			throw ServerException.getJsonException(LOGGER, e);
 		}
 	}
 
@@ -194,7 +194,7 @@ public class TableServiceImpl implements TableServiceInterface {
 			counter += buffer.flush();
 			return counter;
 		} catch (Exception e) {
-			throw ServerException.getJsonException(logger, e);
+			throw ServerException.getJsonException(LOGGER, e);
 		}
 	}
 
@@ -204,7 +204,7 @@ public class TableServiceImpl implements TableServiceInterface {
 			TableManager.INSTANCE.upsertRow(table_name, row_id, node);
 			return node;
 		} catch (ServerException | IOException e) {
-			throw ServerException.getJsonException(logger, e);
+			throw ServerException.getJsonException(LOGGER, e);
 		}
 	}
 
@@ -213,7 +213,7 @@ public class TableServiceImpl implements TableServiceInterface {
 		try {
 			return TableManager.INSTANCE.getRow(table_name, row_id, columns);
 		} catch (ServerException | IOException e) {
-			throw ServerException.getJsonException(logger, e);
+			throw ServerException.getJsonException(LOGGER, e);
 		}
 	}
 
@@ -222,7 +222,7 @@ public class TableServiceImpl implements TableServiceInterface {
 		try {
 			return TableManager.INSTANCE.getPrimaryKeys(table_name, start, rows);
 		} catch (ServerException | IOException e) {
-			throw ServerException.getJsonException(logger, e);
+			throw ServerException.getJsonException(LOGGER, e);
 		}
 	}
 
@@ -231,7 +231,7 @@ public class TableServiceImpl implements TableServiceInterface {
 		try {
 			return TableManager.INSTANCE.deleteRow(table_name, row_id);
 		} catch (ServerException | IOException e) {
-			throw ServerException.getJsonException(logger, e);
+			throw ServerException.getJsonException(LOGGER, e);
 		}
 	}
 
@@ -240,7 +240,7 @@ public class TableServiceImpl implements TableServiceInterface {
 		try {
 			return TableManager.INSTANCE.query(table_name, request);
 		} catch (ServerException | IOException | Query.QueryException e) {
-			throw ServerException.getJsonException(logger, e);
+			throw ServerException.getJsonException(LOGGER, e);
 		}
 	}
 
