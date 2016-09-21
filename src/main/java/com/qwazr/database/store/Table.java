@@ -39,7 +39,7 @@ public class Table implements Closeable {
 
 	public static final String ID_COLUMN_NAME = "$id$";
 
-	private static final Logger logger = LoggerFactory.getLogger(Table.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(Table.class);
 
 	private final LockUtils.ReadWriteLock rwlColumns = new LockUtils.ReadWriteLock();
 
@@ -76,8 +76,8 @@ public class Table implements Closeable {
 
 	Table(final File directory, final KeyStore.Impl storeImpl) throws IOException {
 		this.directory = directory;
-		logger.info("Load table: " + directory);
-		File dbFile = new File(directory, storeImpl.directoryName);
+		LOGGER.info("Load table: " + directory);
+		final File dbFile = new File(directory, storeImpl.directoryName);
 		try {
 			keyStore = storeImpl.storeClass.getConstructor(File.class).newInstance(dbFile);
 		} catch (ReflectiveOperationException e) {
@@ -114,7 +114,7 @@ public class Table implements Closeable {
 	private void addColumn(final Map<String, ColumnDefinition.Internal> columns, final String columnName,
 			final ColumnDefinition columnDefinition) throws IOException {
 		// Find the next available column id
-		BitSet bitset = new BitSet();
+		final BitSet bitset = new BitSet();
 		if (columns != null)
 			columns.forEach((s, columnInternalDefinition) -> bitset.set(columnInternalDefinition.column_id));
 		final int columnId = bitset.nextClearBit(0);
@@ -142,8 +142,8 @@ public class Table implements Closeable {
 	final public void removeColumn(final String columnName) throws IOException {
 		rwlColumns.writeEx(() -> {
 			// Check if the column exists
-			ColumnDefKey columnDefKey = new ColumnDefKey(columnName);
-			ColumnDefinition.Internal colDef = columnDefKey.getValue(keyStore);
+			final ColumnDefKey columnDefKey = new ColumnDefKey(columnName);
+			final ColumnDefinition.Internal colDef = columnDefKey.getValue(keyStore);
 			if (colDef == null)
 				throw new ServerException(Response.Status.NOT_ACCEPTABLE,
 						"Cannot delete an unknown column: " + columnName);
@@ -185,8 +185,8 @@ public class Table implements Closeable {
 	final public boolean deleteRow(final String key) throws IOException {
 		if (key == null)
 			return false;
-		PrimaryIdsKey primaryIdsKey = new PrimaryIdsKey(key);
-		Integer docId = primaryIdsKey.getValue(keyStore);
+		final PrimaryIdsKey primaryIdsKey = new PrimaryIdsKey(key);
+		final Integer docId = primaryIdsKey.getValue(keyStore);
 		if (docId == null)
 			return false;
 		deleteRow(docId);
@@ -207,7 +207,7 @@ public class Table implements Closeable {
 				throw new ServerException(Response.Status.NOT_ACCEPTABLE,
 						"The primary key is missing (" + ID_COLUMN_NAME + ")");
 		}
-		PrimaryIdsKey primaryIdsKey = new PrimaryIdsKey(key);
+		final PrimaryIdsKey primaryIdsKey = new PrimaryIdsKey(key);
 		Integer tempId = primaryIdsKey.getValue(keyStore);
 		final AtomicBoolean newDocIdUsed;
 		if (tempId == null) {

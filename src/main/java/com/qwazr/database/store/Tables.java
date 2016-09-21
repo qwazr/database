@@ -35,7 +35,7 @@ public class Tables {
 			if (si == null)
 				throw new ServerException("Cannot detect the store type: " + directory);
 			try {
-				return new Table(file, storeImpl);
+				return new Table(file, si);
 			} catch (IOException e) {
 				throw new ServerException(e);
 			}
