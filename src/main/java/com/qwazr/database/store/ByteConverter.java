@@ -288,13 +288,17 @@ public interface ByteConverter<T> {
 	class SerializableByteConverter<T extends Serializable> extends AbstractCastConvert<T> {
 
 		@Override
-		final public byte[] toBytes(T value) {
-			return SerializationUtils.serialize((Serializable) value);
+		final public byte[] toBytes(T value) throws IOException {
+			return SerializationUtils.serialize(value, 64);
 		}
 
 		@Override
-		final public T toValue(byte[] bytes) {
-			return SerializationUtils.deserialize(bytes);
+		final public T toValue(byte[] bytes) throws IOException {
+			try {
+				return SerializationUtils.deserialize(bytes);
+			} catch (ClassNotFoundException e) {
+				throw new RuntimeException(e);
+			}
 		}
 
 	}
