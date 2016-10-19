@@ -289,13 +289,13 @@ public interface ByteConverter<T> {
 
 		@Override
 		final public byte[] toBytes(T value) throws IOException {
-			return SerializationUtils.serialize(value, 64);
+			return SerializationUtils.toCompressedBytes(value, 64);
 		}
 
 		@Override
 		final public T toValue(byte[] bytes) throws IOException {
 			try {
-				return SerializationUtils.deserialize(bytes);
+				return SerializationUtils.fromCompressedBytes(bytes);
 			} catch (ClassNotFoundException e) {
 				throw new RuntimeException(e);
 			}
