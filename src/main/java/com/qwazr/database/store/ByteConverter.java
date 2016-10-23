@@ -265,7 +265,7 @@ public interface ByteConverter<T> {
 
 	}
 
-	class JsonTypeByteConverter<T> extends AbstractCastConvert<T> {
+	final class JsonTypeByteConverter<T> extends AbstractCastConvert<T> {
 
 		private final TypeReference<T> typeReference;
 
@@ -285,19 +285,19 @@ public interface ByteConverter<T> {
 
 	}
 
-	class SerializableByteConverter<T extends Serializable> extends AbstractCastConvert<T> {
+	final class SerializableByteConverter<T extends Serializable> extends AbstractCastConvert<T> {
 
 		@Override
 		final public byte[] toBytes(T value) throws IOException {
-			return SerializationUtils.toCompressedBytes(value, 64);
+			return SerializationUtils.toDefaultBytes(value);
 		}
 
 		@Override
 		final public T toValue(byte[] bytes) throws IOException {
 			try {
-				return SerializationUtils.fromCompressedBytes(bytes);
+				return (T) SerializationUtils.fromDefaultBytes(bytes);
 			} catch (ClassNotFoundException e) {
-				throw new RuntimeException(e);
+				throw new IOException(e);
 			}
 		}
 
@@ -309,7 +309,7 @@ public interface ByteConverter<T> {
 
 		@Override
 		final public byte[] toBytes(int[] intArray) throws IOException {
-			return Snappy.compress((int[]) intArray);
+			return Snappy.compress(intArray);
 		}
 
 		@Override
@@ -341,7 +341,7 @@ public interface ByteConverter<T> {
 
 		@Override
 		final public byte[] toBytes(long[] intArray) throws IOException {
-			return Snappy.compress((long[]) intArray);
+			return Snappy.compress(intArray);
 		}
 
 		@Override
@@ -373,7 +373,7 @@ public interface ByteConverter<T> {
 
 		@Override
 		final public byte[] toBytes(double[] doubleArray) throws IOException {
-			return Snappy.compress((double[]) doubleArray);
+			return Snappy.compress(doubleArray);
 		}
 
 		@Override
