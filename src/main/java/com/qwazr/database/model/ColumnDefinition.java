@@ -16,6 +16,7 @@
 package com.qwazr.database.model;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.qwazr.database.annotations.TableColumn;
 import com.qwazr.utils.json.JsonMapper;
 
 import java.io.IOException;
@@ -23,58 +24,63 @@ import java.util.Map;
 
 public class ColumnDefinition {
 
-	public enum Type {
-		STRING, DOUBLE, LONG, INTEGER
-	}
+  public enum Type {
+    STRING, DOUBLE, LONG, INTEGER
+  }
 
-	public enum Mode {
-		INDEXED, STORED
-	}
+  public enum Mode {
+    INDEXED, STORED
+  }
 
-	public final Type type;
-	public final Mode mode;
+  public final Type type;
+  public final Mode mode;
 
-	public ColumnDefinition() {
-		this(null, null);
-	}
+  public ColumnDefinition() {
+    this(null, null);
+  }
 
-	public ColumnDefinition(Type type, Mode mode) {
-		this.type = type;
-		this.mode = mode;
-	}
+  public ColumnDefinition(final Type type, final Mode mode) {
+    this.type = type;
+    this.mode = mode;
+  }
 
-	public ColumnDefinition(ColumnDefinition colDef) {
-		if (colDef != null) {
-			this.type = colDef.type;
-			this.mode = colDef.mode;
-		} else {
-			this.type = null;
-			this.mode = null;
-		}
-	}
+  public ColumnDefinition(final TableColumn propertyField) {
+    this.type = propertyField.type();
+    this.mode = propertyField.mode();
+  }
 
-	public static class Internal extends ColumnDefinition {
+  public ColumnDefinition(final ColumnDefinition colDef) {
+    if (colDef != null) {
+      this.type = colDef.type;
+      this.mode = colDef.mode;
+    } else {
+      this.type = null;
+      this.mode = null;
+    }
+  }
 
-		public final int column_id;
+  public static class Internal extends ColumnDefinition {
 
-		public final static Internal PRIMARYKEY_COLUMN = new Internal();
+    public final int column_id;
 
-		public Internal() {
-			this(null, 0);
-		}
+    public final static Internal PRIMARYKEY_COLUMN = new Internal();
 
-		public Internal(ColumnDefinition colDef, int column_id) {
-			super(colDef);
-			this.column_id = column_id;
-		}
+    public Internal() {
+      this(null, 0);
+    }
 
-	}
+    public Internal(ColumnDefinition colDef, int column_id) {
+      super(colDef);
+      this.column_id = column_id;
+    }
 
-	public final static TypeReference<Map<String, ColumnDefinition>> MapStringColumnTypeRef =
-			new TypeReference<Map<String, ColumnDefinition>>() {
-			};
+  }
 
-	public final static ColumnDefinition newColumnDefinition(String jsonString) throws IOException {
-		return JsonMapper.MAPPER.readValue(jsonString, ColumnDefinition.class);
-	}
+  public final static TypeReference<Map<String, ColumnDefinition>> MapStringColumnTypeRef =
+          new TypeReference<Map<String, ColumnDefinition>>() {
+          };
+
+  public final static ColumnDefinition newColumnDefinition(String jsonString) throws IOException {
+    return JsonMapper.MAPPER.readValue(jsonString, ColumnDefinition.class);
+  }
 }
