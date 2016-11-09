@@ -25,22 +25,24 @@ import java.util.Map;
 @JsonInclude(Include.NON_EMPTY)
 public class TableDefinition {
 
-	final public KeyStore.Impl implementation;
-	final public Map<String, ColumnDefinition> columns;
+  final public KeyStore.Impl implementation;
+  final public Map<String, ColumnDefinition> columns;
 
-	public TableDefinition() {
-		implementation = null;
-		columns = null;
-	}
+  public static final String ID_COLUMN_NAME = "$id$";
 
-	public TableDefinition(final KeyStore.Impl implementation, final Map<String, ColumnDefinition> columns) {
-		this.implementation = implementation;
-		this.columns = columns;
-	}
+  public TableDefinition() {
+    implementation = null;
+    columns = null;
+  }
 
-	protected TableDefinition(TableDefinition tableDefinition) {
-		this.implementation = tableDefinition.implementation;
-		this.columns = new LinkedHashMap<>(tableDefinition.columns);
-	}
+  public TableDefinition(final KeyStore.Impl implementation, final Map<String, ColumnDefinition> columns) {
+    this.implementation = implementation;
+    this.columns = columns;
+  }
+
+  protected TableDefinition(TableDefinition tableDefinition) {
+    this.implementation = tableDefinition.implementation;
+    this.columns = new LinkedHashMap<>(tableDefinition.columns);
+  }
 
 }

@@ -23,20 +23,20 @@ import org.junit.runners.Suite;
 @Suite.SuiteClasses({ TestSuite.LevelDbTest.class /*, TestSuite.LmdbTest.class*/ })
 public class TestSuite {
 
-	public static class LevelDbTest extends FullTest {
+  public static class LevelDbTest extends JsonTest {
 
-		@Override
-		protected KeyStore.Impl getStoreImplementation() {
-			return KeyStore.Impl.leveldb;
-		}
-	}
+    @Override
+    protected KeyStore.Impl getStoreImplementation() {
+      return KeyStore.Impl.leveldb;
+    }
+  }
 
-	public static class LmdbTest extends FullTest {
+  public static class LmdbTest extends JsonTest {
 
-		@Override
-		protected KeyStore.Impl getStoreImplementation() {
-			return KeyStore.Impl.lmdb;
-		}
-	}
+    @Override
+    protected KeyStore.Impl getStoreImplementation() {
+      return KeyStore.Impl.lmdb;
+    }
+  }
 
 }

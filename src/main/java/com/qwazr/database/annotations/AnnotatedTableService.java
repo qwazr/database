@@ -17,6 +17,7 @@ package com.qwazr.database.annotations;
 
 import com.qwazr.database.TableServiceInterface;
 import com.qwazr.database.model.ColumnDefinition;
+import com.qwazr.database.model.TableDefinition;
 import com.qwazr.database.model.TableRequest;
 import com.qwazr.database.model.TableRequestResult;
 import com.qwazr.database.store.KeyStore;
@@ -35,7 +36,7 @@ public class AnnotatedTableService<T> extends FieldMapWrapper<T> {
 
   protected final String tableName;
 
-  private final Map<String, TableColumn> columnMap;
+  private final Map<String, TableColumn> tableColumnMap;
 
   /**
    * Create a new index service. A class with Index and IndexField annotations.
@@ -56,14 +57,14 @@ public class AnnotatedTableService<T> extends FieldMapWrapper<T> {
 
     this.tableName = tableName != null ? tableName : table.value();
 
-    columnMap = new LinkedHashMap<>();
+    tableColumnMap = new LinkedHashMap<>();
     AnnotationsUtils.browseFieldsRecursive(tableDefinitionClass, field -> {
       if (!field.isAnnotationPresent(TableColumn.class))
         return;
       field.setAccessible(true);
       final TableColumn tableColumn = field.getDeclaredAnnotation(TableColumn.class);
       final String columnName = StringUtils.isEmpty(tableColumn.name()) ? field.getName() : tableColumn.name();
-      columnMap.put(columnName, tableColumn);
+      tableColumnMap.put(columnName, tableColumn);
       fieldMap.put(columnName, field);
     });
   }
@@ -87,6 +88,11 @@ public class AnnotatedTableService<T> extends FieldMapWrapper<T> {
     tableService.createTable(tableName, KeyStore.Impl.leveldb);
   }
 
+  public TableDefinition getTable() {
+    checkParameters();
+    return tableService.getTable(tableName);
+  }
+
   public void deleteTable() {
     checkParameters();
     tableService.deleteTable(tableName);
@@ -94,8 +100,8 @@ public class AnnotatedTableService<T> extends FieldMapWrapper<T> {
 
   private LinkedHashMap<String, ColumnDefinition> getAnnotatedFields() {
     final LinkedHashMap<String, ColumnDefinition> columnFields = new LinkedHashMap<>();
-    if (columnMap != null)
-      columnMap.forEach((name, propertyField) -> columnFields.put(name, new ColumnDefinition(propertyField)));
+    if (tableColumnMap != null)
+      tableColumnMap.forEach((name, propertyField) -> columnFields.put(name, new ColumnDefinition(propertyField)));
     return columnFields;
   }
 
@@ -104,10 +110,24 @@ public class AnnotatedTableService<T> extends FieldMapWrapper<T> {
    *
    * @return the field map
    */
-  public LinkedHashMap<String, ColumnDefinition> createUpdateFields() {
+  public void createUpdateFields() {
     checkParameters();
-    //TODO
-    return null;
+    getColumnChanges().forEach((columnName, fieldStatus) -> {
+      switch (fieldStatus) {
+      case NOT_IDENTICAL:
+        tableService.removeColumn(tableName, columnName);
+        tableService.setColumn(tableName, columnName, new ColumnDefinition(tableColumnMap.get(columnName)));
+        break;
+      case EXISTS_ONLY_IN_ANNOTATION:
+        tableService.setColumn(tableName, columnName, new ColumnDefinition(tableColumnMap.get(columnName)));
+        break;
+      case EXISTS_ONLY_IN_TABLE:
+        tableService.removeColumn(tableName, columnName);
+        break;
+      default:
+        break;
+      }
+    });
   }
 
   public enum FieldStatus {
@@ -117,28 +137,39 @@ public class AnnotatedTableService<T> extends FieldMapWrapper<T> {
   /**
    * Check if the there is differences between the annotated fields and the fields already declared
    */
-  public Map<String, FieldStatus> getFieldChanges() {
+  public Map<String, FieldStatus> getColumnChanges() {
     checkParameters();
     final LinkedHashMap<String, ColumnDefinition> annotatedFields = getAnnotatedFields();
-    final Map<String, ColumnDefinition> columns = tableService.getColumns(tableName);
+    final Map<String, ColumnDefinition> tableColumns = tableService.getColumns(tableName);
     final HashMap<String, FieldStatus> fieldChanges = new HashMap<>();
-    if (columns != null) {
-      columns.forEach((name, propertyField) -> {
+    if (tableColumnMap != null) {
+      tableColumnMap.forEach((name, propertyField) -> {
         final ColumnDefinition annotatedField = annotatedFields.get(name);
-        final TableColumn columnField = columnMap == null ? null : columnMap.get(name);
-        if (columnField == null)
-          fieldChanges.put(name, FieldStatus.EXISTS_ONLY_IN_ANNOTATION);
-        else if (!columnField.equals(annotatedField))
+        final ColumnDefinition tableColumn = tableColumns == null ? null : tableColumns.get(name);
+        if (tableColumn == null) {
+          if (!name.equals(TableDefinition.ID_COLUMN_NAME))
+            fieldChanges.put(name, FieldStatus.EXISTS_ONLY_IN_ANNOTATION);
+        } else if (!tableColumn.equals(annotatedField))
           fieldChanges.put(name, FieldStatus.NOT_IDENTICAL);
       });
     }
-    if (columnMap != null) {
-      columnMap.forEach((name, indexField) -> {
+    if (tableColumns != null) {
+      tableColumns.forEach((name, tableColumn) -> {
         if (!annotatedFields.containsKey(name))
           fieldChanges.put(name, FieldStatus.EXISTS_ONLY_IN_TABLE);
       });
     }
     return fieldChanges;
+  }
+
+  public ColumnDefinition getColumn(final String columnName) {
+    checkParameters();
+    return tableService.getColumn(tableName, columnName);
+  }
+
+  public Map<String, ColumnDefinition> getColumns() {
+    checkParameters();
+    return tableService.getColumns(tableName);
   }
 
   public List<Object> getColumnTerms(final String columnName, final Integer start, final Integer rows) {
@@ -177,9 +208,20 @@ public class AnnotatedTableService<T> extends FieldMapWrapper<T> {
     return tableService.deleteRow(tableName, rowId);
   }
 
-  public TableRequestResult queryRows(final TableRequest tableRequest) {
+  public TableRequestResultRecords<T> queryRows(final TableRequest tableRequest) {
     checkParameters();
-    return tableService.queryRows(tableName, tableRequest);
+    final TableRequestResult result = tableService.queryRows(tableName, tableRequest);
+    return result == null ? null : new TableRequestResultRecords(result, toRecords(result.rows));
   }
 
+  public static class TableRequestResultRecords<T> extends TableRequestResult {
+
+    final public List<T> records;
+
+    private TableRequestResultRecords(final TableRequestResult result, final List<T> records) {
+      super(result);
+      this.records = records;
+    }
+
+  }
 }
