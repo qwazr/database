@@ -33,9 +33,11 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.*;
 
-public class TableServiceImpl implements TableServiceInterface {
+class TableServiceImpl implements TableServiceInterface {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(TableServiceImpl.class);
+
+	final static TableServiceImpl INSTANCE = new TableServiceImpl();
 
 	@Override
 	public Set<String> list(Integer msTimeOut, Boolean local) {
