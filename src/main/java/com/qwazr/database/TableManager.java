@@ -162,6 +162,16 @@ public class TableManager {
 		});
 	}
 
+	public List<Map<String, Object>> getRows(final String tableName, final Set<String> columns, final Set<String> keys)
+			throws IOException {
+		return rwl.readEx(() -> {
+			final Table table = getTable(tableName);
+			final List<Map<String, Object>> rows = new ArrayList<>();
+			table.getRows(keys, columns, rows);
+			return rows;
+		});
+	}
+
 	public List<String> getPrimaryKeys(final String tableName, final Integer start, final Integer rows)
 			throws IOException {
 		return rwl.readEx(

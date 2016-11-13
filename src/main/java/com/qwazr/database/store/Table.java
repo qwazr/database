@@ -318,8 +318,8 @@ public class Table implements Closeable {
 		});
 	}
 
-	final public void getRows(final Set<String> keys, Set<String> columnNames,
-			final List<LinkedHashMap<String, Object>> results) throws IOException {
+	final public void getRows(final Set<String> keys, Set<String> columnNames, final List<Map<String, Object>> results)
+			throws IOException {
 		if (keys == null || keys.isEmpty())
 			return;
 		final ArrayList<Integer> ids = new ArrayList<>(keys.size());

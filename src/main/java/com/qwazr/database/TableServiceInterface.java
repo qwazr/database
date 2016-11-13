@@ -130,6 +130,12 @@ public interface TableServiceInterface extends ServiceInterface {
 	Map<String, Object> getRow(@PathParam("table_name") String table_name, @PathParam("row_id") String row_id,
 			@QueryParam("column") Set<String> columns);
 
+	@POST
+	@Path("/{table_name}/rows")
+	@Produces(ServiceInterface.APPLICATION_JSON_UTF8)
+	List<Map<String, Object>> getRows(@PathParam("table_name") String table_name,
+			@QueryParam("column") Set<String> columns, final Set<String> row_ids);
+
 	@DELETE
 	@Path("/{table_name}/row/{row_id}")
 	@Produces(ServiceInterface.APPLICATION_JSON_UTF8)

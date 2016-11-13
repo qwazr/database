@@ -223,6 +223,15 @@ class TableServiceImpl implements TableServiceInterface {
 	}
 
 	@Override
+	public List<Map<String, Object>> getRows(String table_name, Set<String> columns, Set<String> row_ids) {
+		try {
+			return TableManager.INSTANCE.getRows(table_name, columns, row_ids);
+		} catch (ServerException | IOException e) {
+			throw ServerException.getJsonException(LOGGER, e);
+		}
+	}
+
+	@Override
 	public List<String> getRows(String table_name, Integer start, Integer rows) {
 		try {
 			return TableManager.INSTANCE.getPrimaryKeys(table_name, start, rows);

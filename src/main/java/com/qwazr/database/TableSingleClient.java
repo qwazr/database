@@ -164,6 +164,17 @@ public class TableSingleClient extends JsonClientAbstract implements TableServic
 	}
 
 	@Override
+	public List<Map<String, Object>> getRows(final String tableName, final Set<String> columns,
+			final Set<String> rowsIds) {
+		final UBuilder uriBuilder = RemoteService.getNewUBuilder(remote, "/table/", tableName, "/rows");
+		if (columns != null)
+			for (String column : columns)
+				uriBuilder.addParameter("column", column);
+		final HttpRequest request = HttpRequest.Post(uriBuilder.buildNoEx());
+		return executeJson(request, rowsIds, null, ListMapStringObjectTypeRef, valid200Json);
+	}
+
+	@Override
 	public List<String> getRows(final String tableName, final Integer start, final Integer rows) {
 		final UBuilder uriBuilder = RemoteService.getNewUBuilder(remote, "/table/", tableName, "/row")
 				.setParameter("start", start)
