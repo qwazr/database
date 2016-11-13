@@ -21,30 +21,31 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @JsonInclude(Include.NON_EMPTY)
 public class TableRequestResult {
 
-  final public Long count;
+	final public Long count;
 
-  final public List<LinkedHashMap<String, Object>> rows;
-  final public LinkedHashMap<String, LinkedHashMap<String, Long>> counters;
+	final public List<Map<String, Object>> rows;
+	final public Map<String, Map<String, Long>> counters;
 
-  public TableRequestResult() {
-    count = null;
-    rows = null;
-    counters = null;
-  }
+	public TableRequestResult() {
+		count = null;
+		rows = null;
+		counters = null;
+	}
 
-  public TableRequestResult(final Long count) {
-    this.count = count;
-    this.rows = new ArrayList<>();
-    this.counters = new LinkedHashMap<>();
-  }
+	public TableRequestResult(final Long count) {
+		this.count = count;
+		this.rows = new ArrayList<>();
+		this.counters = new LinkedHashMap<>();
+	}
 
-  public TableRequestResult(final TableRequestResult result) {
-    this.count = result.count;
-    this.rows = result.rows;
-    this.counters = result.counters;
-  }
+	public TableRequestResult(final TableRequestResult result) {
+		this.count = result.count;
+		this.rows = result.rows;
+		this.counters = result.counters;
+	}
 }

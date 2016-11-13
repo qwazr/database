@@ -300,7 +300,7 @@ public class Table implements Closeable {
 	}
 
 	final public void getRows(final RoaringBitmap bitmap, final Set<String> columnNames, final long start,
-			final long rows, final List<LinkedHashMap<String, Object>> results) throws IOException {
+			final long rows, final List<Map<String, Object>> results) throws IOException {
 		if (bitmap == null || bitmap.isEmpty())
 			return;
 		rwlColumns.readEx(() -> {

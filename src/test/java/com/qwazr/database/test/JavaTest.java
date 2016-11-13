@@ -175,7 +175,19 @@ public class JavaTest {
 	@Test
 	public void test700getRows() throws URISyntaxException {
 		final AnnotatedTableService<JavaRecord> service = getService();
-		checkRows(service.getRows(null, null), ID2, ID3);
+		checkRows(service.getRows((Integer) null, null), ID2, ID3);
+	}
+
+	@Test
+	public void test705getRows() throws URISyntaxException {
+		final AnnotatedTableService<JavaRecord> service = getService();
+		final Set<String> keys = new LinkedHashSet<>(Arrays.asList(ID3, ID2));
+		List<JavaRecord> results = service.getRows(COLUMNS_WITHID, keys);
+		Assert.assertNotNull(results);
+		Assert.assertEquals(keys.size(), results.size());
+		int i = 0;
+		for (String key : keys)
+			Assert.assertEquals(key, results.get(i++).id);
 	}
 
 	private void checkColumnsTerms(List<?> terms, Object... expectedTerms) {

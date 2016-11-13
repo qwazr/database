@@ -19,7 +19,6 @@ import com.qwazr.database.model.TableRequest;
 import com.qwazr.database.model.TableRequestResult;
 
 import javax.ws.rs.WebApplicationException;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -43,7 +42,7 @@ public class TableUtils {
 		final TableRequestResult result = tableService.queryRows(tableName, request);
 		if (result == null || result.rows == null || result.rows.isEmpty())
 			return result;
-		for (final LinkedHashMap<String, Object> row : result.rows)
+		for (final Map<String, Object> row : result.rows)
 			function.apply(row);
 		return result;
 	}

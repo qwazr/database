@@ -192,9 +192,9 @@ public class AnnotatedTableService<T> extends FieldMapWrapper<T> {
 		return tableService.getRows(tableName, start, rows);
 	}
 
-	public List<Map<String, Object>> getRows(final Set<String> columns, final Set<String> rowIds) {
+	public List<T> getRows(final Set<String> columns, final Set<String> rowIds) {
 		checkParameters();
-		return tableService.getRows(tableName, columns, rowIds);
+		return toRecords(tableService.getRows(tableName, columns, rowIds));
 	}
 
 	public Long upsertRows(final List<T> rows) {
