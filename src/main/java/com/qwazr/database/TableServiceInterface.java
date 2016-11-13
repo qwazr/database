@@ -38,110 +38,112 @@ import java.util.Set;
 @ServiceName(TableManager.SERVICE_NAME_TABLE)
 public interface TableServiceInterface extends ServiceInterface {
 
-  @GET
-  @Path("/")
-  @Produces(ServiceInterface.APPLICATION_JSON_UTF8)
-  Set<String> list(@QueryParam("timeout") Integer msTimeOut, @QueryParam("local") Boolean local);
+	@GET
+	@Path("/")
+	@Produces(ServiceInterface.APPLICATION_JSON_UTF8)
+	Set<String> list();
 
-  @POST
-  @Path("/{table_name}")
-  @Consumes(ServiceInterface.APPLICATION_JSON_UTF8)
-  @Produces(ServiceInterface.APPLICATION_JSON_UTF8)
-  TableDefinition createTable(@PathParam("table_name") String table_name,
-          @QueryParam("implementation") KeyStore.Impl storeImplementation);
+	@POST
+	@Path("/{table_name}")
+	@Consumes(ServiceInterface.APPLICATION_JSON_UTF8)
+	@Produces(ServiceInterface.APPLICATION_JSON_UTF8)
+	TableDefinition createTable(@PathParam("table_name") String table_name,
+			@QueryParam("implementation") KeyStore.Impl storeImplementation);
 
-  @GET
-  @Path("/{table_name}")
-  @Produces(ServiceInterface.APPLICATION_JSON_UTF8)
-  TableDefinition getTable(@PathParam("table_name") String table_name);
+	@GET
+	@Path("/{table_name}")
+	@Produces(ServiceInterface.APPLICATION_JSON_UTF8)
+	TableDefinition getTable(@PathParam("table_name") String table_name);
 
-  @DELETE
-  @Path("/{table_name}")
-  @Produces(ServiceInterface.APPLICATION_JSON_UTF8)
-  Boolean deleteTable(@PathParam("table_name") String table_name);
+	@DELETE
+	@Path("/{table_name}")
+	@Produces(ServiceInterface.APPLICATION_JSON_UTF8)
+	Boolean deleteTable(@PathParam("table_name") String table_name);
 
-  @GET
-  @Path("/{table_name}/column")
-  @Produces(ServiceInterface.APPLICATION_JSON_UTF8)
-  Map<String, ColumnDefinition> getColumns(@PathParam("table_name") String table_name);
+	@GET
+	@Path("/{table_name}/column")
+	@Produces(ServiceInterface.APPLICATION_JSON_UTF8)
+	Map<String, ColumnDefinition> getColumns(@PathParam("table_name") String table_name);
 
-  @GET
-  @Path("/{table_name}/column/{column_name}")
-  @Produces(ServiceInterface.APPLICATION_JSON_UTF8)
-  ColumnDefinition getColumn(@PathParam("table_name") String table_name, @PathParam("column_name") String column_name);
+	@GET
+	@Path("/{table_name}/column/{column_name}")
+	@Produces(ServiceInterface.APPLICATION_JSON_UTF8)
+	ColumnDefinition getColumn(@PathParam("table_name") String table_name,
+			@PathParam("column_name") String column_name);
 
-  @GET
-  @Path("/{table_name}/column/{column_name}/term")
-  @Produces(ServiceInterface.APPLICATION_JSON_UTF8)
-  List<Object> getColumnTerms(@PathParam("table_name") String table_name, @PathParam("column_name") String column_name,
-          @QueryParam("start") Integer start, @QueryParam("rows") Integer rows);
+	@GET
+	@Path("/{table_name}/column/{column_name}/term")
+	@Produces(ServiceInterface.APPLICATION_JSON_UTF8)
+	List<Object> getColumnTerms(@PathParam("table_name") String table_name,
+			@PathParam("column_name") String column_name, @QueryParam("start") Integer start,
+			@QueryParam("rows") Integer rows);
 
-  @GET
-  @Path("/{table_name}/column/{column_name}/term/{term}")
-  @Produces(ServiceInterface.APPLICATION_JSON_UTF8)
-  List<String> getColumnTermKeys(@PathParam("table_name") String table_name,
-          @PathParam("column_name") String column_name, @PathParam("term") String term,
-          @QueryParam("start") Integer start, @QueryParam("rows") Integer rows);
+	@GET
+	@Path("/{table_name}/column/{column_name}/term/{term}")
+	@Produces(ServiceInterface.APPLICATION_JSON_UTF8)
+	List<String> getColumnTermKeys(@PathParam("table_name") String table_name,
+			@PathParam("column_name") String column_name, @PathParam("term") String term,
+			@QueryParam("start") Integer start, @QueryParam("rows") Integer rows);
 
-  @POST
-  @Path("/{table_name}/column/{column_name}")
-  @Consumes(ServiceInterface.APPLICATION_JSON_UTF8)
-  @Produces(ServiceInterface.APPLICATION_JSON_UTF8)
-  ColumnDefinition setColumn(@PathParam("table_name") String table_name, @PathParam("column_name") String column_name,
-          ColumnDefinition columnDefinition);
+	@POST
+	@Path("/{table_name}/column/{column_name}")
+	@Consumes(ServiceInterface.APPLICATION_JSON_UTF8)
+	@Produces(ServiceInterface.APPLICATION_JSON_UTF8)
+	ColumnDefinition setColumn(@PathParam("table_name") String table_name, @PathParam("column_name") String column_name,
+			ColumnDefinition columnDefinition);
 
-  @DELETE
-  @Path("/{table_name}/column/{column_name}")
-  @Produces(ServiceInterface.APPLICATION_JSON_UTF8)
-  Boolean removeColumn(@PathParam("table_name") String table_name, @PathParam("column_name") String column_name);
+	@DELETE
+	@Path("/{table_name}/column/{column_name}")
+	@Produces(ServiceInterface.APPLICATION_JSON_UTF8)
+	Boolean removeColumn(@PathParam("table_name") String table_name, @PathParam("column_name") String column_name);
 
-  @GET
-  @Path("/{table_name}/row")
-  @Consumes(ServiceInterface.APPLICATION_JSON_UTF8)
-  @Produces(ServiceInterface.APPLICATION_JSON_UTF8)
-  List<String> getRows(@PathParam("table_name") String table_name, @QueryParam("start") Integer start,
-          @QueryParam("rows") Integer rows);
+	@GET
+	@Path("/{table_name}/row")
+	@Consumes(ServiceInterface.APPLICATION_JSON_UTF8)
+	@Produces(ServiceInterface.APPLICATION_JSON_UTF8)
+	List<String> getRows(@PathParam("table_name") String table_name, @QueryParam("start") Integer start,
+			@QueryParam("rows") Integer rows);
 
-  @POST
-  @Path("/{table_name}/row")
-  @Consumes(ServiceInterface.APPLICATION_JSON_UTF8)
-  @Produces(ServiceInterface.APPLICATION_JSON_UTF8)
-  Long upsertRows(@PathParam("table_name") String table_name, List<Map<String, Object>> rows);
+	@POST
+	@Path("/{table_name}/row")
+	@Consumes(ServiceInterface.APPLICATION_JSON_UTF8)
+	@Produces(ServiceInterface.APPLICATION_JSON_UTF8)
+	Long upsertRows(@PathParam("table_name") String table_name, List<Map<String, Object>> rows);
 
-  @POST
-  @Path("/{table_name}/row")
-  @Consumes(MediaType.TEXT_PLAIN)
-  @Produces(ServiceInterface.APPLICATION_JSON_UTF8)
-  Long upsertRows(@PathParam("table_name") String table_name, @QueryParam("buffer") Integer buffer,
-          InputStream inpustStream);
+	@POST
+	@Path("/{table_name}/row")
+	@Consumes(MediaType.TEXT_PLAIN)
+	@Produces(ServiceInterface.APPLICATION_JSON_UTF8)
+	Long upsertRows(@PathParam("table_name") String table_name, @QueryParam("buffer") Integer buffer,
+			InputStream inpustStream);
 
-  @PUT
-  @Path("/{table_name}/row/{row_id}")
-  @Consumes(ServiceInterface.APPLICATION_JSON_UTF8)
-  @Produces(ServiceInterface.APPLICATION_JSON_UTF8)
-  Map<String, Object> upsertRow(@PathParam("table_name") String table_name, @PathParam("row_id") String row_id,
-          Map<String, Object> node);
+	@PUT
+	@Path("/{table_name}/row/{row_id}")
+	@Consumes(ServiceInterface.APPLICATION_JSON_UTF8)
+	@Produces(ServiceInterface.APPLICATION_JSON_UTF8)
+	Map<String, Object> upsertRow(@PathParam("table_name") String table_name, @PathParam("row_id") String row_id,
+			Map<String, Object> node);
 
-  @GET
-  @Path("/{table_name}/row/{row_id}")
-  @Produces(ServiceInterface.APPLICATION_JSON_UTF8)
-  Map<String, Object> getRow(@PathParam("table_name") String table_name, @PathParam("row_id") String row_id,
-          @QueryParam("column") Set<String> columns);
+	@GET
+	@Path("/{table_name}/row/{row_id}")
+	@Produces(ServiceInterface.APPLICATION_JSON_UTF8)
+	Map<String, Object> getRow(@PathParam("table_name") String table_name, @PathParam("row_id") String row_id,
+			@QueryParam("column") Set<String> columns);
 
-  @DELETE
-  @Path("/{table_name}/row/{row_id}")
-  @Produces(ServiceInterface.APPLICATION_JSON_UTF8)
-  Boolean deleteRow(@PathParam("table_name") String table_name, @PathParam("row_id") String row_id);
+	@DELETE
+	@Path("/{table_name}/row/{row_id}")
+	@Produces(ServiceInterface.APPLICATION_JSON_UTF8)
+	Boolean deleteRow(@PathParam("table_name") String table_name, @PathParam("row_id") String row_id);
 
-  @POST
-  @Path("/{table_name}/query")
-  @Consumes(ServiceInterface.APPLICATION_JSON_UTF8)
-  @Produces(ServiceInterface.APPLICATION_JSON_UTF8)
-  TableRequestResult queryRows(@PathParam("table_name") String table_name, TableRequest tableRequest);
+	@POST
+	@Path("/{table_name}/query")
+	@Consumes(ServiceInterface.APPLICATION_JSON_UTF8)
+	@Produces(ServiceInterface.APPLICATION_JSON_UTF8)
+	TableRequestResult queryRows(@PathParam("table_name") String table_name, TableRequest tableRequest);
 
-  static TableServiceInterface getClient(final RemoteService... remotes) throws URISyntaxException {
-    return remotes == null || remotes.length == 0 ?
-            TableServiceImpl.INSTANCE :
-            remotes.length == 1 ? new TableSingleClient(remotes[0]) : null;
-  }
+	static TableServiceInterface getClient(final RemoteService... remotes) throws URISyntaxException {
+		return remotes == null || remotes.length == 0 ?
+				TableServiceImpl.INSTANCE :
+				remotes.length == 1 ? new TableSingleClient(remotes[0]) : null;
+	}
 }

@@ -40,8 +40,8 @@ class TableServiceImpl implements TableServiceInterface {
 	final static TableServiceImpl INSTANCE = new TableServiceImpl();
 
 	@Override
-	public Set<String> list(Integer msTimeOut, Boolean local) {
-		return TableManager.INSTANCE.getNameSet();
+	public Set<String> list() {
+		return Collections.unmodifiableSet(TableManager.INSTANCE.getNameSet());
 	}
 
 	@Override

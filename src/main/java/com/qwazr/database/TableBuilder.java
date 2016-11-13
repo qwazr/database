@@ -53,7 +53,7 @@ public class TableBuilder {
 	 * @param tableService
 	 */
 	public void build(final TableServiceInterface tableService) {
-		final Set<String> tables = tableService.list(null, null);
+		final Set<String> tables = tableService.list();
 		if (!tables.contains(tableName))
 			tableService.createTable(tableName, implementation);
 		final Map<String, ColumnDefinition> existingColumns = tableService.getColumns(tableName);

@@ -56,8 +56,8 @@ public class TableSingleClient extends JsonClientAbstract implements TableServic
 	}
 
 	@Override
-	public Set<String> list(final Integer msTimeOut, final Boolean local) {
-		final UBuilder uriBuilder = RemoteService.getNewUBuilder(remote, "/table").setParameterObject("local", local);
+	public Set<String> list() {
+		final UBuilder uriBuilder = RemoteService.getNewUBuilder(remote, "/table");
 		final HttpRequest request = HttpRequest.Get(uriBuilder.buildNoEx());
 		return executeJson(request, null, null, SetStringTypeRef, valid200Json);
 	}
