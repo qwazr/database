@@ -141,18 +141,6 @@ class TableServiceImpl implements TableServiceInterface {
 			new TypeReference<Map<String, Object>>() {
 			};
 
-	private final int flushBuffer(String table_name, List<Map<String, Object>> buffer)
-			throws IOException, ServerException {
-		try {
-			if (buffer == null || buffer.isEmpty())
-				return 0;
-			TableManager.INSTANCE.upsertRows(table_name, buffer);
-			return buffer.size();
-		} finally {
-			buffer.clear();
-		}
-	}
-
 	private class BufferFlush {
 
 		private final List<Map<String, Object>> buffer;
@@ -179,20 +167,19 @@ class TableServiceImpl implements TableServiceInterface {
 	}
 
 	@Override
-	public Long upsertRows(String table_name, Integer bufferSize, InputStream inputStream) {
-		if (bufferSize == null || bufferSize < 1)
-			bufferSize = 50;
+	public Long upsertRows(final String table_name, final Integer bufferLength, final InputStream inputStream) {
+		final int bufferSize = bufferLength == null || bufferLength < 1 ? 50 : bufferLength;
 
 		try (final InputStreamReader irs = new InputStreamReader(inputStream, "UTF-8");
 				final BufferedReader br = new BufferedReader(irs)) {
 			long counter = 0;
 			String line;
-			BufferFlush buffer = new BufferFlush(bufferSize, table_name);
+			final BufferFlush buffer = new BufferFlush(bufferSize, table_name);
 			while ((line = br.readLine()) != null) {
 				line = line.trim();
 				if (line.isEmpty())
 					continue;
-				Map<String, Object> nodeMap = JsonMapper.MAPPER.readValue(line, MapStringColumnValueTypeRef);
+				final Map<String, Object> nodeMap = JsonMapper.MAPPER.readValue(line, MapStringColumnValueTypeRef);
 				if (buffer.addRow(nodeMap) == bufferSize)
 					counter += buffer.flush();
 			}

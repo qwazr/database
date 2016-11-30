@@ -203,6 +203,16 @@ public abstract class JsonTest {
 	}
 
 	@Test
+	public void test352upsertRows() throws IOException, URISyntaxException {
+		final TableServiceInterface client = TestServer.getClient();
+		try (final InputStream is = JsonTest.class.getResourceAsStream("upsert_rows.txt")) {
+			Long result = client.upsertRows(TABLE_NAME, 2, is);
+			Assert.assertNotNull(result);
+			Assert.assertEquals((long) result, UPSERT_ROWS.size());
+		}
+	}
+
+	@Test
 	public void test355MatchAllQuery() throws URISyntaxException {
 		final TableServiceInterface client = TestServer.getClient();
 		final TableRequest request = new TableRequest(0, 1000, COLUMNS_WITHID, null, null);

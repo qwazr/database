@@ -25,8 +25,8 @@ import com.qwazr.utils.UBuilder;
 import com.qwazr.utils.http.HttpRequest;
 import com.qwazr.utils.json.client.JsonClientAbstract;
 import com.qwazr.utils.server.RemoteService;
+import org.apache.http.entity.ContentType;
 
-import javax.ws.rs.WebApplicationException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
@@ -143,7 +143,11 @@ public class TableSingleClient extends JsonClientAbstract implements TableServic
 
 	@Override
 	public Long upsertRows(final String tableName, final Integer buffer, final InputStream inputStream) {
-		throw new WebApplicationException("Not yet implemented");
+		final UBuilder uriBuilder = RemoteService.getNewUBuilder(remote, "/table/", tableName, "/row");
+		uriBuilder.setParameter("buffer", buffer);
+		final HttpRequest request =
+				HttpRequest.Post(uriBuilder.buildNoEx()).bodyStream(inputStream, ContentType.TEXT_PLAIN);
+		return executeJson(request, null, null, Long.class, valid200Json);
 	}
 
 	@Override

@@ -18,7 +18,6 @@ package com.qwazr.database.test;
 import com.google.common.io.Files;
 import com.qwazr.database.TableServer;
 import com.qwazr.database.TableServiceInterface;
-import com.qwazr.database.TableSingleClient;
 import com.qwazr.utils.server.GenericServer;
 import com.qwazr.utils.server.RemoteService;
 
@@ -30,27 +29,27 @@ import java.net.URISyntaxException;
  */
 public class TestServer {
 
-  private static final String BASE_URL = "http://localhost:9091";
+	private static final String BASE_URL = "http://localhost:9091";
 
-  private static GenericServer genericServer = null;
+	private static GenericServer genericServer = null;
 
-  static synchronized void start() throws Exception {
-    if (genericServer != null)
-      return;
-    final File dataDir = Files.createTempDir();
-    System.setProperty("QWAZR_DATA", dataDir.getAbsolutePath());
-    System.setProperty("LISTEN_ADDR", "localhost");
-    System.setProperty("PUBLIC_ADDR", "localhost");
-    genericServer = TableServer.start();
-  }
+	static synchronized void start() throws Exception {
+		if (genericServer != null)
+			return;
+		final File dataDir = Files.createTempDir();
+		System.setProperty("QWAZR_DATA", dataDir.getAbsolutePath());
+		System.setProperty("LISTEN_ADDR", "localhost");
+		System.setProperty("PUBLIC_ADDR", "localhost");
+		genericServer = TableServer.start();
+	}
 
-  private static TableServiceInterface CLIENT = null;
+	private static TableServiceInterface CLIENT = null;
 
-  static synchronized TableServiceInterface getClient() throws URISyntaxException {
-    if (CLIENT != null)
-      return CLIENT;
-    CLIENT = new TableSingleClient(new RemoteService(BASE_URL));
-    return CLIENT;
-  }
+	static synchronized TableServiceInterface getClient() throws URISyntaxException {
+		if (CLIENT != null)
+			return CLIENT;
+		CLIENT = TableServiceInterface.getClient(new RemoteService(BASE_URL));
+		return CLIENT;
+	}
 
 }

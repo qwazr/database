@@ -1,0 +1,2 @@
+{ "$id$": "three", "password": "password3", "roles": [ "search" ], "dptId": [ 1 ], "cp": "333" }
+{ "$id$": "four", "password": "password4", "roles": [ "table" ], "dptId": [ 2 ], "cp": "444" }
