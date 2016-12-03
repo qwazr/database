@@ -17,20 +17,20 @@ package com.qwazr.database;
 
 import com.qwazr.cluster.manager.ClusterManager;
 import com.qwazr.utils.server.GenericServer;
-import com.qwazr.utils.server.ServerBuilder;
 import com.qwazr.utils.server.ServerConfiguration;
 
-public class TableServer {
+import java.io.IOException;
 
-	public static GenericServer start() throws Exception {
-		final ServerBuilder builder = new ServerBuilder(new ServerConfiguration());
-		ClusterManager.load(builder, null, null);
-		TableManager.load(builder);
-		return builder.build().start(true);
+public class TableServer extends GenericServer {
+
+	private TableServer(final ServerConfiguration serverConfiguration) throws IOException {
+		super(serverConfiguration);
+		ClusterManager.load(getBuilder());
+		TableManager.load(getBuilder());
 	}
 
-	public static void main(String[] args) throws Exception {
-		start();
+	public static void main(final String... args) throws Exception {
+		new TableServer(new ServerConfiguration(args)).start(true);
 	}
 
 }
