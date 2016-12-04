@@ -20,7 +20,9 @@ import com.qwazr.utils.server.GenericServer;
 import com.qwazr.utils.server.ServerBuilder;
 import com.qwazr.utils.server.ServerConfiguration;
 
+import java.io.File;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.concurrent.ExecutorService;
 
 public class TableServer extends GenericServer {
@@ -31,7 +33,7 @@ public class TableServer extends GenericServer {
 
 	@Override
 	protected void build(final ExecutorService executorService, final ServerBuilder builder,
-			final ServerConfiguration configuration) throws IOException {
+			final ServerConfiguration configuration, final Collection<File> etcFiles) throws IOException {
 		ClusterManager.load(builder, configuration);
 		TableManager.load(builder, configuration);
 	}
