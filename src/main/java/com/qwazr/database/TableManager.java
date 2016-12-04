@@ -21,6 +21,7 @@ import com.qwazr.database.model.TableRequestResult;
 import com.qwazr.database.store.*;
 import com.qwazr.utils.LockUtils;
 import com.qwazr.utils.server.ServerBuilder;
+import com.qwazr.utils.server.ServerConfiguration;
 import com.qwazr.utils.server.ServerException;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.FileFilterUtils;
@@ -31,7 +32,6 @@ import java.io.File;
 import java.io.FileFilter;
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.ExecutorService;
 
 public class TableManager {
 
@@ -43,16 +43,15 @@ public class TableManager {
 
 	public File directory;
 
-	public final ExecutorService executor;
-
-	public static synchronized void load(final ServerBuilder serverBuilder) throws IOException {
+	public static synchronized void load(final ServerBuilder serverBuilder, final ServerConfiguration configuration)
+			throws IOException {
 		if (INSTANCE != null)
 			throw new IOException("Already loaded");
-		File tableDir = new File(serverBuilder.getServerConfiguration().dataDirectory, SERVICE_NAME_TABLE);
+		final File tableDir = new File(configuration.dataDirectory, SERVICE_NAME_TABLE);
 		if (!tableDir.exists())
 			tableDir.mkdir();
 		try {
-			INSTANCE = new TableManager(serverBuilder.getExecutorService(), tableDir);
+			INSTANCE = new TableManager(tableDir);
 			if (serverBuilder != null) {
 				serverBuilder.registerWebService(TableServiceImpl.class);
 				serverBuilder.registerShutdownListener(server -> Tables.closeAll());
@@ -68,9 +67,8 @@ public class TableManager {
 		return INSTANCE;
 	}
 
-	private TableManager(final ExecutorService executor, final File directory) throws ServerException, IOException {
+	private TableManager(final File directory) throws ServerException, IOException {
 		this.directory = directory;
-		this.executor = executor;
 	}
 
 	private Table getTable(final String tableName) throws IOException {
