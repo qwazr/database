@@ -1,9 +1,5 @@
 node {
 
-    stage 'Checkout'
-
-    git url: 'https://github.com/qwazr/database.git'
-
     stage 'Build'
 
     withMaven(maven: 'Maven') {
