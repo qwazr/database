@@ -23,7 +23,7 @@ import com.qwazr.database.model.TableRequestResult;
 import com.qwazr.database.store.KeyStore;
 import com.qwazr.database.store.Query;
 import com.qwazr.utils.json.JsonMapper;
-import com.qwazr.utils.server.ServerException;
+import com.qwazr.server.ServerException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

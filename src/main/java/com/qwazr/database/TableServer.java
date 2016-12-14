@@ -16,9 +16,10 @@
 package com.qwazr.database;
 
 import com.qwazr.cluster.manager.ClusterManager;
-import com.qwazr.utils.server.GenericServer;
-import com.qwazr.utils.server.ServerBuilder;
-import com.qwazr.utils.server.ServerConfiguration;
+import com.qwazr.server.GenericServer;
+import com.qwazr.server.ServerBuilder;
+import com.qwazr.server.WelcomeShutdownService;
+import com.qwazr.server.configuration.ServerConfiguration;
 
 import java.io.File;
 import java.io.IOException;
@@ -36,6 +37,7 @@ public class TableServer extends GenericServer {
 			final ServerConfiguration configuration, final Collection<File> etcFiles) throws IOException {
 		ClusterManager.load(builder, configuration);
 		TableManager.load(builder, configuration);
+		builder.registerWebService(WelcomeShutdownService.class);
 	}
 
 	public static void main(final String... args) throws Exception {

@@ -19,7 +19,7 @@ import com.qwazr.database.model.ColumnDefinition;
 import com.qwazr.database.store.keys.ColumnIndexKey;
 import com.qwazr.database.store.keys.ColumnStoreKey;
 import com.qwazr.database.store.keys.PrimaryIdsKey;
-import com.qwazr.utils.server.ServerException;
+import com.qwazr.server.ServerException;
 import org.roaringbitmap.RoaringBitmap;
 
 import javax.ws.rs.core.Response;

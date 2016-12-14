@@ -20,7 +20,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.qwazr.utils.CharsetUtils;
 import com.qwazr.utils.SerializationUtils;
 import com.qwazr.utils.json.JsonMapper;
-import com.qwazr.utils.server.ServerException;
+import com.qwazr.server.ServerException;
 import org.xerial.snappy.Snappy;
 
 import javax.ws.rs.core.Response;

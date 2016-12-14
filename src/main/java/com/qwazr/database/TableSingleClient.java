@@ -23,14 +23,17 @@ import com.qwazr.database.model.TableRequestResult;
 import com.qwazr.database.store.KeyStore;
 import com.qwazr.utils.UBuilder;
 import com.qwazr.utils.http.HttpRequest;
-import com.qwazr.utils.json.client.JsonClientAbstract;
-import com.qwazr.utils.server.RemoteService;
+import com.qwazr.server.client.JsonClientAbstract;
+import com.qwazr.server.RemoteService;
 import org.apache.http.entity.ContentType;
 
 import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import static com.qwazr.server.ServiceInterface.valid200;
+import static com.qwazr.server.ServiceInterface.valid200Json;
 
 public class TableSingleClient extends JsonClientAbstract implements TableServiceInterface {
 

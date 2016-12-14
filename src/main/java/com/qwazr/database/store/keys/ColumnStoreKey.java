@@ -20,7 +20,7 @@ import com.qwazr.database.store.ByteConverter;
 import com.qwazr.database.store.KeyStore;
 import com.qwazr.database.store.ValueConsumer;
 import com.qwazr.utils.ArrayUtils;
-import com.qwazr.utils.server.ServerException;
+import com.qwazr.server.ServerException;
 
 import javax.ws.rs.core.Response;
 import java.io.DataOutputStream;

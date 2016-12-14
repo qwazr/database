@@ -18,7 +18,7 @@ package com.qwazr.database.test;
 import com.google.common.io.Files;
 import com.qwazr.database.TableServer;
 import com.qwazr.database.TableServiceInterface;
-import com.qwazr.utils.server.RemoteService;
+import com.qwazr.server.RemoteService;
 
 import java.io.File;
 import java.net.URISyntaxException;

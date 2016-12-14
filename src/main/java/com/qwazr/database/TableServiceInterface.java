@@ -20,9 +20,9 @@ import com.qwazr.database.model.TableDefinition;
 import com.qwazr.database.model.TableRequest;
 import com.qwazr.database.model.TableRequestResult;
 import com.qwazr.database.store.KeyStore;
-import com.qwazr.utils.server.RemoteService;
-import com.qwazr.utils.server.ServiceInterface;
-import com.qwazr.utils.server.ServiceName;
+import com.qwazr.server.RemoteService;
+import com.qwazr.server.ServiceInterface;
+import com.qwazr.server.ServiceName;
 
 import javax.annotation.security.RolesAllowed;
 import javax.ws.rs.*;

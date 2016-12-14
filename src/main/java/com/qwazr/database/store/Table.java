@@ -21,7 +21,7 @@ import com.qwazr.database.model.TableDefinition;
 import com.qwazr.database.store.CollectorInterface.LongCounter;
 import com.qwazr.database.store.keys.*;
 import com.qwazr.utils.LockUtils;
-import com.qwazr.utils.server.ServerException;
+import com.qwazr.server.ServerException;
 import org.roaringbitmap.IntIterator;
 import org.roaringbitmap.RoaringBitmap;
 import org.slf4j.Logger;

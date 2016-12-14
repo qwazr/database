@@ -17,7 +17,7 @@ package com.qwazr.database.store.keys;
 
 import com.qwazr.database.model.ColumnDefinition;
 import com.qwazr.database.store.KeyStore;
-import com.qwazr.utils.server.ServerException;
+import com.qwazr.server.ServerException;
 
 import javax.ws.rs.core.Response;
 import java.io.DataOutputStream;
