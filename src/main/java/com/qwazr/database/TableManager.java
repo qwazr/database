@@ -18,11 +18,14 @@ package com.qwazr.database;
 import com.qwazr.database.model.ColumnDefinition;
 import com.qwazr.database.model.TableRequest;
 import com.qwazr.database.model.TableRequestResult;
-import com.qwazr.database.store.*;
-import com.qwazr.utils.LockUtils;
-import com.qwazr.server.ServerBuilder;
-import com.qwazr.server.configuration.ServerConfiguration;
+import com.qwazr.database.store.CollectorInterface;
+import com.qwazr.database.store.KeyStore;
+import com.qwazr.database.store.Query;
+import com.qwazr.database.store.Table;
+import com.qwazr.database.store.Tables;
+import com.qwazr.server.GenericServer;
 import com.qwazr.server.ServerException;
+import com.qwazr.utils.LockUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.FileFilterUtils;
 import org.roaringbitmap.RoaringBitmap;
@@ -31,44 +34,42 @@ import javax.ws.rs.core.Response;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class TableManager {
 
-	public final static String SERVICE_NAME_TABLE = "table";
-
 	private final LockUtils.ReadWriteLock rwl = new LockUtils.ReadWriteLock();
 
-	static volatile TableManager INSTANCE = null;
+	private final File directory;
 
-	public File directory;
+	private final TableServiceInterface service;
 
-	public static synchronized void load(final ServerBuilder serverBuilder, final ServerConfiguration configuration)
-			throws IOException {
-		if (INSTANCE != null)
-			throw new IOException("Already loaded");
-		final File tableDir = new File(configuration.dataDirectory, SERVICE_NAME_TABLE);
+	public static TableManager getNewInstance(final GenericServer.Builder builder) throws IOException {
+		final File tableDir = new File(builder.getConfiguration().dataDirectory, TableServiceInterface.SERVICE_NAME);
 		if (!tableDir.exists())
 			tableDir.mkdir();
-		try {
-			INSTANCE = new TableManager(tableDir);
-			if (serverBuilder != null) {
-				serverBuilder.registerWebService(TableServiceImpl.class);
-				serverBuilder.registerShutdownListener(server -> Tables.closeAll());
-			}
-		} catch (ServerException e) {
-			throw new RuntimeException(e);
+		final TableManager tableManager = new TableManager(tableDir);
+		if (builder != null) {
+			builder.webService(TableServiceImpl.class);
+			builder.shutdownListener(server -> Tables.closeAll());
+			builder.contextAttribute(tableManager);
 		}
+		return tableManager;
 	}
 
-	public static TableManager getInstance() {
-		if (INSTANCE == null)
-			throw new RuntimeException("The table service is not enabled");
-		return INSTANCE;
-	}
-
-	private TableManager(final File directory) throws ServerException, IOException {
+	public TableManager(final File directory) throws ServerException, IOException {
 		this.directory = directory;
+		service = new TableServiceImpl(this);
+	}
+
+	public TableServiceInterface getService() {
+		return service;
 	}
 
 	private Table getTable(final String tableName) throws IOException {

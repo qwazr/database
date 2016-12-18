@@ -19,20 +19,19 @@ import com.google.common.io.Files;
 import com.qwazr.database.TableServer;
 import com.qwazr.database.TableServiceInterface;
 import com.qwazr.server.RemoteService;
+import com.qwazr.utils.http.HttpClients;
 
 import java.io.File;
 import java.net.URISyntaxException;
+import java.util.concurrent.TimeUnit;
 
-/**
- * Created by ekeller on 09/11/2016.
- */
 public class TestServer {
 
 	private static final String BASE_URL = "http://localhost:9091";
 
 	static synchronized void start() throws Exception {
 		if (TableServer.getInstance() != null)
-			return;
+			throw new Exception("Instance already running");
 		final File dataDir = Files.createTempDir();
 		System.setProperty("QWAZR_DATA", dataDir.getAbsolutePath());
 		System.setProperty("LISTEN_ADDR", "localhost");
@@ -40,13 +39,30 @@ public class TestServer {
 		TableServer.main(null);
 	}
 
-	private static TableServiceInterface CLIENT = null;
+	private volatile static TableServiceInterface CLIENT = null;
 
-	static synchronized TableServiceInterface getClient() throws URISyntaxException {
+	static synchronized TableServiceInterface getRemoteClient() throws URISyntaxException {
 		if (CLIENT != null)
 			return CLIENT;
-		CLIENT = TableServiceInterface.getClient(new RemoteService(BASE_URL));
+		CLIENT = TableServiceInterface.getRemoteClient(new RemoteService(BASE_URL));
 		return CLIENT;
 	}
 
+	static synchronized TableServiceInterface getLocalClient() {
+		return TableServer.getInstance().getService();
+	}
+
+	public static void shutdown() {
+		TableServer.shutdown();
+		HttpClients.CNX_MANAGER.closeIdleConnections(2, TimeUnit.MINUTES);
+		HttpClients.CNX_MANAGER.closeExpiredConnections();
+		HttpClients.UNSECURE_CNX_MANAGER.closeIdleConnections(2, TimeUnit.MINUTES);
+		HttpClients.UNSECURE_CNX_MANAGER.closeExpiredConnections();
+		CLIENT = null;
+		try {
+			Thread.sleep(5000);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+	}
 }

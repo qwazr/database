@@ -32,9 +32,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static com.qwazr.server.ServiceInterface.valid200;
-import static com.qwazr.server.ServiceInterface.valid200Json;
-
 public class TableSingleClient extends JsonClientAbstract implements TableServiceInterface {
 
 	public final static TypeReference<Set<String>> SetStringTypeRef = new TypeReference<Set<String>>() {
@@ -98,7 +95,7 @@ public class TableSingleClient extends JsonClientAbstract implements TableServic
 	public ColumnDefinition getColumn(final String tableName, final String columnName) {
 		final UBuilder uriBuilder = RemoteService.getNewUBuilder(remote, "/table/", tableName, "/column/", columnName);
 		final HttpRequest request = HttpRequest.Get(uriBuilder.buildNoEx());
-		return executeJson(request, null, null, ColumnDefinition.class, valid200Json);
+		return executeJson(request, null, null, ColumnDefinition.class, valid200204Json);
 	}
 
 	@Override

@@ -15,6 +15,7 @@
  */
 package com.qwazr.database.test;
 
+import com.qwazr.database.TableServer;
 import com.qwazr.database.annotations.AnnotatedTableService;
 import com.qwazr.database.model.TableDefinition;
 import com.qwazr.database.model.TableQuery;
@@ -22,6 +23,7 @@ import com.qwazr.database.model.TableRequest;
 import com.qwazr.database.model.TableRequestResult;
 import com.qwazr.utils.http.HttpClients;
 import org.apache.http.pool.PoolStats;
+import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
@@ -63,7 +65,7 @@ public class JavaTest {
 	}
 
 	private AnnotatedTableService<JavaRecord> getService() throws URISyntaxException {
-		return new AnnotatedTableService<>(TestServer.getClient(), JavaRecord.class);
+		return new AnnotatedTableService<>(TestServer.getRemoteClient(), JavaRecord.class);
 	}
 
 	@Test
@@ -223,6 +225,12 @@ public class JavaTest {
 		Assert.assertEquals(0, HttpClients.CNX_MANAGER.getTotalStats().getLeased());
 		Assert.assertEquals(0, stats.getPending());
 		Assert.assertTrue(stats.getAvailable() > 0);
+		TableServer.shutdown();
+	}
+
+	@AfterClass
+	public static void stopServer() {
+		TestServer.shutdown();
 	}
 
 }

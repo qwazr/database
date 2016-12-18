@@ -33,10 +33,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-@RolesAllowed(TableManager.SERVICE_NAME_TABLE)
+@RolesAllowed(TableServiceInterface.SERVICE_NAME)
 @Path("/table")
-@ServiceName(TableManager.SERVICE_NAME_TABLE)
+@ServiceName(TableServiceInterface.SERVICE_NAME)
 public interface TableServiceInterface extends ServiceInterface {
+
+	String SERVICE_NAME = "table";
 
 	@GET
 	@Path("/")
@@ -147,9 +149,7 @@ public interface TableServiceInterface extends ServiceInterface {
 	@Produces(ServiceInterface.APPLICATION_JSON_UTF8)
 	TableRequestResult queryRows(@PathParam("table_name") String table_name, TableRequest tableRequest);
 
-	static TableServiceInterface getClient(final RemoteService... remotes) throws URISyntaxException {
-		return remotes == null || remotes.length == 0 ?
-				TableServiceImpl.INSTANCE :
-				remotes.length == 1 ? new TableSingleClient(remotes[0]) : null;
+	static TableServiceInterface getRemoteClient(final RemoteService... remotes) throws URISyntaxException {
+		return remotes.length == 1 ? new TableSingleClient(remotes[0]) : null;
 	}
 }

@@ -22,26 +22,41 @@ import com.qwazr.database.model.TableRequest;
 import com.qwazr.database.model.TableRequestResult;
 import com.qwazr.database.store.KeyStore;
 import com.qwazr.database.store.Query;
+import com.qwazr.server.AbstractServiceImpl;
 import com.qwazr.utils.json.JsonMapper;
 import com.qwazr.server.ServerException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.PostConstruct;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.*;
 
-class TableServiceImpl implements TableServiceInterface {
+class TableServiceImpl extends AbstractServiceImpl implements TableServiceInterface {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(TableServiceImpl.class);
 
-	final static TableServiceImpl INSTANCE = new TableServiceImpl();
+	private TableManager tableManager;
+
+	TableServiceImpl(TableManager tableManager) {
+		this.tableManager = tableManager;
+	}
+
+	public TableServiceImpl() {
+		this(null);
+	}
+
+	@PostConstruct
+	public void init() {
+		this.tableManager = getContextAttribute(TableManager.class);
+	}
 
 	@Override
 	public Set<String> list() {
-		return Collections.unmodifiableSet(TableManager.INSTANCE.getNameSet());
+		return Collections.unmodifiableSet(tableManager.getNameSet());
 	}
 
 	@Override
@@ -49,8 +64,8 @@ class TableServiceImpl implements TableServiceInterface {
 		try {
 			if (storeImplementation == null)
 				storeImplementation = KeyStore.Impl.leveldb;
-			TableManager.INSTANCE.createTable(tableName, storeImplementation);
-			return new TableDefinition(storeImplementation, TableManager.INSTANCE.getColumns(tableName));
+			tableManager.createTable(tableName, storeImplementation);
+			return new TableDefinition(storeImplementation, tableManager.getColumns(tableName));
 		} catch (Exception e) {
 			throw ServerException.getJsonException(LOGGER, e);
 		}
@@ -59,7 +74,7 @@ class TableServiceImpl implements TableServiceInterface {
 	@Override
 	public TableDefinition getTable(String tableName) {
 		try {
-			return new TableDefinition(null, TableManager.INSTANCE.getColumns(tableName));
+			return new TableDefinition(null, tableManager.getColumns(tableName));
 		} catch (IOException | ServerException e) {
 			throw ServerException.getJsonException(LOGGER, e);
 		}
@@ -68,7 +83,7 @@ class TableServiceImpl implements TableServiceInterface {
 	@Override
 	public Boolean deleteTable(String tableName) {
 		try {
-			TableManager.INSTANCE.deleteTable(tableName);
+			tableManager.deleteTable(tableName);
 			return true;
 		} catch (IOException | ServerException e) {
 			throw ServerException.getJsonException(LOGGER, e);
@@ -78,7 +93,7 @@ class TableServiceImpl implements TableServiceInterface {
 	@Override
 	public Map<String, ColumnDefinition> getColumns(String tableName) {
 		try {
-			return TableManager.INSTANCE.getColumns(tableName);
+			return tableManager.getColumns(tableName);
 		} catch (ServerException | IOException e) {
 			throw ServerException.getJsonException(LOGGER, e);
 		}
@@ -87,7 +102,7 @@ class TableServiceImpl implements TableServiceInterface {
 	@Override
 	public ColumnDefinition getColumn(final String tableName, final String columnName) {
 		try {
-			return TableManager.INSTANCE.getColumns(tableName).get(columnName);
+			return tableManager.getColumns(tableName).get(columnName);
 		} catch (ServerException | IOException e) {
 			throw ServerException.getJsonException(LOGGER, e);
 		}
@@ -97,7 +112,7 @@ class TableServiceImpl implements TableServiceInterface {
 	public List<Object> getColumnTerms(final String tableName, final String columnName, final Integer start,
 			final Integer rows) {
 		try {
-			return TableManager.INSTANCE.getColumnTerms(tableName, columnName, start, rows);
+			return tableManager.getColumnTerms(tableName, columnName, start, rows);
 		} catch (ServerException | IOException e) {
 			throw ServerException.getJsonException(LOGGER, e);
 		}
@@ -107,7 +122,7 @@ class TableServiceImpl implements TableServiceInterface {
 	public List<String> getColumnTermKeys(final String tableName, final String columnName, final String term,
 			final Integer start, final Integer rows) {
 		try {
-			return TableManager.INSTANCE.getColumnTermKeys(tableName, columnName, term, start, rows);
+			return tableManager.getColumnTermKeys(tableName, columnName, term, start, rows);
 		} catch (ServerException | IOException e) {
 			throw ServerException.getJsonException(LOGGER, e);
 		}
@@ -116,7 +131,7 @@ class TableServiceImpl implements TableServiceInterface {
 	@Override
 	public ColumnDefinition setColumn(String tableName, String columnName, ColumnDefinition columnDefinition) {
 		try {
-			TableManager.INSTANCE.setColumn(tableName, columnName, columnDefinition);
+			tableManager.setColumn(tableName, columnName, columnDefinition);
 			return columnDefinition;
 		} catch (ServerException | IOException e) {
 			throw ServerException.getJsonException(LOGGER, e);
@@ -131,7 +146,7 @@ class TableServiceImpl implements TableServiceInterface {
 	@Override
 	public Long upsertRows(String table_name, List<Map<String, Object>> rows) {
 		try {
-			return (long) TableManager.INSTANCE.upsertRows(table_name, rows);
+			return (long) tableManager.upsertRows(table_name, rows);
 		} catch (IOException | ServerException e) {
 			throw ServerException.getJsonException(LOGGER, e);
 		}
@@ -159,7 +174,7 @@ class TableServiceImpl implements TableServiceInterface {
 		private int flush() throws IOException {
 			if (buffer.size() == 0)
 				return 0;
-			int res = TableManager.INSTANCE.upsertRows(tableName, buffer);
+			int res = tableManager.upsertRows(tableName, buffer);
 			buffer.clear();
 			return res;
 		}
@@ -193,7 +208,7 @@ class TableServiceImpl implements TableServiceInterface {
 	@Override
 	public Map<String, Object> upsertRow(String table_name, String row_id, Map<String, Object> node) {
 		try {
-			TableManager.INSTANCE.upsertRow(table_name, row_id, node);
+			tableManager.upsertRow(table_name, row_id, node);
 			return node;
 		} catch (ServerException | IOException e) {
 			throw ServerException.getJsonException(LOGGER, e);
@@ -203,7 +218,7 @@ class TableServiceImpl implements TableServiceInterface {
 	@Override
 	public LinkedHashMap<String, Object> getRow(String table_name, String row_id, Set<String> columns) {
 		try {
-			return TableManager.INSTANCE.getRow(table_name, row_id, columns);
+			return tableManager.getRow(table_name, row_id, columns);
 		} catch (ServerException | IOException e) {
 			throw ServerException.getJsonException(LOGGER, e);
 		}
@@ -212,7 +227,7 @@ class TableServiceImpl implements TableServiceInterface {
 	@Override
 	public List<Map<String, Object>> getRows(String table_name, Set<String> columns, Set<String> row_ids) {
 		try {
-			return TableManager.INSTANCE.getRows(table_name, columns, row_ids);
+			return tableManager.getRows(table_name, columns, row_ids);
 		} catch (ServerException | IOException e) {
 			throw ServerException.getJsonException(LOGGER, e);
 		}
@@ -221,7 +236,7 @@ class TableServiceImpl implements TableServiceInterface {
 	@Override
 	public List<String> getRows(String table_name, Integer start, Integer rows) {
 		try {
-			return TableManager.INSTANCE.getPrimaryKeys(table_name, start, rows);
+			return tableManager.getPrimaryKeys(table_name, start, rows);
 		} catch (ServerException | IOException e) {
 			throw ServerException.getJsonException(LOGGER, e);
 		}
@@ -230,7 +245,7 @@ class TableServiceImpl implements TableServiceInterface {
 	@Override
 	public Boolean deleteRow(String table_name, String row_id) {
 		try {
-			return TableManager.INSTANCE.deleteRow(table_name, row_id);
+			return tableManager.deleteRow(table_name, row_id);
 		} catch (ServerException | IOException e) {
 			throw ServerException.getJsonException(LOGGER, e);
 		}
@@ -239,7 +254,7 @@ class TableServiceImpl implements TableServiceInterface {
 	@Override
 	public TableRequestResult queryRows(String table_name, TableRequest request) {
 		try {
-			return TableManager.INSTANCE.query(table_name, request);
+			return tableManager.query(table_name, request);
 		} catch (ServerException | IOException | Query.QueryException e) {
 			throw ServerException.getJsonException(LOGGER, e);
 		}

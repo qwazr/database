@@ -16,32 +16,56 @@
 package com.qwazr.database;
 
 import com.qwazr.cluster.manager.ClusterManager;
+import com.qwazr.server.BaseServer;
 import com.qwazr.server.GenericServer;
-import com.qwazr.server.ServerBuilder;
 import com.qwazr.server.WelcomeShutdownService;
 import com.qwazr.server.configuration.ServerConfiguration;
 
-import java.io.File;
+import javax.management.MBeanException;
+import javax.management.OperationsException;
+import javax.servlet.ServletException;
 import java.io.IOException;
-import java.util.Collection;
-import java.util.concurrent.ExecutorService;
+import java.net.URISyntaxException;
 
-public class TableServer extends GenericServer {
+public class TableServer implements BaseServer {
 
-	private TableServer(final ServerConfiguration serverConfiguration) throws IOException {
-		super(serverConfiguration);
+	private final GenericServer server;
+	private final TableManager tableManager;
+
+	public TableServer(final ServerConfiguration serverConfiguration) throws IOException, URISyntaxException {
+		GenericServer.Builder builder = GenericServer.of(serverConfiguration).webService(WelcomeShutdownService.class);
+		new ClusterManager(builder);
+		tableManager = TableManager.getNewInstance(builder);
+		server = builder.build();
 	}
 
-	@Override
-	protected void build(final ExecutorService executorService, final ServerBuilder builder,
-			final ServerConfiguration configuration, final Collection<File> etcFiles) throws IOException {
-		ClusterManager.load(builder, configuration);
-		TableManager.load(builder, configuration);
-		builder.registerWebService(WelcomeShutdownService.class);
+	public TableServiceInterface getService() {
+		return tableManager.getService();
 	}
 
-	public static void main(final String... args) throws Exception {
-		new TableServer(new ServerConfiguration(args)).start(true);
+	public GenericServer getServer() {
+		return server;
+	}
+
+	private static volatile TableServer INSTANCE;
+
+	public static synchronized TableServer getInstance() {
+		return INSTANCE;
+	}
+
+	public static synchronized void main(final String... args)
+			throws IOException, ReflectiveOperationException, OperationsException, ServletException, MBeanException,
+			URISyntaxException, InterruptedException {
+		if (INSTANCE != null)
+			shutdown();
+		INSTANCE = new TableServer(new ServerConfiguration(args));
+		INSTANCE.start();
+	}
+
+	public static synchronized void shutdown() {
+		if (INSTANCE != null)
+			INSTANCE.stop();
+		INSTANCE = null;
 	}
 
 }

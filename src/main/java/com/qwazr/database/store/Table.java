@@ -183,7 +183,7 @@ public class Table implements Closeable {
 
 	final public boolean deleteRow(final String key) throws IOException {
 		if (key == null)
-			return false;
+			throw new ServerException(Response.Status.NOT_ACCEPTABLE, "Cannot delete an empty key");
 		final PrimaryIdsKey primaryIdsKey = new PrimaryIdsKey(key);
 		final Integer docId = primaryIdsKey.getValue(keyStore);
 		if (docId == null)

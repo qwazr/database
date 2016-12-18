@@ -15,28 +15,55 @@
  */
 package com.qwazr.database.test;
 
+import com.qwazr.database.TableServiceInterface;
 import com.qwazr.database.store.KeyStore;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
+import java.net.URISyntaxException;
+
 @RunWith(Suite.class)
-@Suite.SuiteClasses({ TestSuite.LevelDbTest.class /*, TestSuite.LmdbTest.class*/ })
+@Suite.SuiteClasses({ TestSuite.LevelDbLocalTest.class,
+		TestSuite.LevelDbRemoteTest.class /*, TestSuite.LmdbTest.class*/ })
 public class TestSuite {
 
-  public static class LevelDbTest extends JsonTest {
+	public static class LevelDbLocalTest extends JsonTest {
 
-    @Override
-    protected KeyStore.Impl getStoreImplementation() {
-      return KeyStore.Impl.leveldb;
-    }
-  }
+		@Override
+		protected KeyStore.Impl getStoreImplementation() {
+			return KeyStore.Impl.leveldb;
+		}
 
-  public static class LmdbTest extends JsonTest {
+		@Override
+		protected TableServiceInterface getClient() {
+			return TestServer.getLocalClient();
+		}
+	}
 
-    @Override
-    protected KeyStore.Impl getStoreImplementation() {
-      return KeyStore.Impl.lmdb;
-    }
-  }
+	public static class LevelDbRemoteTest extends JsonTest {
+
+		@Override
+		protected KeyStore.Impl getStoreImplementation() {
+			return KeyStore.Impl.leveldb;
+		}
+
+		@Override
+		protected TableServiceInterface getClient() throws URISyntaxException {
+			return TestServer.getRemoteClient();
+		}
+	}
+
+	public static class LmdbTest extends JsonTest {
+
+		@Override
+		protected KeyStore.Impl getStoreImplementation() {
+			return KeyStore.Impl.lmdb;
+		}
+
+		@Override
+		protected TableServiceInterface getClient() throws URISyntaxException {
+			return TestServer.getRemoteClient();
+		}
+	}
 
 }

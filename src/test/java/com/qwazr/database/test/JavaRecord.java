@@ -22,63 +22,64 @@ import com.qwazr.database.model.TableDefinition;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
 
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Objects;
 
 @Table("JavaTest")
 public class JavaRecord {
 
-  @TableColumn(name = TableDefinition.ID_COLUMN_NAME)
-  public final String id;
+	@TableColumn(name = TableDefinition.ID_COLUMN_NAME)
+	public final String id;
 
-  public final static String COL_DPT = "dpt";
-  @TableColumn(name = COL_DPT, mode = ColumnDefinition.Mode.INDEXED, type = ColumnDefinition.Type.INTEGER)
-  public final List<Integer> dpt;
+	public final static String COL_DPT = "dpt";
+	@TableColumn(name = COL_DPT, mode = ColumnDefinition.Mode.INDEXED, type = ColumnDefinition.Type.INTEGER)
+	public final ArrayList<Integer> dpt;
 
-  public final static String COL_LABEL = "label";
-  @TableColumn(name = COL_LABEL, mode = ColumnDefinition.Mode.STORED, type = ColumnDefinition.Type.STRING)
-  public final String label;
+	public final static String COL_LABEL = "label";
+	@TableColumn(name = COL_LABEL, mode = ColumnDefinition.Mode.STORED, type = ColumnDefinition.Type.STRING)
+	public final String label;
 
-  public final static String COL_LAST_UPDATE_DATE = "lastUpdateDate";
-  @TableColumn(name = COL_LAST_UPDATE_DATE, mode = ColumnDefinition.Mode.INDEXED, type = ColumnDefinition.Type.LONG)
-  public final Long lastUpdateDate;
+	public final static String COL_LAST_UPDATE_DATE = "lastUpdateDate";
+	@TableColumn(name = COL_LAST_UPDATE_DATE, mode = ColumnDefinition.Mode.INDEXED, type = ColumnDefinition.Type.LONG)
+	public final Long lastUpdateDate;
 
-  public final static String COL_CREATION_DATE = "creationDate";
-  @TableColumn(name = COL_CREATION_DATE, mode = ColumnDefinition.Mode.STORED, type = ColumnDefinition.Type.LONG)
-  public final Long creationDate;
+	public final static String COL_CREATION_DATE = "creationDate";
+	@TableColumn(name = COL_CREATION_DATE, mode = ColumnDefinition.Mode.STORED, type = ColumnDefinition.Type.LONG)
+	public final Long creationDate;
 
-  public JavaRecord(final String id, final int dptStart) {
-    this.id = id;
-    dpt = Arrays.asList(dptStart + RandomUtils.nextInt(0, 9), dptStart + RandomUtils.nextInt(10, 19),
-            dptStart + RandomUtils.nextInt(20, 29));
-    label = RandomStringUtils.randomAlphanumeric(16);
-    lastUpdateDate = System.currentTimeMillis() + RandomUtils.nextInt(0, 86400000);
-    creationDate = System.currentTimeMillis() + RandomUtils.nextInt(0, 86400000);
-  }
+	public JavaRecord(final String id, final int dptStart) {
+		this.id = id;
+		dpt = new ArrayList<>(
+				Arrays.asList(dptStart + RandomUtils.nextInt(0, 9), dptStart + RandomUtils.nextInt(10, 19),
+						dptStart + RandomUtils.nextInt(20, 29)));
+		label = RandomStringUtils.randomAlphanumeric(16);
+		lastUpdateDate = System.currentTimeMillis() + RandomUtils.nextInt(0, 86400000);
+		creationDate = System.currentTimeMillis() + RandomUtils.nextInt(0, 86400000);
+	}
 
-  public JavaRecord() {
-    id = null;
-    dpt = null;
-    label = null;
-    lastUpdateDate = null;
-    creationDate = null;
-  }
+	public JavaRecord() {
+		id = null;
+		dpt = null;
+		label = null;
+		lastUpdateDate = null;
+		creationDate = null;
+	}
 
-  @Override
-  public boolean equals(Object o) {
-    if (o == null || !(o instanceof JavaRecord))
-      return false;
-    final JavaRecord r = (JavaRecord) o;
-    if (!Objects.deepEquals(dpt, r.dpt))
-      return false;
-    if (!Objects.equals(label, r.label))
-      return false;
-    if (!Objects.equals(lastUpdateDate, r.lastUpdateDate))
-      return false;
-    if (!Objects.equals(creationDate, r.creationDate))
-      return false;
-    return true;
-  }
+	@Override
+	public boolean equals(Object o) {
+		if (o == null || !(o instanceof JavaRecord))
+			return false;
+		final JavaRecord r = (JavaRecord) o;
+		if (!Objects.deepEquals(dpt, r.dpt))
+			return false;
+		if (!Objects.equals(label, r.label))
+			return false;
+		if (!Objects.equals(lastUpdateDate, r.lastUpdateDate))
+			return false;
+		if (!Objects.equals(creationDate, r.creationDate))
+			return false;
+		return true;
+	}
 
 }

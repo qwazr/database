@@ -17,15 +17,21 @@ package com.qwazr.database.test;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.qwazr.database.TableBuilder;
+import com.qwazr.database.TableServer;
 import com.qwazr.database.TableServiceInterface;
 import com.qwazr.database.TableSingleClient;
-import com.qwazr.database.model.*;
+import com.qwazr.database.model.ColumnDefinition;
+import com.qwazr.database.model.TableDefinition;
+import com.qwazr.database.model.TableQuery;
+import com.qwazr.database.model.TableRequest;
+import com.qwazr.database.model.TableRequestResult;
 import com.qwazr.database.store.KeyStore;
 import com.qwazr.utils.CharsetUtils;
 import com.qwazr.utils.IOUtils;
 import com.qwazr.utils.http.HttpClients;
 import com.qwazr.utils.json.JsonMapper;
 import org.apache.http.pool.PoolStats;
+import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
@@ -35,7 +41,12 @@ import javax.ws.rs.WebApplicationException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URISyntaxException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public abstract class JsonTest {
@@ -81,12 +92,16 @@ public abstract class JsonTest {
 		COLUMNS_WITHID.add(TableDefinition.ID_COLUMN_NAME);
 	}
 
-	public static void checkErrorStatusCode(Runnable runnable, int expectedStatusCode) {
+	public static void checkErrorStatusCode(Runnable runnable, int... expectedStatusCodes) {
 		try {
 			runnable.run();
 			Assert.fail("WebApplicationException was not thrown");
 		} catch (WebApplicationException e) {
-			Assert.assertEquals(expectedStatusCode, e.getResponse().getStatus());
+			final int code = e.getResponse().getStatus();
+			for (int expectedStatusCode : expectedStatusCodes)
+				if (code == expectedStatusCode)
+					return;
+			Assert.fail("Unexpected status code: " + code);
 		}
 	}
 
@@ -97,7 +112,7 @@ public abstract class JsonTest {
 
 	@Test
 	public void test050CreateTable() throws URISyntaxException {
-		TableServiceInterface client = TestServer.getClient();
+		TableServiceInterface client = getClient();
 		TableDefinition tableDefinition = client.createTable(TABLE_NAME, getStoreImplementation());
 		Assert.assertNotNull(tableDefinition);
 	}
@@ -111,7 +126,7 @@ public abstract class JsonTest {
 
 	@Test
 	public void test100SetColumns() throws URISyntaxException {
-		TableServiceInterface client = TestServer.getClient();
+		TableServiceInterface client = getClient();
 
 		checkErrorStatusCode(() -> client.setColumn(DUMMY_NAME, COLUMN_NAME_PASSWORD, COLUMN_DEF_PASSWORD), 404);
 
@@ -145,10 +160,12 @@ public abstract class JsonTest {
 
 	protected abstract KeyStore.Impl getStoreImplementation();
 
+	protected abstract TableServiceInterface getClient() throws URISyntaxException;
+
 	@Test
 	public void test110getColumn() throws URISyntaxException {
-		TableServiceInterface client = TestServer.getClient();
-		checkErrorStatusCode(() -> client.getColumn(TABLE_NAME, DUMMY_NAME), 204);
+		TableServiceInterface client = getClient();
+		Assert.assertNull(client.getColumn(TABLE_NAME, DUMMY_NAME));
 		checkColumn(client, COLUMN_NAME_PASSWORD, COLUMN_DEF_PASSWORD);
 		checkColumn(client, COLUMN_NAME_ROLES, COLUMN_DEF_ROLES);
 		checkColumn(client, COLUMN_NAME_ROLES2, COLUMN_DEF_ROLES);
@@ -157,7 +174,7 @@ public abstract class JsonTest {
 
 	// TODO Not Yet implemented
 	public void test130removeColumn() throws URISyntaxException {
-		final TableServiceInterface client = TestServer.getClient();
+		final TableServiceInterface client = getClient();
 		client.removeColumn(TABLE_NAME, COLUMN_NAME_ROLES2);
 		final Map<String, ColumnDefinition> columns = client.getColumns(TABLE_NAME);
 		Assert.assertNull(columns.get(COLUMN_NAME_ROLES2));
@@ -165,7 +182,7 @@ public abstract class JsonTest {
 
 	@Test
 	public void test120getColumns() throws URISyntaxException {
-		final TableServiceInterface client = TestServer.getClient();
+		final TableServiceInterface client = getClient();
 		checkErrorStatusCode(() -> client.getColumns(DUMMY_NAME), 404);
 		final Map<String, ColumnDefinition> columns = client.getColumns(TABLE_NAME);
 		Assert.assertNotNull(columns);
@@ -175,7 +192,7 @@ public abstract class JsonTest {
 
 	@Test
 	public void test150MatchAllQueryEmpty() throws URISyntaxException {
-		TableServiceInterface client = TestServer.getClient();
+		TableServiceInterface client = getClient();
 		TableRequest request = new TableRequest(0, 1000, COLUMNS_WITHID, null, null);
 		checkErrorStatusCode(() -> client.queryRows(DUMMY_NAME, request), 404);
 		TableRequestResult result = client.queryRows(TABLE_NAME, request);
@@ -185,7 +202,7 @@ public abstract class JsonTest {
 
 	@Test
 	public void test300upsertRow() throws URISyntaxException {
-		final TableServiceInterface client = TestServer.getClient();
+		final TableServiceInterface client = getClient();
 		checkErrorStatusCode(() -> client.upsertRow(DUMMY_NAME, ID1, UPSERT_ROW1), 404);
 		Assert.assertNotNull(client.upsertRow(TABLE_NAME, ID1, UPSERT_ROW1));
 		Assert.assertNotNull(client.upsertRow(TABLE_NAME, ID2, UPSERT_ROW2));
@@ -195,7 +212,7 @@ public abstract class JsonTest {
 
 	@Test
 	public void test350upsertRows() throws URISyntaxException {
-		final TableServiceInterface client = TestServer.getClient();
+		final TableServiceInterface client = getClient();
 		checkErrorStatusCode(() -> client.upsertRows(DUMMY_NAME, UPSERT_ROWS), 404);
 		Long result = client.upsertRows(TABLE_NAME, UPSERT_ROWS);
 		Assert.assertNotNull(result);
@@ -204,7 +221,7 @@ public abstract class JsonTest {
 
 	@Test
 	public void test352upsertRows() throws IOException, URISyntaxException {
-		final TableServiceInterface client = TestServer.getClient();
+		final TableServiceInterface client = getClient();
 		try (final InputStream is = JsonTest.class.getResourceAsStream("upsert_rows.txt")) {
 			Long result = client.upsertRows(TABLE_NAME, 2, is);
 			Assert.assertNotNull(result);
@@ -214,7 +231,7 @@ public abstract class JsonTest {
 
 	@Test
 	public void test355MatchAllQuery() throws URISyntaxException {
-		final TableServiceInterface client = TestServer.getClient();
+		final TableServiceInterface client = getClient();
 		final TableRequest request = new TableRequest(0, 1000, COLUMNS_WITHID, null, null);
 		final TableRequestResult result = client.queryRows(TABLE_NAME, request);
 		Assert.assertNotNull(result);
@@ -224,7 +241,7 @@ public abstract class JsonTest {
 	}
 
 	private void deleteAndCheck(String id) throws URISyntaxException {
-		final TableServiceInterface client = TestServer.getClient();
+		final TableServiceInterface client = getClient();
 		Assert.assertTrue(client.deleteRow(TABLE_NAME, id));
 		try {
 			client.getRow(TABLE_NAME, id, COLUMNS);
@@ -236,9 +253,9 @@ public abstract class JsonTest {
 
 	@Test
 	public void test360DeleteAndUpsertRow() throws URISyntaxException {
-		final TableServiceInterface client = TestServer.getClient();
-		checkErrorStatusCode(() -> client.deleteRow(DUMMY_NAME, ""), 405);
-		checkErrorStatusCode(() -> client.deleteRow(TABLE_NAME, null), 405);
+		final TableServiceInterface client = getClient();
+		checkErrorStatusCode(() -> client.deleteRow(DUMMY_NAME, ""), 404, 405);
+		checkErrorStatusCode(() -> client.deleteRow(TABLE_NAME, null), 405, 406);
 		deleteAndCheck(ID1);
 		deleteAndCheck(ID2);
 		Assert.assertNotNull(client.upsertRow(TABLE_NAME, ID2, UPSERT_ROW2));
@@ -256,6 +273,10 @@ public abstract class JsonTest {
 			final List<?> values = (List<?>) col;
 			Assert.assertFalse(values.isEmpty());
 			Assert.assertEquals(value, values.get(0));
+		} else if (col instanceof Object[]) {
+			final Object[] values = (Object[]) col;
+			Assert.assertFalse(values.length == 0);
+			Assert.assertEquals(value, values[0]);
 		} else
 			Assert.assertEquals(value, col);
 		return row;
@@ -280,7 +301,7 @@ public abstract class JsonTest {
 
 	@Test
 	public void test400FilterQuery() throws URISyntaxException {
-		final TableServiceInterface client = TestServer.getClient();
+		final TableServiceInterface client = getClient();
 		checkResult(client, new TableQuery.And().add(COLUMN_NAME_DPT_ID, 1), 2L);
 		checkResult(client, new TableQuery.And().add(COLUMN_NAME_DPT_ID, 1).add(COLUMN_NAME_CP, "111"), 1L, ID1);
 		checkResult(client, new TableQuery.And().add(COLUMN_NAME_DPT_ID, 2).add(COLUMN_NAME_CP, "444"), 1L, ID4);
@@ -290,20 +311,18 @@ public abstract class JsonTest {
 
 	@Test
 	public void test410GetRow() throws URISyntaxException {
-		final TableServiceInterface client = TestServer.getClient();
+		final TableServiceInterface client = getClient();
 		checkErrorStatusCode(() -> client.getRow(DUMMY_NAME, ID3, COLUMNS), 404);
 		checkErrorStatusCode(() -> client.getRow(TABLE_NAME, DUMMY_NAME, COLUMNS), 404);
 		checkGetRow("password", PASS3, client.getRow(TABLE_NAME, ID3, COLUMNS));
 		checkGetRow("password", PASS4, client.getRow(TABLE_NAME, ID4, COLUMNS));
 		final Map<String, Object> row = checkGetRow("password", PASS1, client.getRow(TABLE_NAME, ID1, COLUMNS));
-		final List<String> roles = (List<String>) row.get("roles");
-		Assert.assertNotNull(roles);
-		Assert.assertEquals(2, roles.size());
+		checkRows(row.get("roles"), "search", "table");
 	}
 
 	@Test
 	public void test500UpsertIndexedRowAndFilter() throws URISyntaxException {
-		final TableServiceInterface client = TestServer.getClient();
+		final TableServiceInterface client = getClient();
 		checkResult(client, new TableQuery.And().add(COLUMN_NAME_DPT_ID, 1), 2L);
 		checkResult(client, new TableQuery.And().add(COLUMN_NAME_DPT_ID, 2), 3L);
 		Assert.assertNotNull(client.upsertRow(TABLE_NAME, ID2, UPSERT_ROW_2_2));
@@ -311,7 +330,7 @@ public abstract class JsonTest {
 		checkResult(client, new TableQuery.And().add(COLUMN_NAME_DPT_ID, 2), 2L);
 	}
 
-	private void checkRows(final List<String> rows, final String... keys) {
+	private void checkRowsList(final List<?> rows, final String... keys) {
 		Assert.assertNotNull(rows);
 		Assert.assertEquals(keys.length, rows.size());
 		int i = 0;
@@ -319,9 +338,26 @@ public abstract class JsonTest {
 			Assert.assertEquals(key, rows.get(i++));
 	}
 
+	private void checkRowsArray(final Object[] rows, final String... keys) {
+		Assert.assertNotNull(rows);
+		Assert.assertEquals(keys.length, rows.length);
+		int i = 0;
+		for (String key : keys)
+			Assert.assertEquals(key, rows[i++]);
+	}
+
+	private void checkRows(final Object object, final String... keys) {
+		if (object instanceof List)
+			checkRowsList((List) object, keys);
+		else if (object instanceof Object[])
+			checkRowsArray((Object[]) object, keys);
+		else
+			Assert.fail("Unexpected collection type: " + object.getClass());
+	}
+
 	@Test
 	public void test700getRows() throws URISyntaxException {
-		final TableServiceInterface client = TestServer.getClient();
+		final TableServiceInterface client = getClient();
 		checkErrorStatusCode(() -> client.getRows(DUMMY_NAME, (Integer) null, null), 404);
 		checkRows(client.getRows(TABLE_NAME, (Integer) null, null), ID2, ID1, ID3, ID4);
 		checkRows(client.getRows(TABLE_NAME, 0, 0));
@@ -337,7 +373,7 @@ public abstract class JsonTest {
 
 	@Test
 	public void test705getRows() throws URISyntaxException {
-		final TableServiceInterface client = TestServer.getClient();
+		final TableServiceInterface client = getClient();
 		final Set<String> keys = new LinkedHashSet<>(Arrays.asList(ID4, ID1, ID3, ID2));
 		final List<Map<String, Object>> results = client.getRows(TABLE_NAME, COLUMNS_WITHID, keys);
 		Assert.assertNotNull(results);
@@ -356,7 +392,7 @@ public abstract class JsonTest {
 
 	@Test
 	public void test800getColumnsTerms() throws URISyntaxException {
-		final TableServiceInterface client = TestServer.getClient();
+		final TableServiceInterface client = getClient();
 		checkErrorStatusCode(() -> client.getColumnTerms(TABLE_NAME, DUMMY_NAME, null, null), 404);
 		checkColumnsTerms(client.getColumnTerms(TABLE_NAME, COLUMN_NAME_DPT_ID, 0, 100), 1, 2);
 		checkColumnsTerms(client.getColumnTerms(TABLE_NAME, COLUMN_NAME_DPT_ID, 0, 0));
@@ -366,7 +402,7 @@ public abstract class JsonTest {
 
 	@Test
 	public void test81getColumnsTermKeys() throws URISyntaxException {
-		final TableServiceInterface client = TestServer.getClient();
+		final TableServiceInterface client = getClient();
 		checkErrorStatusCode(() -> client.getColumnTermKeys(TABLE_NAME, DUMMY_NAME, "1", null, null), 404);
 		checkErrorStatusCode(() -> client.getColumnTermKeys(TABLE_NAME, COLUMN_NAME_DPT_ID, DUMMY_NAME, null, null),
 				406);
@@ -394,7 +430,7 @@ public abstract class JsonTest {
 
 	@Test
 	public void test900tableBuilder() throws URISyntaxException {
-		final TableServiceInterface client = TestServer.getClient();
+		final TableServiceInterface client = getClient();
 		getTableBuilder().build(client);
 		final Map<String, ColumnDefinition> columns = client.getColumns(TB_NAME);
 		checkColumns(columns, TB_COLS);
@@ -403,7 +439,7 @@ public abstract class JsonTest {
 
 	@Test
 	public void test901tableBuilderAddColumn() throws URISyntaxException {
-		final TableServiceInterface client = TestServer.getClient();
+		final TableServiceInterface client = getClient();
 		getTableBuilder().setColumn("col5", ColumnDefinition.Type.STRING, ColumnDefinition.Mode.STORED).build(client);
 		final Map<String, ColumnDefinition> columns = client.getColumns(TB_NAME);
 		checkColumns(columns, TB_COLS);
@@ -413,7 +449,7 @@ public abstract class JsonTest {
 
 	@Test
 	public void test950deleteTable() throws URISyntaxException {
-		final TableServiceInterface client = TestServer.getClient();
+		final TableServiceInterface client = getClient();
 		client.deleteTable(TB_NAME);
 		checkErrorStatusCode(() -> client.deleteTable(TB_NAME), 404);
 		client.deleteTable(TABLE_NAME);
@@ -443,11 +479,17 @@ public abstract class JsonTest {
 	}
 
 	@Test
-	public void testZZZhttpClient() {
+	public void testZZZhttpClient() throws URISyntaxException {
 		final PoolStats stats = HttpClients.CNX_MANAGER.getTotalStats();
 		Assert.assertEquals(0, HttpClients.CNX_MANAGER.getTotalStats().getLeased());
 		Assert.assertEquals(0, stats.getPending());
-		Assert.assertTrue(stats.getAvailable() > 0);
+		if (getClient() instanceof TableSingleClient)
+			Assert.assertTrue(stats.getAvailable() > 0);
+		TableServer.shutdown();
 	}
 
+	@AfterClass
+	public static void stopServer() {
+		TestServer.shutdown();
+	}
 }
