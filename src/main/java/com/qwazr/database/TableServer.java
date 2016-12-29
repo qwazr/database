@@ -15,7 +15,7 @@
  */
 package com.qwazr.database;
 
-import com.qwazr.cluster.manager.ClusterManager;
+import com.qwazr.cluster.ClusterManager;
 import com.qwazr.server.BaseServer;
 import com.qwazr.server.GenericServer;
 import com.qwazr.server.WelcomeShutdownService;
@@ -35,13 +35,13 @@ public class TableServer implements BaseServer {
 	public TableServer(final ServerConfiguration serverConfiguration) throws IOException, URISyntaxException {
 		GenericServer.Builder builder =
 				GenericServer.of(serverConfiguration, null).webService(WelcomeShutdownService.class);
-		new ClusterManager(builder);
+		new ClusterManager(builder).getService();
 		tableManager = TableManager.getNewInstance(builder);
 		server = builder.build();
 	}
 
-	public TableServiceInterface getService() {
-		return tableManager.getService();
+	public TableServiceBuilder getServiceBuilder() {
+		return tableManager.getServiceBuilder();
 	}
 
 	public GenericServer getServer() {

@@ -36,7 +36,7 @@ public class TestServer {
 		System.setProperty("QWAZR_DATA", dataDir.getAbsolutePath());
 		System.setProperty("LISTEN_ADDR", "localhost");
 		System.setProperty("PUBLIC_ADDR", "localhost");
-		TableServer.main(null);
+		TableServer.main();
 	}
 
 	private volatile static TableServiceInterface CLIENT = null;
@@ -44,12 +44,12 @@ public class TestServer {
 	static synchronized TableServiceInterface getRemoteClient() throws URISyntaxException {
 		if (CLIENT != null)
 			return CLIENT;
-		CLIENT = TableServiceInterface.getRemoteClient(new RemoteService(BASE_URL));
+		CLIENT = TableServer.getInstance().getServiceBuilder().remote(new RemoteService(BASE_URL));
 		return CLIENT;
 	}
 
 	static synchronized TableServiceInterface getLocalClient() {
-		return TableServer.getInstance().getService();
+		return TableServer.getInstance().getServiceBuilder().local();
 	}
 
 	public static void shutdown() {

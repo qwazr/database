@@ -15,20 +15,27 @@
  */
 package com.qwazr.database;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.qwazr.database.model.ColumnDefinition;
 import com.qwazr.database.model.TableDefinition;
 import com.qwazr.database.model.TableRequest;
 import com.qwazr.database.model.TableRequestResult;
 import com.qwazr.database.store.KeyStore;
-import com.qwazr.server.RemoteService;
 import com.qwazr.server.ServiceInterface;
 import com.qwazr.server.ServiceName;
 
 import javax.annotation.security.RolesAllowed;
-import javax.ws.rs.*;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import java.io.InputStream;
-import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -149,7 +156,19 @@ public interface TableServiceInterface extends ServiceInterface {
 	@Produces(ServiceInterface.APPLICATION_JSON_UTF8)
 	TableRequestResult queryRows(@PathParam("table_name") String table_name, TableRequest tableRequest);
 
-	static TableServiceInterface getRemoteClient(final RemoteService... remotes) throws URISyntaxException {
-		return remotes.length == 1 ? new TableSingleClient(remotes[0]) : null;
-	}
+	TypeReference<Set<String>> SetStringTypeRef = new TypeReference<Set<String>>() {
+	};
+
+	TypeReference<List<Object>> ListObjectTypeRef = new TypeReference<List<Object>>() {
+	};
+
+	TypeReference<List<String>> ListStringTypeRef = new TypeReference<List<String>>() {
+	};
+
+	TypeReference<Map<String, Object>> MapStringObjectTypeRef = new TypeReference<Map<String, Object>>() {
+	};
+
+	TypeReference<List<Map<String, Object>>> ListMapStringObjectTypeRef =
+			new TypeReference<List<Map<String, Object>>>() {
+			};
 }

@@ -19,7 +19,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.qwazr.database.TableBuilder;
 import com.qwazr.database.TableServer;
 import com.qwazr.database.TableServiceInterface;
-import com.qwazr.database.TableSingleClient;
 import com.qwazr.database.model.ColumnDefinition;
 import com.qwazr.database.model.TableDefinition;
 import com.qwazr.database.model.TableQuery;
@@ -60,13 +59,13 @@ public abstract class JsonTest {
 			new ColumnDefinition(ColumnDefinition.Type.STRING, ColumnDefinition.Mode.INDEXED);
 
 	public static final Map<String, Object> UPSERT_ROW1 =
-			getTypeDef("upsert_row1.json", TableSingleClient.MapStringObjectTypeRef);
+			getTypeDef("upsert_row1.json", TableServiceInterface.MapStringObjectTypeRef);
 	public static final Map<String, Object> UPSERT_ROW2 =
-			getTypeDef("upsert_row2.json", TableSingleClient.MapStringObjectTypeRef);
+			getTypeDef("upsert_row2.json", TableServiceInterface.MapStringObjectTypeRef);
 	public static final Map<String, Object> UPSERT_ROW_2_2 =
-			getTypeDef("upsert_row2_2.json", TableSingleClient.MapStringObjectTypeRef);
+			getTypeDef("upsert_row2_2.json", TableServiceInterface.MapStringObjectTypeRef);
 	public static final List<Map<String, Object>> UPSERT_ROWS =
-			getTypeDef("upsert_rows.json", TableSingleClient.ListMapStringObjectTypeRef);
+			getTypeDef("upsert_rows.json", TableServiceInterface.ListMapStringObjectTypeRef);
 	public static final String TABLE_NAME = "test_table";
 	public static final String COLUMN_NAME_PASSWORD = "password";
 	public static final String COLUMN_NAME_ROLES = "roles";
@@ -483,7 +482,7 @@ public abstract class JsonTest {
 		final PoolStats stats = HttpClients.CNX_MANAGER.getTotalStats();
 		Assert.assertEquals(0, HttpClients.CNX_MANAGER.getTotalStats().getLeased());
 		Assert.assertEquals(0, stats.getPending());
-		if (getClient() instanceof TableSingleClient)
+		if (getClient().getClass().getSimpleName().equals("TableSingleClient"))
 			Assert.assertTrue(stats.getAvailable() > 0);
 		TableServer.shutdown();
 	}

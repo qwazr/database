@@ -32,26 +32,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class TableSingleClient extends JsonClientAbstract implements TableServiceInterface {
+class TableSingleClient extends JsonClientAbstract implements TableServiceInterface {
 
-	public final static TypeReference<Set<String>> SetStringTypeRef = new TypeReference<Set<String>>() {
-	};
-
-	public final static TypeReference<List<Object>> ListObjectTypeRef = new TypeReference<List<Object>>() {
-	};
-
-	public final static TypeReference<List<String>> ListStringTypeRef = new TypeReference<List<String>>() {
-	};
-
-	public final static TypeReference<Map<String, Object>> MapStringObjectTypeRef =
-			new TypeReference<Map<String, Object>>() {
-			};
-
-	public final static TypeReference<List<Map<String, Object>>> ListMapStringObjectTypeRef =
-			new TypeReference<List<Map<String, Object>>>() {
-			};
-
-	public TableSingleClient(final RemoteService remote) {
+	TableSingleClient(final RemoteService remote) {
 		super(remote);
 	}
 
