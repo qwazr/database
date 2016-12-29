@@ -15,20 +15,15 @@
  */
 package com.qwazr.database;
 
-import com.qwazr.cluster.ServiceBuilderInterface;
+import com.qwazr.cluster.ClusterManager;
+import com.qwazr.cluster.ServiceBuilderAbstract;
 import com.qwazr.server.RemoteService;
 
-public class TableServiceBuilder implements ServiceBuilderInterface<TableServiceInterface> {
+public class TableServiceBuilder extends ServiceBuilderAbstract<TableServiceInterface> {
 
-	TableServiceImpl local;
-
-	TableServiceBuilder(TableServiceImpl local) {
-		this.local = local;
-	}
-
-	@Override
-	public TableServiceInterface local() {
-		return local;
+	public TableServiceBuilder(final ClusterManager clusterManager, final TableManager tableManager) {
+		super(clusterManager, TableServiceInterface.SERVICE_NAME,
+				tableManager == null ? null : tableManager.getService());
 	}
 
 	@Override

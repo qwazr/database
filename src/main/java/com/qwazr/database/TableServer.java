@@ -31,17 +31,20 @@ public class TableServer implements BaseServer {
 
 	private final GenericServer server;
 	private final TableManager tableManager;
+	private final ClusterManager clusterManager;
+	private final TableServiceBuilder serviceBuilder;
 
 	public TableServer(final ServerConfiguration serverConfiguration) throws IOException, URISyntaxException {
 		GenericServer.Builder builder =
 				GenericServer.of(serverConfiguration, null).webService(WelcomeShutdownService.class);
-		new ClusterManager(builder).getService();
+		clusterManager = new ClusterManager(builder);
 		tableManager = TableManager.getNewInstance(builder);
+		serviceBuilder = new TableServiceBuilder(clusterManager, tableManager);
 		server = builder.build();
 	}
 
 	public TableServiceBuilder getServiceBuilder() {
-		return tableManager.getServiceBuilder();
+		return serviceBuilder;
 	}
 
 	public GenericServer getServer() {

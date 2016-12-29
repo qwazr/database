@@ -48,7 +48,7 @@ public class TableManager {
 
 	private final File directory;
 
-	private final TableServiceBuilder serviceBuilder;
+	private final TableServiceInterface service;
 
 	public static TableManager getNewInstance(final GenericServer.Builder builder) throws IOException {
 		final File tableDir = new File(builder.getConfiguration().dataDirectory, TableServiceInterface.SERVICE_NAME);
@@ -65,15 +65,11 @@ public class TableManager {
 
 	public TableManager(final File directory) throws ServerException, IOException {
 		this.directory = directory;
-		serviceBuilder = new TableServiceBuilder(new TableServiceImpl(this));
+		service = new TableServiceImpl(this);
 	}
 
 	public TableServiceInterface getService() {
-		return serviceBuilder.local;
-	}
-
-	public TableServiceBuilder getServiceBuilder() {
-		return serviceBuilder;
+		return service;
 	}
 
 	private Table getTable(final String tableName) throws IOException {
