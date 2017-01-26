@@ -44,7 +44,7 @@ public class TestServer {
 	static synchronized TableServiceInterface getRemoteClient() throws URISyntaxException {
 		if (CLIENT != null)
 			return CLIENT;
-		CLIENT = TableServer.getInstance().getServiceBuilder().remote(new RemoteService(BASE_URL));
+		CLIENT = TableServer.getInstance().getServiceBuilder().remote(RemoteService.of(BASE_URL).build());
 		return CLIENT;
 	}
 
