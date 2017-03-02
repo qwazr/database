@@ -26,6 +26,8 @@ import javax.management.OperationsException;
 import javax.servlet.ServletException;
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class TableServer implements BaseServer {
 
@@ -35,9 +37,10 @@ public class TableServer implements BaseServer {
 	private final TableServiceBuilder serviceBuilder;
 
 	public TableServer(final ServerConfiguration serverConfiguration) throws IOException, URISyntaxException {
+		final ExecutorService executorService = Executors.newCachedThreadPool();
 		GenericServer.Builder builder =
-				GenericServer.of(serverConfiguration, null).webService(WelcomeShutdownService.class);
-		clusterManager = new ClusterManager(builder);
+				GenericServer.of(serverConfiguration, executorService).webService(WelcomeShutdownService.class);
+		clusterManager = new ClusterManager(builder, executorService);
 		tableManager = TableManager.getNewInstance(builder);
 		serviceBuilder = new TableServiceBuilder(clusterManager, tableManager);
 		server = builder.build();
