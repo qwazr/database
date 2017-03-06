@@ -44,6 +44,7 @@ public class AnnotatedTableService<T> extends FieldMapWrapper<T> {
 	 * @param tableService         the IndexServiceInterface to use
 	 * @param tableDefinitionClass an annotated class
 	 * @param tableName            the name of table
+	 * @throws URISyntaxException if any URL is malformated
 	 */
 	public AnnotatedTableService(final TableServiceInterface tableService, final Class<T> tableDefinitionClass,
 			final String tableName) throws URISyntaxException {
@@ -110,8 +111,6 @@ public class AnnotatedTableService<T> extends FieldMapWrapper<T> {
 
 	/**
 	 * Set a collection of fields by reading the annotated fields.
-	 *
-	 * @return the field map
 	 */
 	public void createUpdateFields() {
 		checkParameters();
@@ -139,6 +138,8 @@ public class AnnotatedTableService<T> extends FieldMapWrapper<T> {
 
 	/**
 	 * Check if the there is differences between the annotated fields and the fields already declared
+	 *
+	 * @return a collection of changed fields
 	 */
 	public Map<String, FieldStatus> getColumnChanges() {
 		checkParameters();

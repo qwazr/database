@@ -41,10 +41,10 @@ public class PrimaryIdsKey extends KeyAbstract<Integer> {
 	/**
 	 * Resolve the keys by collecting the internal docId(s)
 	 *
-	 * @param store
+	 * @param store the store to request
 	 * @param keys  a list of key to resolve
 	 * @param ids   the collection
-	 * @throws IOException
+	 * @throws IOException if any I/O error occurs
 	 */
 	final static public void fillExistingIds(final KeyStore store, final Set<String> keys,
 			final Collection<Integer> ids) throws IOException {

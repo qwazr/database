@@ -36,7 +36,7 @@ public class IndexKey extends KeyAbstract<RoaringBitmap> {
 	 *
 	 * @param store the store
 	 * @param docId the internal id of the document
-	 * @throws IOException
+	 * @throws IOException if any I/O error occurs
 	 */
 	public void remove(final KeyStore store, final int docId) throws IOException {
 		final RoaringBitmap bitmap = getValue(store);
@@ -54,7 +54,7 @@ public class IndexKey extends KeyAbstract<RoaringBitmap> {
 	 *
 	 * @param store the store
 	 * @param docId the internal id of the document
-	 * @throws IOException
+	 * @throws IOException if any I/O error occurs
 	 */
 	final public void select(final KeyStore store, final int docId) throws IOException {
 		RoaringBitmap bitmap = getValue(store);
@@ -69,7 +69,7 @@ public class IndexKey extends KeyAbstract<RoaringBitmap> {
 	 *
 	 * @param store the store
 	 * @return an available document ID
-	 * @throws IOException
+	 * @throws IOException if any I/O error occurs
 	 */
 	final protected Integer nextDocId(final KeyStore store) throws IOException {
 		final RoaringBitmap bitmap = getValue(store);

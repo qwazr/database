@@ -50,7 +50,7 @@ public class TableBuilder {
 	 * <li>Remove existing columns if they are not defined.</li>
 	 * </ul>
 	 *
-	 * @param tableService
+	 * @param tableService the service to use
 	 */
 	public void build(final TableServiceInterface tableService) {
 		final Set<String> tables = tableService.list();
