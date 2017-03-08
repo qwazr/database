@@ -34,6 +34,8 @@ import javax.ws.rs.core.Response;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -50,22 +52,23 @@ public class TableManager {
 
 	private final TableServiceInterface service;
 
-	public static TableManager getNewInstance(final GenericServer.Builder builder) throws IOException {
-		final File tableDir = new File(builder.getConfiguration().dataDirectory, TableServiceInterface.SERVICE_NAME);
-		if (!tableDir.exists())
-			tableDir.mkdir();
-		final TableManager tableManager = new TableManager(tableDir);
-		if (builder != null) {
-			builder.webService(TableServiceImpl.class);
-			builder.shutdownListener(server -> Tables.closeAll());
-			builder.contextAttribute(tableManager);
-		}
-		return tableManager;
+	public TableManager(final Path tablesDirectory) throws ServerException, IOException {
+		if (!Files.exists(tablesDirectory))
+			Files.createDirectory(tablesDirectory);
+		this.directory = tablesDirectory.toFile();
+		service = new TableServiceImpl(this);
 	}
 
-	public TableManager(final File directory) throws ServerException, IOException {
-		this.directory = directory;
-		service = new TableServiceImpl(this);
+	public void registerWebService(final GenericServer.Builder builder) {
+		builder.webService(TableServiceImpl.class);
+	}
+
+	public void registerContextAttribute(final GenericServer.Builder builder) {
+		builder.contextAttribute(this);
+	}
+
+	public void registerShutdowListener(final GenericServer.Builder builder) {
+		builder.shutdownListener(server -> Tables.closeAll());
 	}
 
 	public TableServiceInterface getService() {

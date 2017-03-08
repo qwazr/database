@@ -41,7 +41,11 @@ public class TableServer implements BaseServer {
 		GenericServer.Builder builder =
 				GenericServer.of(serverConfiguration, executorService).webService(WelcomeShutdownService.class);
 		clusterManager = new ClusterManager(builder, executorService);
-		tableManager = TableManager.getNewInstance(builder);
+		tableManager = new TableManager(
+				builder.getConfiguration().dataDirectory.toPath().resolve(TableServiceInterface.SERVICE_NAME));
+		tableManager.registerWebService(builder);
+		tableManager.registerContextAttribute(builder);
+		tableManager.registerShutdowListener(builder);
 		serviceBuilder = new TableServiceBuilder(clusterManager, tableManager);
 		server = builder.build();
 	}
