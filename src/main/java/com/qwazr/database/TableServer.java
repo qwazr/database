@@ -44,9 +44,9 @@ public class TableServer implements BaseServer {
 				new ClusterManager(executorService, serverConfiguration).registerHttpClientMonitoringThread(builder)
 						.registerProtocolListener(builder)
 						.registerWebService(builder);
-		tableManager = new TableManager(builder.getConfiguration().dataDirectory.toPath()
-				.resolve(TableServiceInterface.SERVICE_NAME)).registerWebService(builder)
-				.registerShutdownListener(builder);
+		tableManager = new TableManager(
+				TableManager.checkTablesDirectory(serverConfiguration.dataDirectory.toPath())).registerWebService(
+				builder).registerShutdownListener(builder);
 		serviceBuilder = new TableServiceBuilder(clusterManager, tableManager);
 		server = builder.build();
 	}

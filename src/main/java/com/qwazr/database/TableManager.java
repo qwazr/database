@@ -53,10 +53,15 @@ public class TableManager {
 	private final TableServiceInterface service;
 
 	public TableManager(final Path tablesDirectory) throws ServerException, IOException {
-		if (!Files.exists(tablesDirectory))
-			Files.createDirectory(tablesDirectory);
 		this.directory = tablesDirectory.toFile();
 		service = new TableServiceImpl(this);
+	}
+
+	public static Path checkTablesDirectory(final Path dataDirectory) throws IOException {
+		final Path tablesDirectory = dataDirectory.resolve(TableServiceInterface.SERVICE_NAME);
+		if (!Files.exists(tablesDirectory))
+			Files.createDirectory(tablesDirectory);
+		return tablesDirectory;
 	}
 
 	public TableManager registerWebService(final GenericServer.Builder builder) {
