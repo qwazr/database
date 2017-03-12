@@ -38,14 +38,15 @@ public class TableServer implements BaseServer {
 
 	public TableServer(final ServerConfiguration serverConfiguration) throws IOException, URISyntaxException {
 		final ExecutorService executorService = Executors.newCachedThreadPool();
-		GenericServer.Builder builder =
+		final GenericServer.Builder builder =
 				GenericServer.of(serverConfiguration, executorService).webService(WelcomeShutdownService.class);
-		clusterManager = new ClusterManager(builder, executorService);
-		tableManager = new TableManager(
-				builder.getConfiguration().dataDirectory.toPath().resolve(TableServiceInterface.SERVICE_NAME));
-		tableManager.registerWebService(builder);
-		tableManager.registerContextAttribute(builder);
-		tableManager.registerShutdowListener(builder);
+		clusterManager =
+				new ClusterManager(executorService, serverConfiguration).registerHttpClientMonitoringThread(builder)
+						.registerProtocolListener(builder)
+						.registerWebService(builder);
+		tableManager = new TableManager(builder.getConfiguration().dataDirectory.toPath()
+				.resolve(TableServiceInterface.SERVICE_NAME)).registerWebService(builder)
+				.registerShutdownListener(builder);
 		serviceBuilder = new TableServiceBuilder(clusterManager, tableManager);
 		server = builder.build();
 	}

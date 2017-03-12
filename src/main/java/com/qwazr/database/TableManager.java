@@ -59,16 +59,20 @@ public class TableManager {
 		service = new TableServiceImpl(this);
 	}
 
-	public void registerWebService(final GenericServer.Builder builder) {
+	public TableManager registerWebService(final GenericServer.Builder builder) {
+		registerContextAttribute(builder);
 		builder.webService(TableServiceImpl.class);
+		return this;
 	}
 
-	public void registerContextAttribute(final GenericServer.Builder builder) {
+	public TableManager registerContextAttribute(final GenericServer.Builder builder) {
 		builder.contextAttribute(this);
+		return this;
 	}
 
-	public void registerShutdowListener(final GenericServer.Builder builder) {
+	public TableManager registerShutdownListener(final GenericServer.Builder builder) {
 		builder.shutdownListener(server -> Tables.closeAll());
+		return this;
 	}
 
 	public TableServiceInterface getService() {
