@@ -21,7 +21,7 @@
     </scm>
 
     <properties>
-        <lmdbjni.version>0.4.6</lmdbjni.version>
+        <lmdbjni.version>0.4.7</lmdbjni.version>
     </properties>
 
     <dependencies>
@@ -33,7 +33,7 @@
         <dependency>
             <groupId>org.roaringbitmap</groupId>
             <artifactId>RoaringBitmap</artifactId>
-            <version>0.6.39</version>
+            <version>0.6.41</version>
         </dependency>
         <dependency>
             <groupId>org.fusesource.leveldbjni</groupId>

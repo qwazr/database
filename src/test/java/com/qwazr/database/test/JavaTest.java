@@ -64,12 +64,12 @@ public class JavaTest {
 		TestServer.start();
 	}
 
-	private AnnotatedTableService<JavaRecord> getService() throws URISyntaxException {
+	private AnnotatedTableService<JavaRecord> getService() throws URISyntaxException, NoSuchMethodException {
 		return new AnnotatedTableService<>(TestServer.getRemoteClient(), JavaRecord.class);
 	}
 
 	@Test
-	public void test050CreateTable() throws URISyntaxException {
+	public void test050CreateTable() throws URISyntaxException, NoSuchMethodException {
 		final AnnotatedTableService<JavaRecord> service = getService();
 		// First call create the table
 		service.createUpdateTable();
@@ -80,7 +80,7 @@ public class JavaTest {
 	}
 
 	@Test
-	public void test100SetColumns() throws URISyntaxException {
+	public void test100SetColumns() throws URISyntaxException, NoSuchMethodException {
 		final AnnotatedTableService<JavaRecord> service = getService();
 		// First time
 		service.createUpdateFields();
@@ -93,7 +93,7 @@ public class JavaTest {
 	}
 
 	@Test
-	public void test150MatchAllQueryEmpty() throws URISyntaxException {
+	public void test150MatchAllQueryEmpty() throws URISyntaxException, NoSuchMethodException {
 		final AnnotatedTableService<JavaRecord> service = getService();
 		final TableRequest request = new TableRequest(0, 1000, COLUMNS, null, null);
 		final TableRequestResult result = service.queryRows(request);
@@ -109,7 +109,7 @@ public class JavaTest {
 	}
 
 	@Test
-	public void test350upsertRows() throws URISyntaxException {
+	public void test350upsertRows() throws URISyntaxException, NoSuchMethodException {
 		final AnnotatedTableService<JavaRecord> service = getService();
 		final List<JavaRecord> rows = Arrays.asList(ROW2, ROW3);
 		final Long result = service.upsertRows(rows);
@@ -118,7 +118,7 @@ public class JavaTest {
 	}
 
 	@Test
-	public void test355MatchAllQuery() throws URISyntaxException {
+	public void test355MatchAllQuery() throws URISyntaxException, NoSuchMethodException {
 		final AnnotatedTableService<JavaRecord> service = getService();
 		final TableRequest request = new TableRequest(0, 1000, COLUMNS_WITHID, null, null);
 		final TableRequestResult result = service.queryRows(request);
@@ -158,7 +158,7 @@ public class JavaTest {
 	}
 
 	@Test
-	public void test400FilterQuery() throws URISyntaxException {
+	public void test400FilterQuery() throws URISyntaxException, NoSuchMethodException {
 		final AnnotatedTableService<JavaRecord> service = getService();
 		checkResult(service, new TableQuery.And().add(JavaRecord.COL_DPT, ROW2.dpt.get(0)), 1L);
 		checkResult(service,
@@ -175,13 +175,13 @@ public class JavaTest {
 	}
 
 	@Test
-	public void test700getRows() throws URISyntaxException {
+	public void test700getRows() throws URISyntaxException, NoSuchMethodException {
 		final AnnotatedTableService<JavaRecord> service = getService();
 		checkRows(service.getRows((Integer) null, null), ID2, ID3);
 	}
 
 	@Test
-	public void test705getRows() throws URISyntaxException {
+	public void test705getRows() throws URISyntaxException, NoSuchMethodException {
 		final AnnotatedTableService<JavaRecord> service = getService();
 		final Set<String> keys = new LinkedHashSet<>(Arrays.asList(ID3, ID2));
 		List<JavaRecord> results = service.getRows(COLUMNS_WITHID, keys);
@@ -200,20 +200,20 @@ public class JavaTest {
 	}
 
 	@Test
-	public void test800getColumnsTerms() throws URISyntaxException {
+	public void test800getColumnsTerms() throws URISyntaxException, NoSuchMethodException {
 		final AnnotatedTableService<JavaRecord> service = getService();
 		checkColumnsTerms(service.getColumnTerms(JavaRecord.COL_DPT, 0, 100), ROW2.dpt.get(0), ROW2.dpt.get(1),
 				ROW2.dpt.get(2), ROW3.dpt.get(0), ROW3.dpt.get(1), ROW3.dpt.get(2));
 	}
 
 	@Test
-	public void test81getColumnsTermKeys() throws URISyntaxException {
+	public void test81getColumnsTermKeys() throws URISyntaxException, NoSuchMethodException {
 		final AnnotatedTableService<JavaRecord> service = getService();
 		checkColumnsTerms(service.getColumnTermKeys(JavaRecord.COL_DPT, ROW2.dpt.get(0).toString(), 0, 100), ID2);
 	}
 
 	@Test
-	public void test950deleteTable() throws URISyntaxException {
+	public void test950deleteTable() throws URISyntaxException, NoSuchMethodException {
 		final AnnotatedTableService<JavaRecord> service = getService();
 		service.deleteTable();
 		checkErrorStatusCode(() -> service.deleteTable(), 404);
