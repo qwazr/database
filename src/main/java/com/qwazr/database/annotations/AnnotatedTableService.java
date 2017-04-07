@@ -25,6 +25,7 @@ import com.qwazr.utils.AnnotationsUtils;
 import com.qwazr.utils.FieldMapWrapper;
 import com.qwazr.utils.StringUtils;
 
+import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.*;
 
@@ -193,7 +194,8 @@ public class AnnotatedTableService<T> extends FieldMapWrapper<T> {
 		return tableService.getRows(tableName, start, rows);
 	}
 
-	public List<T> getRows(final Set<String> columns, final Set<String> rowIds) {
+	public List<T> getRows(final Set<String> columns, final Set<String> rowIds)
+			throws IOException, ReflectiveOperationException {
 		checkParameters();
 		return toRecords(tableService.getRows(tableName, columns, rowIds));
 	}
@@ -208,7 +210,7 @@ public class AnnotatedTableService<T> extends FieldMapWrapper<T> {
 		tableService.upsertRow(tableName, rowId, newMap(row));
 	}
 
-	public T getRow(final String rowId, final Set<String> columns) throws ReflectiveOperationException {
+	public T getRow(final String rowId, final Set<String> columns) throws ReflectiveOperationException, IOException {
 		checkParameters();
 		return toRecord(tableService.getRow(tableName, rowId, columns));
 	}
@@ -218,7 +220,8 @@ public class AnnotatedTableService<T> extends FieldMapWrapper<T> {
 		return tableService.deleteRow(tableName, rowId);
 	}
 
-	public TableRequestResultRecords<T> queryRows(final TableRequest tableRequest) {
+	public TableRequestResultRecords<T> queryRows(final TableRequest tableRequest)
+			throws IOException, ReflectiveOperationException {
 		checkParameters();
 		final TableRequestResult result = tableService.queryRows(tableName, tableRequest);
 		return result == null ? null : new TableRequestResultRecords(result, toRecords(result.rows));

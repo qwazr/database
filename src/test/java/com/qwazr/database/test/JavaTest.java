@@ -30,6 +30,7 @@ import org.junit.Test;
 import org.junit.runners.MethodSorters;
 
 import javax.ws.rs.WebApplicationException;
+import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.*;
 
@@ -93,7 +94,7 @@ public class JavaTest {
 	}
 
 	@Test
-	public void test150MatchAllQueryEmpty() throws URISyntaxException, NoSuchMethodException {
+	public void test150MatchAllQueryEmpty() throws URISyntaxException, ReflectiveOperationException, IOException {
 		final AnnotatedTableService<JavaRecord> service = getService();
 		final TableRequest request = new TableRequest(0, 1000, COLUMNS, null, null);
 		final TableRequestResult result = service.queryRows(request);
@@ -102,7 +103,7 @@ public class JavaTest {
 	}
 
 	@Test
-	public void test300upsertRow() throws ReflectiveOperationException, URISyntaxException {
+	public void test300upsertRow() throws ReflectiveOperationException, URISyntaxException, IOException {
 		final AnnotatedTableService<JavaRecord> service = getService();
 		service.upsertRow(ID1, ROW1);
 		Assert.assertEquals(ROW1, service.getRow(ID1, COLUMNS));
@@ -118,7 +119,7 @@ public class JavaTest {
 	}
 
 	@Test
-	public void test355MatchAllQuery() throws URISyntaxException, NoSuchMethodException {
+	public void test355MatchAllQuery() throws URISyntaxException, ReflectiveOperationException, IOException {
 		final AnnotatedTableService<JavaRecord> service = getService();
 		final TableRequest request = new TableRequest(0, 1000, COLUMNS_WITHID, null, null);
 		final TableRequestResult result = service.queryRows(request);
@@ -129,7 +130,7 @@ public class JavaTest {
 	}
 
 	@Test
-	public void test360DeleteRow() throws ReflectiveOperationException, URISyntaxException {
+	public void test360DeleteRow() throws ReflectiveOperationException, URISyntaxException, IOException {
 		final AnnotatedTableService<JavaRecord> service = getService();
 		Assert.assertTrue(service.deleteRow(ID1));
 		try {
@@ -141,7 +142,8 @@ public class JavaTest {
 	}
 
 	private TableRequestResult checkResult(final AnnotatedTableService<JavaRecord> service,
-			final TableQuery.Group query, final Long expectedCount, final JavaRecord... rows) {
+			final TableQuery.Group query, final Long expectedCount, final JavaRecord... rows)
+			throws IOException, ReflectiveOperationException {
 		final TableRequest request = new TableRequest(0, 100, COLUMNS_WITHID, null, query.build());
 		final AnnotatedTableService.TableRequestResultRecords<JavaRecord> result = service.queryRows(request);
 		Assert.assertNotNull(result);
@@ -158,7 +160,7 @@ public class JavaTest {
 	}
 
 	@Test
-	public void test400FilterQuery() throws URISyntaxException, NoSuchMethodException {
+	public void test400FilterQuery() throws URISyntaxException, ReflectiveOperationException, IOException {
 		final AnnotatedTableService<JavaRecord> service = getService();
 		checkResult(service, new TableQuery.And().add(JavaRecord.COL_DPT, ROW2.dpt.get(0)), 1L);
 		checkResult(service,
@@ -181,7 +183,7 @@ public class JavaTest {
 	}
 
 	@Test
-	public void test705getRows() throws URISyntaxException, NoSuchMethodException {
+	public void test705getRows() throws URISyntaxException, ReflectiveOperationException, IOException {
 		final AnnotatedTableService<JavaRecord> service = getService();
 		final Set<String> keys = new LinkedHashSet<>(Arrays.asList(ID3, ID2));
 		List<JavaRecord> results = service.getRows(COLUMNS_WITHID, keys);
