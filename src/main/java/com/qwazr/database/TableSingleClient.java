@@ -1,5 +1,5 @@
 /**
- * Copyright 2016 Emmanuel Keller / QWAZR
+ * Copyright 2016-2017 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,16 +15,15 @@
  */
 package com.qwazr.database;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.qwazr.database.model.ColumnDefinition;
 import com.qwazr.database.model.TableDefinition;
 import com.qwazr.database.model.TableRequest;
 import com.qwazr.database.model.TableRequestResult;
 import com.qwazr.database.store.KeyStore;
+import com.qwazr.server.RemoteService;
+import com.qwazr.server.client.JsonClientAbstract;
 import com.qwazr.utils.UBuilder;
 import com.qwazr.utils.http.HttpRequest;
-import com.qwazr.server.client.JsonClientAbstract;
-import com.qwazr.server.RemoteService;
 import org.apache.http.entity.ContentType;
 
 import java.io.InputStream;
@@ -32,9 +31,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-class TableSingleClient extends JsonClientAbstract implements TableServiceInterface {
+public class TableSingleClient extends JsonClientAbstract implements TableServiceInterface {
 
-	TableSingleClient(final RemoteService remote) {
+	public TableSingleClient(final RemoteService remote) {
 		super(remote);
 	}
 
