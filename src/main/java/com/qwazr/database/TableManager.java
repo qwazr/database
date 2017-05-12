@@ -66,7 +66,7 @@ public class TableManager {
 
 	public TableManager registerWebService(final GenericServer.Builder builder) {
 		registerContextAttribute(builder);
-		builder.webService(TableServiceImpl.class);
+		builder.singletons(service);
 		return this;
 	}
 
