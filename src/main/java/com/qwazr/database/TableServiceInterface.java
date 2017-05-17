@@ -1,5 +1,5 @@
 /**
- * Copyright 2015-2016 Emmanuel Keller / QWAZR
+ * Copyright 2015-2017 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,6 @@ import com.qwazr.database.model.TableRequest;
 import com.qwazr.database.model.TableRequestResult;
 import com.qwazr.database.store.KeyStore;
 import com.qwazr.server.ServiceInterface;
-import com.qwazr.server.ServiceName;
 
 import javax.annotation.security.RolesAllowed;
 import javax.ws.rs.Consumes;
@@ -41,8 +40,7 @@ import java.util.Map;
 import java.util.Set;
 
 @RolesAllowed(TableServiceInterface.SERVICE_NAME)
-@Path("/table")
-@ServiceName(TableServiceInterface.SERVICE_NAME)
+@Path("/" + TableServiceInterface.SERVICE_NAME)
 public interface TableServiceInterface extends ServiceInterface {
 
 	String SERVICE_NAME = "table";

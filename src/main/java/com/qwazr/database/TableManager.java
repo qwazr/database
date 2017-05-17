@@ -1,5 +1,5 @@
 /**
- * Copyright 2015-2016 Emmanuel Keller / QWAZR
+ * Copyright 2015-2017 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ import com.qwazr.database.store.KeyStore;
 import com.qwazr.database.store.Query;
 import com.qwazr.database.store.Table;
 import com.qwazr.database.store.Tables;
+import com.qwazr.server.ApplicationBuilder;
 import com.qwazr.server.GenericServer;
 import com.qwazr.server.ServerException;
 import com.qwazr.utils.LockUtils;
@@ -64,8 +65,7 @@ public class TableManager {
 		return tablesDirectory;
 	}
 
-	public TableManager registerWebService(final GenericServer.Builder builder) {
-		registerContextAttribute(builder);
+	public TableManager registerWebService(final ApplicationBuilder builder) {
 		builder.singletons(service);
 		return this;
 	}
