@@ -25,21 +25,6 @@
         <lmdbjni.version>0.4.6</lmdbjni.version>
     </properties>
 
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>org.roaringbitmap</groupId>
-                <artifactId>RoaringBitmap</artifactId>
-                <version>0.6.44</version>
-            </dependency>
-            <dependency>
-                <groupId>org.xerial.snappy</groupId>
-                <artifactId>snappy-java</artifactId>
-                <version>1.1.4</version>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
-
     <dependencies>
         <dependency>
             <groupId>org.roaringbitmap</groupId>
