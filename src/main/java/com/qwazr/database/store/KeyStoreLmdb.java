@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015-2016 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,7 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- **/
+ */
 package com.qwazr.database.store;
 
 import com.qwazr.utils.IOUtils;
@@ -20,16 +20,12 @@ import org.fusesource.lmdbjni.Database;
 import org.fusesource.lmdbjni.EntryIterator;
 import org.fusesource.lmdbjni.Env;
 import org.fusesource.lmdbjni.Transaction;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 
 class KeyStoreLmdb implements KeyStore {
-
-	private static final Logger LOGGER = LoggerFactory.getLogger(KeyStoreLmdb.class);
 
 	private final Env env;
 	private final Database db;

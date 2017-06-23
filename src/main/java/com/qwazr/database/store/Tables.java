@@ -1,5 +1,5 @@
-/**
- * Copyright 2015-2016 Emmanuel Keller / QWAZR
+/*
+ * Copyright 2015-2017 Emmanuel Keller / QWAZR
  * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,16 +16,17 @@
 package com.qwazr.database.store;
 
 import com.qwazr.server.ServerException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.qwazr.utils.LoggerUtils;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class Tables {
 
-	private static final Logger LOGGER = LoggerFactory.getLogger(Table.class);
+	private static final Logger LOGGER = LoggerUtils.getLogger(Table.class);
 
 	private final static ConcurrentHashMap<File, Table> tables = new ConcurrentHashMap<>();
 
@@ -62,7 +63,7 @@ public class Tables {
 			try {
 				table.closeNoLock();
 			} catch (IOException e) {
-				LOGGER.warn("Cannot clause the table: " + table, e);
+				LOGGER.log(Level.WARNING, e, () -> "Cannot clause the table: " + table);
 			}
 		});
 		tables.clear();

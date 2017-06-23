@@ -1,5 +1,5 @@
-/**
- * Copyright 2015-2016 Emmanuel Keller / QWAZR
+/*
+ * Copyright 2015-2017 Emmanuel Keller / QWAZR
  * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,28 +19,43 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.qwazr.database.model.ColumnDefinition;
 import com.qwazr.database.model.TableDefinition;
 import com.qwazr.database.store.CollectorInterface.LongCounter;
-import com.qwazr.database.store.keys.*;
-import com.qwazr.utils.LockUtils;
+import com.qwazr.database.store.keys.ColumnDefKey;
+import com.qwazr.database.store.keys.ColumnDefsKey;
+import com.qwazr.database.store.keys.ColumnIndexKey;
+import com.qwazr.database.store.keys.ColumnIndexesKey;
+import com.qwazr.database.store.keys.ColumnStoreKey;
+import com.qwazr.database.store.keys.ColumnStoresKey;
+import com.qwazr.database.store.keys.PrimaryIdsKey;
+import com.qwazr.database.store.keys.PrimaryIndexKey;
 import com.qwazr.server.ServerException;
+import com.qwazr.utils.LoggerUtils;
+import com.qwazr.utils.concurrent.ReadWriteLock;
 import org.roaringbitmap.IntIterator;
 import org.roaringbitmap.RoaringBitmap;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.core.Response;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Logger;
 
 public class Table implements Closeable {
 
-	private static final Logger LOGGER = LoggerFactory.getLogger(Table.class);
+	private static final Logger LOGGER = LoggerUtils.getLogger(Table.class);
 
-	private final LockUtils.ReadWriteLock rwlColumns = new LockUtils.ReadWriteLock();
+	private final ReadWriteLock rwlColumns = ReadWriteLock.stamped();
 
 	final File directory;
 
@@ -75,7 +90,7 @@ public class Table implements Closeable {
 
 	Table(final File directory, final KeyStore.Impl storeImpl) throws IOException {
 		this.directory = directory;
-		LOGGER.info("Load table: " + directory);
+		LOGGER.info(() -> "Load table: " + directory);
 		final File dbFile = new File(directory, storeImpl.directoryName);
 		try {
 			keyStore = storeImpl.storeClass.getConstructor(File.class).newInstance(dbFile);
@@ -174,9 +189,9 @@ public class Table implements Closeable {
 		if (docId == null)
 			return null;
 		return rwlColumns.readEx(() -> {
-			final Map<String, ColumnDefinition.Internal> columns = columnNames == null || columnNames.isEmpty() ?
-					columnDefsKey.getColumns(keyStore) :
-					getColumns(columnNames);
+			final Map<String, ColumnDefinition.Internal> columns =
+					columnNames == null || columnNames.isEmpty() ? columnDefsKey.getColumns(keyStore) : getColumns(
+							columnNames);
 			return getRowByIdNoLock(docId, columns);
 		});
 	}
@@ -288,9 +303,8 @@ public class Table implements Closeable {
 		final LinkedHashMap<String, Object> row = new LinkedHashMap<>();
 		columns.forEach((name, internal) -> {
 			try {
-				final Object value = internal == ColumnDefinition.Internal.PRIMARYKEY_COLUMN ?
-						primaryIndexKey.getKey(keyStore, docId) :
-						ColumnStoreKey.newInstance(internal, docId).getValue(keyStore);
+				final Object value = internal == ColumnDefinition.Internal.PRIMARYKEY_COLUMN ? primaryIndexKey.getKey(
+						keyStore, docId) : ColumnStoreKey.newInstance(internal, docId).getValue(keyStore);
 				row.put(name, value);
 			} catch (IOException e) {
 				throw new ServerException(e);
@@ -384,8 +398,9 @@ public class Table implements Closeable {
 			final QueryContext context = getNewQueryContext();
 
 			// First we search for the document using Bitset
-			final RoaringBitmap finalBitmap =
-					query != null ? query.execute(context, readExecutor) : primaryIndexKey.getValue(keyStore);
+			final RoaringBitmap finalBitmap = query != null ?
+					query.execute(context, readExecutor) :
+					primaryIndexKey.getValue(keyStore);
 			if (finalBitmap == null || finalBitmap.isEmpty())
 				return new QueryResult(context, finalBitmap);
 

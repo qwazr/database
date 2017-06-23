@@ -1,5 +1,5 @@
-/**
- * Copyright 2015-2016 Emmanuel Keller / QWAZR
+/*
+ * Copyright 2015-2017 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,21 +23,26 @@ import com.qwazr.database.model.TableRequestResult;
 import com.qwazr.database.store.KeyStore;
 import com.qwazr.database.store.Query;
 import com.qwazr.server.AbstractServiceImpl;
-import com.qwazr.utils.json.JsonMapper;
 import com.qwazr.server.ServerException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.qwazr.utils.LoggerUtils;
+import com.qwazr.utils.json.JsonMapper;
 
 import javax.annotation.PostConstruct;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Logger;
 
 class TableServiceImpl extends AbstractServiceImpl implements TableServiceInterface {
 
-	private static final Logger LOGGER = LoggerFactory.getLogger(TableServiceImpl.class);
+	private static final Logger LOGGER = LoggerUtils.getLogger(TableServiceImpl.class);
 
 	private TableManager tableManager;
 

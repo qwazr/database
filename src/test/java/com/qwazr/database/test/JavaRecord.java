@@ -1,5 +1,5 @@
-/**
- * Copyright 2016 Emmanuel Keller / QWAZR
+/*
+ * Copyright 2016-2017 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,8 +19,7 @@ import com.qwazr.database.annotations.Table;
 import com.qwazr.database.annotations.TableColumn;
 import com.qwazr.database.model.ColumnDefinition;
 import com.qwazr.database.model.TableDefinition;
-import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.commons.lang3.RandomUtils;
+import com.qwazr.utils.RandomUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -53,7 +52,7 @@ public class JavaRecord {
 		dpt = new ArrayList<>(
 				Arrays.asList(dptStart + RandomUtils.nextInt(0, 9), dptStart + RandomUtils.nextInt(10, 19),
 						dptStart + RandomUtils.nextInt(20, 29)));
-		label = RandomStringUtils.randomAlphanumeric(16);
+		label = RandomUtils.alphanumeric(16);
 		lastUpdateDate = System.currentTimeMillis() + RandomUtils.nextInt(0, 86400000);
 		creationDate = System.currentTimeMillis() + RandomUtils.nextInt(0, 86400000);
 	}

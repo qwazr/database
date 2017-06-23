@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015-2017 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,7 +26,7 @@ import com.qwazr.database.store.Tables;
 import com.qwazr.server.ApplicationBuilder;
 import com.qwazr.server.GenericServer;
 import com.qwazr.server.ServerException;
-import com.qwazr.utils.LockUtils;
+import com.qwazr.utils.concurrent.ReadWriteLock;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.FileFilterUtils;
 import org.roaringbitmap.RoaringBitmap;
@@ -47,7 +47,7 @@ import java.util.Set;
 
 public class TableManager {
 
-	private final LockUtils.ReadWriteLock rwl = new LockUtils.ReadWriteLock();
+	private final ReadWriteLock rwl = ReadWriteLock.stamped();
 
 	private final File directory;
 
