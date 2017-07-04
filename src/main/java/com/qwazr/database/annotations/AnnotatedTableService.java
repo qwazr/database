@@ -1,5 +1,5 @@
-/**
- * Copyright 2016 Emmanuel Keller / QWAZR
+/*
+ * Copyright 2016-2017 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,8 @@
  */
 package com.qwazr.database.annotations;
 
+import com.qwazr.binder.FieldMapWrapper;
+import com.qwazr.binder.setter.FieldSetter;
 import com.qwazr.database.TableServiceInterface;
 import com.qwazr.database.model.ColumnDefinition;
 import com.qwazr.database.model.TableDefinition;
@@ -22,12 +24,16 @@ import com.qwazr.database.model.TableRequest;
 import com.qwazr.database.model.TableRequestResult;
 import com.qwazr.database.store.KeyStore;
 import com.qwazr.utils.AnnotationsUtils;
-import com.qwazr.utils.FieldMapWrapper;
 import com.qwazr.utils.StringUtils;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.util.*;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
 public class AnnotatedTableService<T> extends FieldMapWrapper<T> {
 
@@ -67,7 +73,7 @@ public class AnnotatedTableService<T> extends FieldMapWrapper<T> {
 			final TableColumn tableColumn = field.getDeclaredAnnotation(TableColumn.class);
 			final String columnName = StringUtils.isEmpty(tableColumn.name()) ? field.getName() : tableColumn.name();
 			tableColumnMap.put(columnName, tableColumn);
-			fieldMap.put(columnName, field);
+			fieldMap.put(columnName, FieldSetter.of(field));
 		});
 	}
 
