@@ -1,5 +1,5 @@
-/**
- * Copyright 2015-2016 Emmanuel Keller / QWAZR
+/*
+ * Copyright 2015-2017 Emmanuel Keller / QWAZR
  * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@ package com.qwazr.database.model;
 
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.qwazr.utils.json.JsonMapper;
+import com.qwazr.utils.ObjectMappers;
 
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -45,7 +45,7 @@ public abstract class TableQuery {
 
 		@Override
 		final protected ObjectNode build() {
-			return JsonMapper.MAPPER.createObjectNode().put(column, value);
+			return ObjectMappers.JSON.createObjectNode().put(column, value);
 		}
 	}
 
@@ -57,7 +57,7 @@ public abstract class TableQuery {
 
 		@Override
 		final protected ObjectNode build() {
-			return JsonMapper.MAPPER.createObjectNode().put(column, value);
+			return ObjectMappers.JSON.createObjectNode().put(column, value);
 		}
 	}
 
@@ -69,7 +69,7 @@ public abstract class TableQuery {
 
 		@Override
 		final protected ObjectNode build() {
-			return JsonMapper.MAPPER.createObjectNode().put(column, value);
+			return ObjectMappers.JSON.createObjectNode().put(column, value);
 		}
 	}
 
@@ -81,7 +81,7 @@ public abstract class TableQuery {
 
 		@Override
 		final protected ObjectNode build() {
-			return JsonMapper.MAPPER.createObjectNode().put(column, value);
+			return ObjectMappers.JSON.createObjectNode().put(column, value);
 		}
 	}
 
@@ -93,7 +93,7 @@ public abstract class TableQuery {
 
 		@Override
 		final protected ObjectNode build() {
-			return JsonMapper.MAPPER.createObjectNode().put(column, value);
+			return ObjectMappers.JSON.createObjectNode().put(column, value);
 		}
 	}
 
@@ -139,10 +139,10 @@ public abstract class TableQuery {
 
 		@Override
 		final public ObjectNode build() {
-			final ArrayNode array = JsonMapper.MAPPER.createArrayNode();
+			final ArrayNode array = ObjectMappers.JSON.createArrayNode();
 			for (TableQuery q : queries)
 				array.add(q.build());
-			final ObjectNode object = JsonMapper.MAPPER.createObjectNode();
+			final ObjectNode object = ObjectMappers.JSON.createObjectNode();
 			object.set(command, array);
 			return object;
 		}

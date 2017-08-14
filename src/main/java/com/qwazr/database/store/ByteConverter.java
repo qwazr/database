@@ -1,5 +1,5 @@
-/**
- * Copyright 2015-2016 Emmanuel Keller / QWAZR
+/*
+ * Copyright 2015-2017 Emmanuel Keller / QWAZR
  * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,10 +17,10 @@ package com.qwazr.database.store;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.qwazr.utils.CharsetUtils;
-import com.qwazr.utils.SerializationUtils;
-import com.qwazr.utils.json.JsonMapper;
 import com.qwazr.server.ServerException;
+import com.qwazr.utils.CharsetUtils;
+import com.qwazr.utils.ObjectMappers;
+import com.qwazr.utils.SerializationUtils;
 import org.xerial.snappy.Snappy;
 
 import javax.ws.rs.core.Response;
@@ -255,12 +255,12 @@ public interface ByteConverter<T> {
 
 		@Override
 		final public byte[] toBytes(T value) throws JsonProcessingException {
-			return JsonMapper.MAPPER.writeValueAsBytes(value);
+			return ObjectMappers.JSON.writeValueAsBytes(value);
 		}
 
 		@Override
 		final public T toValue(byte[] bytes) throws IOException {
-			return JsonMapper.MAPPER.readValue(bytes, objectClass);
+			return ObjectMappers.JSON.readValue(bytes, objectClass);
 		}
 
 	}
@@ -275,12 +275,12 @@ public interface ByteConverter<T> {
 
 		@Override
 		final public byte[] toBytes(Object value) throws JsonProcessingException {
-			return JsonMapper.MAPPER.writeValueAsBytes(value);
+			return ObjectMappers.JSON.writeValueAsBytes(value);
 		}
 
 		@Override
 		final public T toValue(byte[] bytes) throws IOException {
-			return JsonMapper.MAPPER.readValue(bytes, typeReference);
+			return ObjectMappers.JSON.readValue(bytes, typeReference);
 		}
 
 	}

@@ -25,7 +25,7 @@ import com.qwazr.database.store.Query;
 import com.qwazr.server.AbstractServiceImpl;
 import com.qwazr.server.ServerException;
 import com.qwazr.utils.LoggerUtils;
-import com.qwazr.utils.json.JsonMapper;
+import com.qwazr.utils.ObjectMappers;
 
 import javax.annotation.PostConstruct;
 import java.io.BufferedReader;
@@ -199,7 +199,7 @@ class TableServiceImpl extends AbstractServiceImpl implements TableServiceInterf
 				line = line.trim();
 				if (line.isEmpty())
 					continue;
-				final Map<String, Object> nodeMap = JsonMapper.MAPPER.readValue(line, MapStringColumnValueTypeRef);
+				final Map<String, Object> nodeMap = ObjectMappers.JSON.readValue(line, MapStringColumnValueTypeRef);
 				if (buffer.addRow(nodeMap) == bufferSize)
 					counter += buffer.flush();
 			}

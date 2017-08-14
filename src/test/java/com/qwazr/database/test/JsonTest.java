@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2016 Emmanuel Keller / QWAZR
+ * Copyright 2015-2017 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,8 +27,8 @@ import com.qwazr.database.model.TableRequestResult;
 import com.qwazr.database.store.KeyStore;
 import com.qwazr.utils.CharsetUtils;
 import com.qwazr.utils.IOUtils;
+import com.qwazr.utils.ObjectMappers;
 import com.qwazr.utils.http.HttpClients;
-import com.qwazr.utils.json.JsonMapper;
 import org.apache.http.pool.PoolStats;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -53,19 +53,19 @@ public abstract class JsonTest {
 	public static final String DUMMY_NAME = "sdflkjsdlfksjflskdjf";
 	public static final ColumnDefinition COLUMN_DEF_PASSWORD = getColumnDefinition("column_def_password.json");
 	public static final ColumnDefinition COLUMN_DEF_ROLES = getColumnDefinition("column_def_roles.json");
-	public static final ColumnDefinition COLUMN_DEF_DPT_ID =
-			new ColumnDefinition(ColumnDefinition.Type.INTEGER, ColumnDefinition.Mode.INDEXED);
-	public static final ColumnDefinition COLUMN_DEF_CP =
-			new ColumnDefinition(ColumnDefinition.Type.STRING, ColumnDefinition.Mode.INDEXED);
+	public static final ColumnDefinition COLUMN_DEF_DPT_ID = new ColumnDefinition(ColumnDefinition.Type.INTEGER,
+			ColumnDefinition.Mode.INDEXED);
+	public static final ColumnDefinition COLUMN_DEF_CP = new ColumnDefinition(ColumnDefinition.Type.STRING,
+			ColumnDefinition.Mode.INDEXED);
 
-	public static final Map<String, Object> UPSERT_ROW1 =
-			getTypeDef("upsert_row1.json", TableServiceInterface.MapStringObjectTypeRef);
-	public static final Map<String, Object> UPSERT_ROW2 =
-			getTypeDef("upsert_row2.json", TableServiceInterface.MapStringObjectTypeRef);
-	public static final Map<String, Object> UPSERT_ROW_2_2 =
-			getTypeDef("upsert_row2_2.json", TableServiceInterface.MapStringObjectTypeRef);
-	public static final List<Map<String, Object>> UPSERT_ROWS =
-			getTypeDef("upsert_rows.json", TableServiceInterface.ListMapStringObjectTypeRef);
+	public static final Map<String, Object> UPSERT_ROW1 = getTypeDef("upsert_row1.json",
+			TableServiceInterface.MapStringObjectTypeRef);
+	public static final Map<String, Object> UPSERT_ROW2 = getTypeDef("upsert_row2.json",
+			TableServiceInterface.MapStringObjectTypeRef);
+	public static final Map<String, Object> UPSERT_ROW_2_2 = getTypeDef("upsert_row2_2.json",
+			TableServiceInterface.MapStringObjectTypeRef);
+	public static final List<Map<String, Object>> UPSERT_ROWS = getTypeDef("upsert_rows.json",
+			TableServiceInterface.ListMapStringObjectTypeRef);
 	public static final String TABLE_NAME = "test_table";
 	public static final String COLUMN_NAME_PASSWORD = "password";
 	public static final String COLUMN_NAME_ROLES = "roles";
@@ -469,7 +469,7 @@ public abstract class JsonTest {
 	private static <T> T getTypeDef(String res, TypeReference valueTypeRef) {
 		InputStream is = JsonTest.class.getResourceAsStream(res);
 		try {
-			return JsonMapper.MAPPER.readValue(is, valueTypeRef);
+			return ObjectMappers.JSON.readValue(is, valueTypeRef);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		} finally {
