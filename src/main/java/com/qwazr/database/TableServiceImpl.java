@@ -149,7 +149,7 @@ class TableServiceImpl extends AbstractServiceImpl implements TableServiceInterf
 	}
 
 	@Override
-	public Long upsertRows(String table_name, List<Map<String, ?>> rows) {
+	public Long upsertRows(String table_name, List<Map<String, Object>> rows) {
 		try {
 			return (long) tableManager.upsertRows(table_name, rows);
 		} catch (IOException | ServerException e) {
@@ -163,7 +163,7 @@ class TableServiceImpl extends AbstractServiceImpl implements TableServiceInterf
 
 	private class BufferFlush {
 
-		private final List<Map<String, ?>> buffer;
+		private final List<Map<String, Object>> buffer;
 		private final String tableName;
 
 		private BufferFlush(int bufferSize, String tableName) {
@@ -211,7 +211,7 @@ class TableServiceImpl extends AbstractServiceImpl implements TableServiceInterf
 	}
 
 	@Override
-	public Map<String, ?> upsertRow(String table_name, String row_id, Map<String, ?> node) {
+	public Map<String, Object> upsertRow(String table_name, String row_id, Map<String, Object> node) {
 		try {
 			tableManager.upsertRow(table_name, row_id, node);
 			return node;
@@ -221,7 +221,7 @@ class TableServiceImpl extends AbstractServiceImpl implements TableServiceInterf
 	}
 
 	@Override
-	public LinkedHashMap<String, ?> getRow(String table_name, String row_id, Set<String> columns) {
+	public LinkedHashMap<String, Object> getRow(String table_name, String row_id, Set<String> columns) {
 		try {
 			return tableManager.getRow(table_name, row_id, columns);
 		} catch (ServerException | IOException e) {
@@ -230,7 +230,7 @@ class TableServiceImpl extends AbstractServiceImpl implements TableServiceInterf
 	}
 
 	@Override
-	public List<Map<String, ?>> getRows(String table_name, Set<String> columns, Set<String> row_ids) {
+	public List<Map<String, Object>> getRows(String table_name, Set<String> columns, Set<String> row_ids) {
 		try {
 			return tableManager.getRows(table_name, columns, row_ids);
 		} catch (ServerException | IOException e) {

@@ -117,7 +117,7 @@ public class TableSingleClient extends JsonClientAbstract implements TableServic
 	}
 
 	@Override
-	public Long upsertRows(final String tableName, final List<Map<String, ?>> rows) {
+	public Long upsertRows(final String tableName, final List<Map<String, Object>> rows) {
 		final UBuilder uriBuilder = RemoteService.getNewUBuilder(remote, "/table/", tableName, "/row");
 		final HttpRequest request = HttpRequest.Post(uriBuilder.buildNoEx());
 		return executeJson(request, rows, null, Long.class, valid200Json);
@@ -133,30 +133,31 @@ public class TableSingleClient extends JsonClientAbstract implements TableServic
 	}
 
 	@Override
-	public Map<String, ?> upsertRow(final String tableName, final String rowId, final Map<String, ?> row) {
+	public Map<String, Object> upsertRow(final String tableName, final String rowId, final Map<String, Object> row) {
 		final UBuilder uriBuilder = RemoteService.getNewUBuilder(remote, "/table/", tableName, "/row/", rowId);
 		final HttpRequest request = HttpRequest.Put(uriBuilder.buildNoEx());
-		return executeJson(request, row, null, MapStringCaptureTypeRef, valid200Json);
+		return executeJson(request, row, null, MapStringObjectTypeRef, valid200Json);
 	}
 
 	@Override
-	public Map<String, ?> getRow(final String tableName, final String rowId, final Set<String> columns) {
+	public Map<String, Object> getRow(final String tableName, final String rowId, final Set<String> columns) {
 		final UBuilder uriBuilder = RemoteService.getNewUBuilder(remote, "/table/", tableName, "/row/", rowId);
 		if (columns != null)
 			for (String column : columns)
 				uriBuilder.addParameter("column", column);
 		final HttpRequest request = HttpRequest.Get(uriBuilder.buildNoEx());
-		return executeJson(request, null, null, MapStringCaptureTypeRef, valid200Json);
+		return executeJson(request, null, null, MapStringObjectTypeRef, valid200Json);
 	}
 
 	@Override
-	public List<Map<String, ?>> getRows(final String tableName, final Set<String> columns, final Set<String> rowsIds) {
+	public List<Map<String, Object>> getRows(final String tableName, final Set<String> columns,
+			final Set<String> rowsIds) {
 		final UBuilder uriBuilder = RemoteService.getNewUBuilder(remote, "/table/", tableName, "/rows");
 		if (columns != null)
 			for (String column : columns)
 				uriBuilder.addParameter("column", column);
 		final HttpRequest request = HttpRequest.Post(uriBuilder.buildNoEx());
-		return executeJson(request, rowsIds, null, ListMapStringCaptureTypeRef, valid200Json);
+		return executeJson(request, rowsIds, null, ListMapStringObjectTypeRef, valid200Json);
 	}
 
 	@Override

@@ -30,11 +30,11 @@ public class TableRequestResult {
 
 	final public Long count;
 
-	final public List<Map<String, ?>> rows;
+	final public List<Map<String, Object>> rows;
 	final public Map<String, Map<String, Long>> counters;
 
 	@JsonCreator
-	TableRequestResult(@JsonProperty("count") Long count, @JsonProperty("rows") List<Map<String, ?>> rows,
+	TableRequestResult(@JsonProperty("count") Long count, @JsonProperty("rows") List<Map<String, Object>> rows,
 			@JsonProperty("counters") Map<String, Map<String, Long>> counters) {
 		this.count = count;
 		this.rows = rows;

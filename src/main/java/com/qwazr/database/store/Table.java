@@ -261,11 +261,11 @@ public class Table implements Closeable {
 		}
 	}
 
-	final public boolean upsertRow(final String key, final Map<String, ?> row) throws IOException {
+	final public boolean upsertRow(final String key, final Map<String, Object> row) throws IOException {
 		return upsertRowNoCommit(key, row);
 	}
 
-	final public int upsertRows(final Collection<Map<String, ?>> rows) throws IOException {
+	final public int upsertRows(final Collection<Map<String, Object>> rows) throws IOException {
 		int count = 0;
 		for (Map<String, ?> row : rows)
 			if (upsertRowNoCommit(null, row))
@@ -315,7 +315,7 @@ public class Table implements Closeable {
 	}
 
 	final public void getRows(final RoaringBitmap bitmap, final Set<String> columnNames, final long start,
-			final long rows, final List<Map<String, ?>> results) throws IOException {
+			final long rows, final List<Map<String, Object>> results) throws IOException {
 		if (bitmap == null || bitmap.isEmpty())
 			return;
 		rwlColumns.readEx(() -> {
@@ -333,7 +333,7 @@ public class Table implements Closeable {
 		});
 	}
 
-	final public void getRows(final Set<String> keys, Set<String> columnNames, final List<Map<String, ?>> results)
+	final public void getRows(final Set<String> keys, Set<String> columnNames, final List<Map<String, Object>> results)
 			throws IOException {
 		if (keys == null || keys.isEmpty())
 			return;
