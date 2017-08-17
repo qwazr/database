@@ -53,19 +53,19 @@ public abstract class JsonTest {
 	public static final String DUMMY_NAME = "sdflkjsdlfksjflskdjf";
 	public static final ColumnDefinition COLUMN_DEF_PASSWORD = getColumnDefinition("column_def_password.json");
 	public static final ColumnDefinition COLUMN_DEF_ROLES = getColumnDefinition("column_def_roles.json");
-	public static final ColumnDefinition COLUMN_DEF_DPT_ID = new ColumnDefinition(ColumnDefinition.Type.INTEGER,
-			ColumnDefinition.Mode.INDEXED);
-	public static final ColumnDefinition COLUMN_DEF_CP = new ColumnDefinition(ColumnDefinition.Type.STRING,
-			ColumnDefinition.Mode.INDEXED);
+	public static final ColumnDefinition COLUMN_DEF_DPT_ID =
+			new ColumnDefinition(ColumnDefinition.Type.INTEGER, ColumnDefinition.Mode.INDEXED);
+	public static final ColumnDefinition COLUMN_DEF_CP =
+			new ColumnDefinition(ColumnDefinition.Type.STRING, ColumnDefinition.Mode.INDEXED);
 
-	public static final Map<String, Object> UPSERT_ROW1 = getTypeDef("upsert_row1.json",
-			TableServiceInterface.MapStringObjectTypeRef);
-	public static final Map<String, Object> UPSERT_ROW2 = getTypeDef("upsert_row2.json",
-			TableServiceInterface.MapStringObjectTypeRef);
-	public static final Map<String, Object> UPSERT_ROW_2_2 = getTypeDef("upsert_row2_2.json",
-			TableServiceInterface.MapStringObjectTypeRef);
-	public static final List<Map<String, Object>> UPSERT_ROWS = getTypeDef("upsert_rows.json",
-			TableServiceInterface.ListMapStringObjectTypeRef);
+	public static final Map<String, ?> UPSERT_ROW1 =
+			getTypeDef("upsert_row1.json", TableServiceInterface.MapStringCaptureTypeRef);
+	public static final Map<String, ?> UPSERT_ROW2 =
+			getTypeDef("upsert_row2.json", TableServiceInterface.MapStringCaptureTypeRef);
+	public static final Map<String, ?> UPSERT_ROW_2_2 =
+			getTypeDef("upsert_row2_2.json", TableServiceInterface.MapStringCaptureTypeRef);
+	public static final List<Map<String, ?>> UPSERT_ROWS =
+			getTypeDef("upsert_rows.json", TableServiceInterface.ListMapStringCaptureTypeRef);
 	public static final String TABLE_NAME = "test_table";
 	public static final String COLUMN_NAME_PASSWORD = "password";
 	public static final String COLUMN_NAME_ROLES = "roles";
@@ -264,7 +264,7 @@ public abstract class JsonTest {
 		Assert.assertEquals((long) UPSERT_ROWS.size(), (long) client.upsertRows(TABLE_NAME, UPSERT_ROWS));
 	}
 
-	private Map<String, Object> checkGetRow(String column, String value, Map<String, Object> row) {
+	private Map<String, ?> checkGetRow(String column, String value, Map<String, ?> row) {
 		Assert.assertNotNull(row);
 		final Object col = row.get(column);
 		Assert.assertNotNull(col);
@@ -292,7 +292,7 @@ public abstract class JsonTest {
 		if (keys != null && keys.length > 0) {
 			Assert.assertEquals(keys.length, result.rows.size());
 			int i = 0;
-			for (Map<String, Object> row : result.rows)
+			for (Map<String, ?> row : result.rows)
 				Assert.assertEquals(keys[i++], row.get("$id$"));
 		}
 		return result;
@@ -315,7 +315,7 @@ public abstract class JsonTest {
 		checkErrorStatusCode(() -> client.getRow(TABLE_NAME, DUMMY_NAME, COLUMNS), 404);
 		checkGetRow("password", PASS3, client.getRow(TABLE_NAME, ID3, COLUMNS));
 		checkGetRow("password", PASS4, client.getRow(TABLE_NAME, ID4, COLUMNS));
-		final Map<String, Object> row = checkGetRow("password", PASS1, client.getRow(TABLE_NAME, ID1, COLUMNS));
+		final Map<String, ?> row = checkGetRow("password", PASS1, client.getRow(TABLE_NAME, ID1, COLUMNS));
 		checkRows(row.get("roles"), "search", "table");
 	}
 
@@ -374,7 +374,7 @@ public abstract class JsonTest {
 	public void test705getRows() throws URISyntaxException {
 		final TableServiceInterface client = getClient();
 		final Set<String> keys = new LinkedHashSet<>(Arrays.asList(ID4, ID1, ID3, ID2));
-		final List<Map<String, Object>> results = client.getRows(TABLE_NAME, COLUMNS_WITHID, keys);
+		final List<Map<String, ?>> results = client.getRows(TABLE_NAME, COLUMNS_WITHID, keys);
 		Assert.assertNotNull(results);
 		Assert.assertEquals(keys.size(), results.size());
 		int i = 0;

@@ -189,9 +189,9 @@ public class Table implements Closeable {
 		if (docId == null)
 			return null;
 		return rwlColumns.readEx(() -> {
-			final Map<String, ColumnDefinition.Internal> columns =
-					columnNames == null || columnNames.isEmpty() ? columnDefsKey.getColumns(keyStore) : getColumns(
-							columnNames);
+			final Map<String, ColumnDefinition.Internal> columns = columnNames == null || columnNames.isEmpty() ?
+					columnDefsKey.getColumns(keyStore) :
+					getColumns(columnNames);
 			return getRowByIdNoLock(docId, columns);
 		});
 	}
@@ -209,7 +209,7 @@ public class Table implements Closeable {
 		return true;
 	}
 
-	private boolean upsertRowNoCommit(String key, final Map<String, Object> row) throws IOException {
+	private boolean upsertRowNoCommit(String key, final Map<String, ?> row) throws IOException {
 		if (row == null)
 			return false;
 		// Check if the primary key is present
@@ -233,7 +233,7 @@ public class Table implements Closeable {
 		try {
 			return rwlColumns.readEx(() -> {
 				final Map<String, ColumnDefinition.Internal> columns = columnDefsKey.getColumns(keyStore);
-				for (Map.Entry<String, Object> entry : row.entrySet()) {
+				for (Map.Entry<String, ?> entry : row.entrySet()) {
 					final String colName = entry.getKey();
 					if (TableDefinition.ID_COLUMN_NAME.equals(colName))
 						continue;
@@ -261,13 +261,13 @@ public class Table implements Closeable {
 		}
 	}
 
-	final public boolean upsertRow(final String key, final Map<String, Object> row) throws IOException {
+	final public boolean upsertRow(final String key, final Map<String, ?> row) throws IOException {
 		return upsertRowNoCommit(key, row);
 	}
 
-	final public int upsertRows(final Collection<Map<String, Object>> rows) throws IOException {
+	final public int upsertRows(final Collection<Map<String, ?>> rows) throws IOException {
 		int count = 0;
-		for (Map<String, Object> row : rows)
+		for (Map<String, ?> row : rows)
 			if (upsertRowNoCommit(null, row))
 				count++;
 		return count;
@@ -303,8 +303,9 @@ public class Table implements Closeable {
 		final LinkedHashMap<String, Object> row = new LinkedHashMap<>();
 		columns.forEach((name, internal) -> {
 			try {
-				final Object value = internal == ColumnDefinition.Internal.PRIMARYKEY_COLUMN ? primaryIndexKey.getKey(
-						keyStore, docId) : ColumnStoreKey.newInstance(internal, docId).getValue(keyStore);
+				final Object value = internal == ColumnDefinition.Internal.PRIMARYKEY_COLUMN ?
+						primaryIndexKey.getKey(keyStore, docId) :
+						ColumnStoreKey.newInstance(internal, docId).getValue(keyStore);
 				row.put(name, value);
 			} catch (IOException e) {
 				throw new ServerException(e);
@@ -314,7 +315,7 @@ public class Table implements Closeable {
 	}
 
 	final public void getRows(final RoaringBitmap bitmap, final Set<String> columnNames, final long start,
-			final long rows, final List<Map<String, Object>> results) throws IOException {
+			final long rows, final List<Map<String, ?>> results) throws IOException {
 		if (bitmap == null || bitmap.isEmpty())
 			return;
 		rwlColumns.readEx(() -> {
@@ -332,13 +333,13 @@ public class Table implements Closeable {
 		});
 	}
 
-	final public void getRows(final Set<String> keys, Set<String> columnNames, final List<Map<String, Object>> results)
+	final public void getRows(final Set<String> keys, Set<String> columnNames, final List<Map<String, ?>> results)
 			throws IOException {
 		if (keys == null || keys.isEmpty())
 			return;
 		final ArrayList<Integer> ids = new ArrayList<>(keys.size());
 		PrimaryIdsKey.fillExistingIds(keyStore, keys, ids);
-		if (ids == null || ids.isEmpty())
+		if (ids.isEmpty())
 			return;
 		rwlColumns.readEx(() -> {
 			final Map<String, ColumnDefinition.Internal> columns = getColumns(columnNames);
@@ -398,9 +399,8 @@ public class Table implements Closeable {
 			final QueryContext context = getNewQueryContext();
 
 			// First we search for the document using Bitset
-			final RoaringBitmap finalBitmap = query != null ?
-					query.execute(context, readExecutor) :
-					primaryIndexKey.getValue(keyStore);
+			final RoaringBitmap finalBitmap =
+					query != null ? query.execute(context, readExecutor) : primaryIndexKey.getValue(keyStore);
 			if (finalBitmap == null || finalBitmap.isEmpty())
 				return new QueryResult(context, finalBitmap);
 

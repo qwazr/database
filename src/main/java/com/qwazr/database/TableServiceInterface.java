@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015-2017 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -115,7 +115,7 @@ public interface TableServiceInterface extends ServiceInterface {
 	@Path("/{table_name}/row")
 	@Consumes(ServiceInterface.APPLICATION_JSON_UTF8)
 	@Produces(ServiceInterface.APPLICATION_JSON_UTF8)
-	Long upsertRows(@PathParam("table_name") String table_name, List<Map<String, Object>> rows);
+	Long upsertRows(@PathParam("table_name") String table_name, List<Map<String, ?>> rows);
 
 	@POST
 	@Path("/{table_name}/row")
@@ -128,20 +128,20 @@ public interface TableServiceInterface extends ServiceInterface {
 	@Path("/{table_name}/row/{row_id}")
 	@Consumes(ServiceInterface.APPLICATION_JSON_UTF8)
 	@Produces(ServiceInterface.APPLICATION_JSON_UTF8)
-	Map<String, Object> upsertRow(@PathParam("table_name") String table_name, @PathParam("row_id") String row_id,
-			Map<String, Object> node);
+	Map<String, ?> upsertRow(@PathParam("table_name") String table_name, @PathParam("row_id") String row_id,
+			Map<String, ?> node);
 
 	@GET
 	@Path("/{table_name}/row/{row_id}")
 	@Produces(ServiceInterface.APPLICATION_JSON_UTF8)
-	Map<String, Object> getRow(@PathParam("table_name") String table_name, @PathParam("row_id") String row_id,
+	Map<String, ?> getRow(@PathParam("table_name") String table_name, @PathParam("row_id") String row_id,
 			@QueryParam("column") Set<String> columns);
 
 	@POST
 	@Path("/{table_name}/rows")
 	@Produces(ServiceInterface.APPLICATION_JSON_UTF8)
-	List<Map<String, Object>> getRows(@PathParam("table_name") String table_name,
-			@QueryParam("column") Set<String> columns, final Set<String> row_ids);
+	List<Map<String, ?>> getRows(@PathParam("table_name") String table_name, @QueryParam("column") Set<String> columns,
+			final Set<String> row_ids);
 
 	@DELETE
 	@Path("/{table_name}/row/{row_id}")
@@ -163,10 +163,9 @@ public interface TableServiceInterface extends ServiceInterface {
 	TypeReference<List<String>> ListStringTypeRef = new TypeReference<List<String>>() {
 	};
 
-	TypeReference<Map<String, Object>> MapStringObjectTypeRef = new TypeReference<Map<String, Object>>() {
+	TypeReference<Map<String, ?>> MapStringCaptureTypeRef = new TypeReference<Map<String, ?>>() {
 	};
 
-	TypeReference<List<Map<String, Object>>> ListMapStringObjectTypeRef =
-			new TypeReference<List<Map<String, Object>>>() {
-			};
+	TypeReference<List<Map<String, ?>>> ListMapStringCaptureTypeRef = new TypeReference<List<Map<String, ?>>>() {
+	};
 }

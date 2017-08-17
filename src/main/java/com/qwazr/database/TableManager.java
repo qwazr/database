@@ -153,16 +153,16 @@ public class TableManager {
 		});
 	}
 
-	public void upsertRow(final String tableName, final String row_id, final Map<String, Object> nodeMap)
+	public void upsertRow(final String tableName, final String row_id, final Map<String, ?> nodeMap)
 			throws IOException {
 		rwl.readEx(() -> getTable(tableName).upsertRow(row_id, nodeMap));
 	}
 
-	public int upsertRows(final String tableName, final List<Map<String, Object>> rows) throws IOException {
+	public int upsertRows(final String tableName, final List<Map<String, ?>> rows) throws IOException {
 		return rwl.readEx(() -> getTable(tableName).upsertRows(rows));
 	}
 
-	public LinkedHashMap<String, Object> getRow(final String tableName, final String key, final Set<String> columns)
+	public LinkedHashMap<String, ?> getRow(final String tableName, final String key, final Set<String> columns)
 			throws IOException {
 		return rwl.readEx(() -> {
 			final Table table = getTable(tableName);
@@ -173,11 +173,11 @@ public class TableManager {
 		});
 	}
 
-	public List<Map<String, Object>> getRows(final String tableName, final Set<String> columns, final Set<String> keys)
+	public List<Map<String, ?>> getRows(final String tableName, final Set<String> columns, final Set<String> keys)
 			throws IOException {
 		return rwl.readEx(() -> {
 			final Table table = getTable(tableName);
-			final List<Map<String, Object>> rows = new ArrayList<>();
+			final List<Map<String, ?>> rows = new ArrayList<>();
 			table.getRows(keys, columns, rows);
 			return rows;
 		});

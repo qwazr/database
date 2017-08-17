@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015-2016 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,8 +15,10 @@
  */
 package com.qwazr.database.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -28,13 +30,15 @@ public class TableRequestResult {
 
 	final public Long count;
 
-	final public List<Map<String, Object>> rows;
+	final public List<Map<String, ?>> rows;
 	final public Map<String, Map<String, Long>> counters;
 
-	public TableRequestResult() {
-		count = null;
-		rows = null;
-		counters = null;
+	@JsonCreator
+	TableRequestResult(@JsonProperty("count") Long count, @JsonProperty("rows") List<Map<String, ?>> rows,
+			@JsonProperty("counters") Map<String, Map<String, Long>> counters) {
+		this.count = count;
+		this.rows = rows;
+		this.counters = counters;
 	}
 
 	public TableRequestResult(final Long count) {
@@ -44,8 +48,6 @@ public class TableRequestResult {
 	}
 
 	public TableRequestResult(final TableRequestResult result) {
-		this.count = result.count;
-		this.rows = result.rows;
-		this.counters = result.counters;
+		this(result.count, result.rows, result.counters);
 	}
 }
