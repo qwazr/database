@@ -120,20 +120,16 @@ public abstract class Query {
 
 		final RoaringBitmap execute(final QueryContext context, final ExecutorService executor,
 				final BiConsumer<RoaringBitmap, RoaringBitmap> reduce) throws IOException {
-			try (final RunnablePool runnablePool = new RunnablePool(executor)) {
+			try (final RunnablePool<RoaringBitmap> runnablePool = new RunnablePool<>(executor)) {
 				final RoaringBitmap finalBitmap = new RoaringBitmap();
 				queries.forEach(query -> runnablePool.submit(() -> {
-					final RoaringBitmap bitmap;
-					try {
-						bitmap = query.execute(context, executor);
-					} catch (IOException e) {
-						throw new ServerException(e);
+					final RoaringBitmap bitmap = query.execute(context, executor);
+					if (bitmap != null) {
+						synchronized (finalBitmap) {
+							reduce.accept(bitmap, finalBitmap);
+						}
 					}
-					if (bitmap == null)
-						return;
-					synchronized (finalBitmap) {
-						reduce.accept(bitmap, finalBitmap);
-					}
+					return bitmap;
 				}));
 				return finalBitmap;
 			} catch (RunnablePoolException e) {
