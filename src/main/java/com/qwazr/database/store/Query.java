@@ -16,7 +16,9 @@
 package com.qwazr.database.store;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.qwazr.utils.concurrent.ThreadUtils;
+import com.qwazr.server.ServerException;
+import com.qwazr.utils.concurrent.RunnablePool;
+import com.qwazr.utils.concurrent.RunnablePoolException;
 import org.roaringbitmap.RoaringBitmap;
 
 import java.io.IOException;
@@ -25,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiConsumer;
 
 public abstract class Query {
 
@@ -114,6 +117,29 @@ public abstract class Query {
 		final public void add(Query query) {
 			queries.add(query);
 		}
+
+		final RoaringBitmap execute(final QueryContext context, final ExecutorService executor,
+				final BiConsumer<RoaringBitmap, RoaringBitmap> reduce) throws IOException {
+			try (final RunnablePool runnablePool = new RunnablePool(executor)) {
+				final RoaringBitmap finalBitmap = new RoaringBitmap();
+				queries.forEach(query -> runnablePool.submit(() -> {
+					final RoaringBitmap bitmap;
+					try {
+						bitmap = query.execute(context, executor);
+					} catch (IOException e) {
+						throw new ServerException(e);
+					}
+					if (bitmap == null)
+						return;
+					synchronized (finalBitmap) {
+						reduce.accept(bitmap, finalBitmap);
+					}
+				}));
+				return finalBitmap;
+			} catch (RunnablePoolException e) {
+				throw new ServerException(e);
+			}
+		}
 	}
 
 	public static class OrGroup extends GroupQuery {
@@ -127,25 +153,8 @@ public abstract class Query {
 
 		@Override
 		final RoaringBitmap execute(final QueryContext context, final ExecutorService executor) throws IOException {
-			try {
-				final RoaringBitmap finalBitmap = new RoaringBitmap();
-				ThreadUtils.parallel(queries, query -> {
-					final RoaringBitmap bitmap = query.execute(context, executor);
-					if (bitmap == null)
-						return;
-					synchronized (finalBitmap) {
-						finalBitmap.or(bitmap);
-					}
-				});
-				return finalBitmap;
-			} catch (Exception e) {
-				if (e instanceof IOException)
-					throw (IOException) e;
-				else
-					throw new RuntimeException(e);
-			}
+			return execute(context, executor, (bitmap, finalBitmap) -> finalBitmap.or(bitmap));
 		}
-
 	}
 
 	public static class AndGroup extends GroupQuery {
@@ -159,27 +168,13 @@ public abstract class Query {
 
 		@Override
 		final RoaringBitmap execute(final QueryContext context, final ExecutorService executor) throws IOException {
-			try {
-				final RoaringBitmap finalBitmap = new RoaringBitmap();
-				final AtomicBoolean first = new AtomicBoolean(true);
-				ThreadUtils.parallel(queries, query -> {
-					final RoaringBitmap bitmap = query.execute(context, executor);
-					if (bitmap == null)
-						return;
-					synchronized (finalBitmap) {
-						if (first.getAndSet(false))
-							finalBitmap.or(bitmap);
-						else
-							finalBitmap.and(bitmap);
-					}
-				});
-				return finalBitmap;
-			} catch (Exception e) {
-				if (e instanceof IOException)
-					throw (IOException) e;
+			final AtomicBoolean first = new AtomicBoolean(true);
+			return execute(context, executor, (bitmap, finalBitmap) -> {
+				if (first.getAndSet(false))
+					finalBitmap.or(bitmap);
 				else
-					throw new RuntimeException(e);
-			}
+					finalBitmap.and(bitmap);
+			});
 		}
 	}
 
