@@ -38,7 +38,7 @@ public class Tables {
 			try {
 				return new Table(file, si);
 			} catch (IOException e) {
-				throw new ServerException(e);
+				throw ServerException.of(e);
 			}
 		});
 	}

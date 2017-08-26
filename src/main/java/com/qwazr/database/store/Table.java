@@ -95,7 +95,7 @@ public class Table implements Closeable {
 		try {
 			keyStore = storeImpl.storeClass.getConstructor(File.class).newInstance(dbFile);
 		} catch (ReflectiveOperationException e) {
-			throw new ServerException(e);
+			throw ServerException.of(e);
 		}
 		columnDefsKey = new ColumnDefsKey();
 		primaryIndexKey = new PrimaryIndexKey();
@@ -308,7 +308,7 @@ public class Table implements Closeable {
 						ColumnStoreKey.newInstance(internal, docId).getValue(keyStore);
 				row.put(name, value);
 			} catch (IOException e) {
-				throw new ServerException(e);
+				throw ServerException.of(e);
 			}
 		});
 		return row;

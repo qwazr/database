@@ -22,6 +22,7 @@ import com.qwazr.database.model.TableRequestResult;
 import com.qwazr.database.store.KeyStore;
 import com.qwazr.server.RemoteService;
 import com.qwazr.server.client.JsonClientAbstract;
+import com.qwazr.utils.LoggerUtils;
 import com.qwazr.utils.UBuilder;
 import com.qwazr.utils.http.HttpRequest;
 import org.apache.http.entity.ContentType;
@@ -30,11 +31,14 @@ import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Logger;
 
 public class TableSingleClient extends JsonClientAbstract implements TableServiceInterface {
 
+	private final static Logger LOGGER = LoggerUtils.getLogger(TableSingleClient.class);
+
 	public TableSingleClient(final RemoteService remote) {
-		super(remote);
+		super(remote, LOGGER);
 	}
 
 	@Override

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015-2016 Emmanuel Keller / QWAZR
  * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -133,7 +133,7 @@ public abstract class Query {
 				}));
 				return finalBitmap;
 			} catch (RunnablePoolException e) {
-				throw new ServerException(e);
+				throw ServerException.of(e);
 			}
 		}
 	}
