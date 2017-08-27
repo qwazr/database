@@ -40,10 +40,11 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 public class TableManager {
 
@@ -104,9 +105,9 @@ public class TableManager {
 		});
 	}
 
-	public Set<String> getNameSet() {
+	public SortedSet<String> getNameSet() {
 		return rwl.read(() -> {
-			final LinkedHashSet<String> names = new LinkedHashSet<>();
+			final TreeSet<String> names = new TreeSet<>();
 			for (File file : directory.listFiles((FileFilter) FileFilterUtils.directoryFileFilter()))
 				if (!file.isHidden())
 					names.add(file.getName());

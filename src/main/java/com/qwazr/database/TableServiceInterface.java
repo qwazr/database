@@ -15,7 +15,6 @@
  */
 package com.qwazr.database;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.qwazr.database.model.ColumnDefinition;
 import com.qwazr.database.model.TableDefinition;
 import com.qwazr.database.model.TableRequest;
@@ -33,11 +32,13 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.GenericType;
 import javax.ws.rs.core.MediaType;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedSet;
 
 @RolesAllowed(TableServiceInterface.SERVICE_NAME)
 @Path("/" + TableServiceInterface.SERVICE_NAME)
@@ -48,7 +49,7 @@ public interface TableServiceInterface extends ServiceInterface {
 	@GET
 	@Path("/")
 	@Produces(ServiceInterface.APPLICATION_JSON_UTF8)
-	Set<String> list();
+	SortedSet<String> list();
 
 	@POST
 	@Path("/{table_name}")
@@ -154,19 +155,18 @@ public interface TableServiceInterface extends ServiceInterface {
 	@Produces(ServiceInterface.APPLICATION_JSON_UTF8)
 	TableRequestResult queryRows(@PathParam("table_name") String table_name, TableRequest tableRequest);
 
-	TypeReference<Set<String>> SetStringTypeRef = new TypeReference<Set<String>>() {
+	GenericType<SortedSet<String>> sortedSetStringType = new GenericType<SortedSet<String>>() {
 	};
 
-	TypeReference<List<Object>> ListObjectTypeRef = new TypeReference<List<Object>>() {
+	GenericType<List<Object>> listObjectType = new GenericType<List<Object>>() {
 	};
 
-	TypeReference<List<String>> ListStringTypeRef = new TypeReference<List<String>>() {
+	GenericType<List<String>> listStringType = new GenericType<List<String>>() {
 	};
 
-	TypeReference<Map<String, Object>> MapStringObjectTypeRef = new TypeReference<Map<String, Object>>() {
+	GenericType<Map<String, Object>> mapStringObjectType = new GenericType<Map<String, Object>>() {
 	};
 
-	TypeReference<List<Map<String, Object>>> ListMapStringObjectTypeRef =
-			new TypeReference<List<Map<String, Object>>>() {
-			};
+	GenericType<List<Map<String, Object>>> listMapStringObjectType = new GenericType<List<Map<String, Object>>>() {
+	};
 }

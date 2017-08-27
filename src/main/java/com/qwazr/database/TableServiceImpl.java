@@ -38,6 +38,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedSet;
 import java.util.logging.Logger;
 
 class TableServiceImpl extends AbstractServiceImpl implements TableServiceInterface {
@@ -60,8 +61,8 @@ class TableServiceImpl extends AbstractServiceImpl implements TableServiceInterf
 	}
 
 	@Override
-	public Set<String> list() {
-		return Collections.unmodifiableSet(tableManager.getNameSet());
+	public SortedSet<String> list() {
+		return Collections.unmodifiableSortedSet(tableManager.getNameSet());
 	}
 
 	@Override

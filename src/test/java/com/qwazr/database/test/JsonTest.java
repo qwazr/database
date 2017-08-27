@@ -25,11 +25,8 @@ import com.qwazr.database.model.TableQuery;
 import com.qwazr.database.model.TableRequest;
 import com.qwazr.database.model.TableRequestResult;
 import com.qwazr.database.store.KeyStore;
-import com.qwazr.utils.CharsetUtils;
 import com.qwazr.utils.IOUtils;
 import com.qwazr.utils.ObjectMappers;
-import com.qwazr.utils.http.HttpClients;
-import org.apache.http.pool.PoolStats;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.FixMethodOrder;
@@ -40,6 +37,7 @@ import javax.ws.rs.WebApplicationException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -50,6 +48,13 @@ import java.util.Set;
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public abstract class JsonTest {
 
+	static TypeReference<Map<String, Object>> mapStringObjectType = new TypeReference<Map<String, Object>>() {
+	};
+
+	static TypeReference<List<Map<String, Object>>> listMapStringObjectType =
+			new TypeReference<List<Map<String, Object>>>() {
+			};
+
 	public static final String DUMMY_NAME = "sdflkjsdlfksjflskdjf";
 	public static final ColumnDefinition COLUMN_DEF_PASSWORD = getColumnDefinition("column_def_password.json");
 	public static final ColumnDefinition COLUMN_DEF_ROLES = getColumnDefinition("column_def_roles.json");
@@ -58,14 +63,10 @@ public abstract class JsonTest {
 	public static final ColumnDefinition COLUMN_DEF_CP =
 			new ColumnDefinition(ColumnDefinition.Type.STRING, ColumnDefinition.Mode.INDEXED);
 
-	public static final Map<String, Object> UPSERT_ROW1 =
-			getTypeDef("upsert_row1.json", TableServiceInterface.MapStringObjectTypeRef);
-	public static final Map<String, Object> UPSERT_ROW2 =
-			getTypeDef("upsert_row2.json", TableServiceInterface.MapStringObjectTypeRef);
-	public static final Map<String, Object> UPSERT_ROW_2_2 =
-			getTypeDef("upsert_row2_2.json", TableServiceInterface.MapStringObjectTypeRef);
-	public static final List<Map<String, Object>> UPSERT_ROWS =
-			getTypeDef("upsert_rows.json", TableServiceInterface.ListMapStringObjectTypeRef);
+	public static final Map<String, Object> UPSERT_ROW1 = getTypeDef("upsert_row1.json", mapStringObjectType);
+	public static final Map<String, Object> UPSERT_ROW2 = getTypeDef("upsert_row2.json", mapStringObjectType);
+	public static final Map<String, Object> UPSERT_ROW_2_2 = getTypeDef("upsert_row2_2.json", mapStringObjectType);
+	public static final List<Map<String, Object>> UPSERT_ROWS = getTypeDef("upsert_rows.json", listMapStringObjectType);
 	public static final String TABLE_NAME = "test_table";
 	public static final String COLUMN_NAME_PASSWORD = "password";
 	public static final String COLUMN_NAME_ROLES = "roles";
@@ -253,8 +254,8 @@ public abstract class JsonTest {
 	@Test
 	public void test360DeleteAndUpsertRow() throws URISyntaxException {
 		final TableServiceInterface client = getClient();
-		checkErrorStatusCode(() -> client.deleteRow(DUMMY_NAME, ""), 404, 405);
-		checkErrorStatusCode(() -> client.deleteRow(TABLE_NAME, null), 405, 406);
+		checkErrorStatusCode(() -> client.deleteRow(DUMMY_NAME, ""), 404, 406);
+		checkErrorStatusCode(() -> client.deleteRow(TABLE_NAME, null), 406);
 		deleteAndCheck(ID1);
 		deleteAndCheck(ID2);
 		Assert.assertNotNull(client.upsertRow(TABLE_NAME, ID2, UPSERT_ROW2));
@@ -458,7 +459,7 @@ public abstract class JsonTest {
 	private static ColumnDefinition getColumnDefinition(String res) {
 		InputStream is = JsonTest.class.getResourceAsStream(res);
 		try {
-			return ColumnDefinition.newColumnDefinition(IOUtils.toString(is, CharsetUtils.CharsetUTF8));
+			return ColumnDefinition.newColumnDefinition(IOUtils.toString(is, StandardCharsets.UTF_8));
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		} finally {
@@ -477,18 +478,9 @@ public abstract class JsonTest {
 		}
 	}
 
-	@Test
-	public void testZZZhttpClient() throws URISyntaxException {
-		final PoolStats stats = HttpClients.CNX_MANAGER.getTotalStats();
-		Assert.assertEquals(0, HttpClients.CNX_MANAGER.getTotalStats().getLeased());
-		Assert.assertEquals(0, stats.getPending());
-		if (getClient().getClass().getSimpleName().equals("TableSingleClient"))
-			Assert.assertTrue(stats.getAvailable() > 0);
-		TableServer.shutdown();
-	}
-
 	@AfterClass
 	public static void stopServer() {
+		TableServer.shutdown();
 		TestServer.shutdown();
 	}
 }

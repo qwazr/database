@@ -21,169 +21,179 @@ import com.qwazr.database.model.TableRequest;
 import com.qwazr.database.model.TableRequestResult;
 import com.qwazr.database.store.KeyStore;
 import com.qwazr.server.RemoteService;
-import com.qwazr.server.client.JsonClientAbstract;
-import com.qwazr.utils.LoggerUtils;
-import com.qwazr.utils.UBuilder;
-import com.qwazr.utils.http.HttpRequest;
-import org.apache.http.entity.ContentType;
+import com.qwazr.server.client.JsonClient;
+import com.qwazr.utils.StringUtils;
 
+import javax.ws.rs.NotAcceptableException;
+import javax.ws.rs.client.Entity;
+import javax.ws.rs.client.WebTarget;
+import javax.ws.rs.core.MediaType;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Logger;
+import java.util.SortedSet;
 
-public class TableSingleClient extends JsonClientAbstract implements TableServiceInterface {
+public class TableSingleClient extends JsonClient implements TableServiceInterface {
 
-	private final static Logger LOGGER = LoggerUtils.getLogger(TableSingleClient.class);
+	private final WebTarget tableTarget;
 
 	public TableSingleClient(final RemoteService remote) {
-		super(remote, LOGGER);
+		super(remote);
+		tableTarget = client.target(remote.serviceAddress).path("table");
 	}
 
 	@Override
-	public Set<String> list() {
-		final UBuilder uriBuilder = RemoteService.getNewUBuilder(remote, "/table");
-		final HttpRequest request = HttpRequest.Get(uriBuilder.buildNoEx());
-		return executeJson(request, null, null, SetStringTypeRef, valid200Json);
+	public SortedSet<String> list() {
+		return tableTarget.request(MediaType.APPLICATION_JSON).get(sortedSetStringType);
 	}
 
 	@Override
 	public TableDefinition createTable(final String tableName, final KeyStore.Impl storeImplementation) {
-		final UBuilder uriBuilder = RemoteService.getNewUBuilder(remote, "/table/", tableName)
-				.setParameter("implementation", storeImplementation);
-		final HttpRequest request = HttpRequest.Post(uriBuilder.buildNoEx());
-		return executeJson(request, null, null, TableDefinition.class, valid200Json);
+		WebTarget target = tableTarget.path(tableName);
+		if (storeImplementation != null)
+			target = target.queryParam("implementation", storeImplementation);
+		return target.request(MediaType.APPLICATION_JSON).post(Entity.json(null), TableDefinition.class);
 	}
 
 	@Override
 	public TableDefinition getTable(final String tableName) {
-		final UBuilder uriBuilder = RemoteService.getNewUBuilder(remote, "/table/", tableName);
-		final HttpRequest request = HttpRequest.Get(uriBuilder.buildNoEx());
-		return executeJson(request, null, null, TableDefinition.class, valid200Json);
+		return tableTarget.path(tableName).request(MediaType.APPLICATION_JSON).get(TableDefinition.class);
 	}
 
 	@Override
 	public Boolean deleteTable(final String tableName) {
-		final UBuilder uriBuilder = RemoteService.getNewUBuilder(remote, "/table/", tableName);
-		final HttpRequest request = HttpRequest.Delete(uriBuilder.buildNoEx());
-		return executeStatusCode(request, null, null, valid200) == 200;
+		return tableTarget.path(tableName).request(MediaType.APPLICATION_JSON).delete(Boolean.class);
 	}
 
 	@Override
 	public Map<String, ColumnDefinition> getColumns(final String tableName) {
-		final UBuilder uriBuilder = RemoteService.getNewUBuilder(remote, "/table/", tableName, "/column");
-		final HttpRequest request = HttpRequest.Get(uriBuilder.buildNoEx());
-		return executeJson(request, null, null, ColumnDefinition.MapStringColumnTypeRef, valid200Json);
+		return tableTarget.path(tableName)
+				.path("column")
+				.request(MediaType.APPLICATION_JSON)
+				.get(ColumnDefinition.mapStringColumnType);
 	}
 
 	@Override
 	public ColumnDefinition getColumn(final String tableName, final String columnName) {
-		final UBuilder uriBuilder = RemoteService.getNewUBuilder(remote, "/table/", tableName, "/column/", columnName);
-		final HttpRequest request = HttpRequest.Get(uriBuilder.buildNoEx());
-		return executeJson(request, null, null, ColumnDefinition.class, valid200204Json);
+		return tableTarget.path(tableName)
+				.path("column")
+				.path(columnName)
+				.request(MediaType.APPLICATION_JSON)
+				.get(ColumnDefinition.class);
 	}
 
 	@Override
 	public List<Object> getColumnTerms(final String tableName, final String columnName, final Integer start,
 			final Integer rows) {
-		final UBuilder uriBuilder =
-				RemoteService.getNewUBuilder(remote, "/table/", tableName, "/column/", columnName, "/term")
-						.setParameter("start", start)
-						.setParameter("rows", rows);
-		final HttpRequest request = HttpRequest.Get(uriBuilder.buildNoEx());
-		return executeJson(request, null, null, ListObjectTypeRef, valid200Json);
+		WebTarget target = tableTarget.path(tableName).path("column").path(columnName).path("term");
+		if (start != null)
+			target = target.queryParam("start", start);
+		if (rows != null)
+			target = target.queryParam("rows", rows);
+		return target.request(MediaType.APPLICATION_JSON).get(listObjectType);
 	}
 
 	@Override
 	public List<String> getColumnTermKeys(final String tableName, final String columnName, final String term,
 			final Integer start, Integer rows) {
-		final UBuilder uriBuilder =
-				RemoteService.getNewUBuilder(remote, "/table/", tableName, "/column/", columnName, "/term/", term).
-						setParameter("start", start).setParameter("rows", rows);
-		final HttpRequest request = HttpRequest.Get(uriBuilder.buildNoEx());
-		return executeJson(request, null, null, ListStringTypeRef, valid200Json);
+		return tableTarget.path(tableName)
+				.path("column")
+				.path(columnName)
+				.path("term")
+				.path(term)
+				.request(MediaType.APPLICATION_JSON)
+				.get(listStringType);
 	}
 
 	@Override
 	public ColumnDefinition setColumn(final String tableName, final String columnName,
 			final ColumnDefinition columnDefinition) {
-		final UBuilder uriBuilder = RemoteService.getNewUBuilder(remote, "/table/", tableName, "/column/", columnName);
-		final HttpRequest request = HttpRequest.Post(uriBuilder.buildNoEx());
-		return executeJson(request, columnDefinition, null, ColumnDefinition.class, valid200Json);
+		return tableTarget.path(tableName)
+				.path("column")
+				.path(columnName)
+				.request(MediaType.APPLICATION_JSON)
+				.post(Entity.json(columnDefinition), ColumnDefinition.class);
 	}
 
 	@Override
 	public Boolean removeColumn(final String tableName, final String columnName) {
-		final UBuilder uriBuilder = RemoteService.getNewUBuilder(remote, "/table/", tableName, "/column/", columnName);
-		final HttpRequest request = HttpRequest.Delete(uriBuilder.buildNoEx());
-		return executeJson(request, null, null, Boolean.class, valid200Json);
+		return tableTarget.path(tableName)
+				.path("column")
+				.path(columnName)
+				.request(MediaType.APPLICATION_JSON)
+				.delete(Boolean.class);
 	}
 
 	@Override
 	public Long upsertRows(final String tableName, final List<Map<String, Object>> rows) {
-		final UBuilder uriBuilder = RemoteService.getNewUBuilder(remote, "/table/", tableName, "/row");
-		final HttpRequest request = HttpRequest.Post(uriBuilder.buildNoEx());
-		return executeJson(request, rows, null, Long.class, valid200Json);
+		return tableTarget.path(tableName)
+				.path("row")
+				.request(MediaType.APPLICATION_JSON)
+				.post(Entity.json(rows), Long.class);
 	}
 
 	@Override
 	public Long upsertRows(final String tableName, final Integer buffer, final InputStream inputStream) {
-		final UBuilder uriBuilder = RemoteService.getNewUBuilder(remote, "/table/", tableName, "/row");
-		uriBuilder.setParameter("buffer", buffer);
-		final HttpRequest request =
-				HttpRequest.Post(uriBuilder.buildNoEx()).bodyStream(inputStream, ContentType.TEXT_PLAIN);
-		return executeJson(request, null, null, Long.class, valid200Json);
+		WebTarget target = tableTarget.path(tableName).path("row");
+		if (buffer != null)
+			target = target.queryParam("buffer", buffer);
+		return target.request(MediaType.APPLICATION_JSON)
+				.post(Entity.entity(inputStream, MediaType.TEXT_PLAIN), Long.class);
 	}
 
 	@Override
 	public Map<String, Object> upsertRow(final String tableName, final String rowId, final Map<String, Object> row) {
-		final UBuilder uriBuilder = RemoteService.getNewUBuilder(remote, "/table/", tableName, "/row/", rowId);
-		final HttpRequest request = HttpRequest.Put(uriBuilder.buildNoEx());
-		return executeJson(request, row, null, MapStringObjectTypeRef, valid200Json);
+		return tableTarget.path(tableName)
+				.path("row")
+				.path(rowId)
+				.request(MediaType.APPLICATION_JSON)
+				.put(Entity.json(row), mapStringObjectType);
 	}
 
 	@Override
 	public Map<String, Object> getRow(final String tableName, final String rowId, final Set<String> columns) {
-		final UBuilder uriBuilder = RemoteService.getNewUBuilder(remote, "/table/", tableName, "/row/", rowId);
+		WebTarget target = tableTarget.path(tableName).path("row").path(rowId);
 		if (columns != null)
-			for (String column : columns)
-				uriBuilder.addParameter("column", column);
-		final HttpRequest request = HttpRequest.Get(uriBuilder.buildNoEx());
-		return executeJson(request, null, null, MapStringObjectTypeRef, valid200Json);
+			target = target.queryParam("column", columns.toArray());
+		return target.request(MediaType.APPLICATION_JSON).get(mapStringObjectType);
 	}
 
 	@Override
 	public List<Map<String, Object>> getRows(final String tableName, final Set<String> columns,
 			final Set<String> rowsIds) {
-		final UBuilder uriBuilder = RemoteService.getNewUBuilder(remote, "/table/", tableName, "/rows");
+		WebTarget target = tableTarget.path(tableName).path("rows");
 		if (columns != null)
-			for (String column : columns)
-				uriBuilder.addParameter("column", column);
-		final HttpRequest request = HttpRequest.Post(uriBuilder.buildNoEx());
-		return executeJson(request, rowsIds, null, ListMapStringObjectTypeRef, valid200Json);
+			target = target.queryParam("column", columns.toArray());
+		return target.request(MediaType.APPLICATION_JSON).post(Entity.json(rowsIds), listMapStringObjectType);
 	}
 
 	@Override
 	public List<String> getRows(final String tableName, final Integer start, final Integer rows) {
-		final UBuilder uriBuilder = RemoteService.getNewUBuilder(remote, "/table/", tableName, "/row")
-				.setParameter("start", start)
-				.setParameter("rows", rows);
-		final HttpRequest request = HttpRequest.Get(uriBuilder.buildNoEx());
-		return executeJson(request, null, null, ListStringTypeRef, valid200Json);
+		WebTarget target = tableTarget.path(tableName).path("row");
+		if (start != null)
+			target = target.queryParam("start", start);
+		if (rows != null)
+			target = target.queryParam("rows", rows);
+		return target.request(MediaType.APPLICATION_JSON).get(listStringType);
 	}
 
 	@Override
 	public Boolean deleteRow(final String tableName, final String rowId) {
-		final UBuilder uriBuilder = RemoteService.getNewUBuilder(remote, "/table/", tableName, "/row/", rowId);
-		final HttpRequest request = HttpRequest.Delete(uriBuilder.buildNoEx());
-		return executeJson(request, null, null, Boolean.class, valid200Json);
+		if (StringUtils.isEmpty(rowId))
+			throw new NotAcceptableException("The key is missing");
+		return tableTarget.path(tableName)
+				.path("row")
+				.path(rowId)
+				.request(MediaType.APPLICATION_JSON)
+				.delete(Boolean.class);
 	}
 
 	@Override
 	public TableRequestResult queryRows(final String tableName, final TableRequest tableRequest) {
-		final UBuilder uriBuilder = RemoteService.getNewUBuilder(remote, "/table/", tableName, "/query");
-		final HttpRequest request = HttpRequest.Post(uriBuilder.buildNoEx());
-		return executeJson(request, tableRequest, null, TableRequestResult.class, valid200Json);
+		return tableTarget.path(tableName)
+				.path("query")
+				.request(MediaType.APPLICATION_JSON)
+				.post(Entity.json(tableRequest), TableRequestResult.class);
 	}
 }

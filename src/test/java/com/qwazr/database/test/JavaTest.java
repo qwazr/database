@@ -21,8 +21,6 @@ import com.qwazr.database.model.TableDefinition;
 import com.qwazr.database.model.TableQuery;
 import com.qwazr.database.model.TableRequest;
 import com.qwazr.database.model.TableRequestResult;
-import com.qwazr.utils.http.HttpClients;
-import org.apache.http.pool.PoolStats;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.FixMethodOrder;
@@ -32,7 +30,11 @@ import org.junit.runners.MethodSorters;
 import javax.ws.rs.WebApplicationException;
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
 
 import static com.qwazr.database.test.JsonTest.checkErrorStatusCode;
 
@@ -221,17 +223,9 @@ public class JavaTest {
 		checkErrorStatusCode(() -> service.deleteTable(), 404);
 	}
 
-	@Test
-	public void testZZZhttpClient() {
-		final PoolStats stats = HttpClients.CNX_MANAGER.getTotalStats();
-		Assert.assertEquals(0, HttpClients.CNX_MANAGER.getTotalStats().getLeased());
-		Assert.assertEquals(0, stats.getPending());
-		Assert.assertTrue(stats.getAvailable() > 0);
-		TableServer.shutdown();
-	}
-
 	@AfterClass
 	public static void stopServer() {
+		TableServer.shutdown();
 		TestServer.shutdown();
 	}
 

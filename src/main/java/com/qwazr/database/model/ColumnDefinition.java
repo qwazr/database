@@ -15,10 +15,10 @@
  */
 package com.qwazr.database.model;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.qwazr.database.annotations.TableColumn;
 import com.qwazr.utils.ObjectMappers;
 
+import javax.ws.rs.core.GenericType;
 import java.io.IOException;
 import java.util.Map;
 
@@ -76,8 +76,8 @@ public class ColumnDefinition {
 
 	}
 
-	public final static TypeReference<Map<String, ColumnDefinition>> MapStringColumnTypeRef =
-			new TypeReference<Map<String, ColumnDefinition>>() {
+	public final static GenericType<Map<String, ColumnDefinition>> mapStringColumnType =
+			new GenericType<Map<String, ColumnDefinition>>() {
 			};
 
 	public final static ColumnDefinition newColumnDefinition(String jsonString) throws IOException {
