@@ -49,8 +49,7 @@ public class TableServer implements BaseServer {
 		services.add(ClusterServiceInterface.SERVICE_NAME);
 		services.add(TableServiceInterface.SERVICE_NAME);
 		clusterManager =
-				new ClusterManager(executorService, serverConfiguration).registerHttpClientMonitoringThread(builder)
-						.registerProtocolListener(builder, services)
+				new ClusterManager(executorService, serverConfiguration).registerProtocolListener(builder, services)
 						.registerWebService(webServices);
 		tableManager = new TableManager(
 				TableManager.checkTablesDirectory(serverConfiguration.dataDirectory.toPath())).registerContextAttribute(
