@@ -24,7 +24,7 @@ import com.qwazr.database.store.Query;
 import com.qwazr.database.store.Table;
 import com.qwazr.database.store.Tables;
 import com.qwazr.server.ApplicationBuilder;
-import com.qwazr.server.GenericServer;
+import com.qwazr.server.GenericServerBuilder;
 import com.qwazr.server.ServerException;
 import com.qwazr.utils.concurrent.ReadWriteLock;
 import org.apache.commons.io.FileUtils;
@@ -71,12 +71,12 @@ public class TableManager {
 		return this;
 	}
 
-	public TableManager registerContextAttribute(final GenericServer.Builder builder) {
+	public TableManager registerContextAttribute(final GenericServerBuilder builder) {
 		builder.contextAttribute(this);
 		return this;
 	}
 
-	public TableManager registerShutdownListener(final GenericServer.Builder builder) {
+	public TableManager registerShutdownListener(final GenericServerBuilder builder) {
 		builder.shutdownListener(server -> Tables.closeAll());
 		return this;
 	}
