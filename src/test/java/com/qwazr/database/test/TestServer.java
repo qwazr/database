@@ -1,5 +1,5 @@
-/**
- * Copyright 2016 Emmanuel Keller / QWAZR
+/*
+ * Copyright 2016-2017 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,11 +19,9 @@ import com.google.common.io.Files;
 import com.qwazr.database.TableServer;
 import com.qwazr.database.TableServiceInterface;
 import com.qwazr.server.RemoteService;
-import com.qwazr.utils.http.HttpClients;
 
 import java.io.File;
 import java.net.URISyntaxException;
-import java.util.concurrent.TimeUnit;
 
 public class TestServer {
 
@@ -54,15 +52,6 @@ public class TestServer {
 
 	public static void shutdown() {
 		TableServer.shutdown();
-		HttpClients.CNX_MANAGER.closeIdleConnections(2, TimeUnit.MINUTES);
-		HttpClients.CNX_MANAGER.closeExpiredConnections();
-		HttpClients.UNSECURE_CNX_MANAGER.closeIdleConnections(2, TimeUnit.MINUTES);
-		HttpClients.UNSECURE_CNX_MANAGER.closeExpiredConnections();
 		CLIENT = null;
-		try {
-			Thread.sleep(5000);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
 	}
 }
