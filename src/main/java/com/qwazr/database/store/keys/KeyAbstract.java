@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2015-2016 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,14 +12,14 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- **/
+ */
 package com.qwazr.database.store.keys;
 
 import com.qwazr.database.store.ByteConverter;
 import com.qwazr.database.store.KeyIterator;
 import com.qwazr.database.store.KeyStore;
 import com.qwazr.utils.ArrayUtils;
-import com.qwazr.utils.FunctionUtils;
+import com.qwazr.utils.concurrent.BiConsumerEx;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -78,7 +78,7 @@ public abstract class KeyAbstract<V> implements KeyInterface<V> {
 
 	@Override
 	final public void prefixedKeys(final KeyStore store, int start, int rows,
-			final FunctionUtils.BiConsumerEx<byte[], byte[], IOException> consumer) throws IOException {
+			final BiConsumerEx<byte[], byte[], IOException> consumer) throws IOException {
 		final byte[] prefixKey = getCachedKey();
 		try (final KeyIterator iterator = store.iterator(prefixKey)) {
 			while (start-- > 0 && iterator.hasNext()) {
