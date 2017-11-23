@@ -20,8 +20,10 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.qwazr.utils.CollectionsUtils;
 
 import java.util.LinkedHashSet;
+import java.util.Objects;
 
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.PUBLIC_ONLY,
 		getterVisibility = JsonAutoDetect.Visibility.NONE,
@@ -46,6 +48,16 @@ public class TableQuery {
 		private Term(final String column, final T value) {
 			this.column = column;
 			this.value = value;
+		}
+
+		@Override
+		final public boolean equals(final Object o) {
+			if (o == null || !(o instanceof Term))
+				return false;
+			if (o == this)
+				return true;
+			final Term t = (Term) o;
+			return Objects.equals(column, t.column) && Objects.equals(value, t.value);
 		}
 	}
 
@@ -127,6 +139,15 @@ public class TableQuery {
 			return this;
 		}
 
+		@Override
+		final public boolean equals(final Object o) {
+			if (o == null || !(o instanceof Group))
+				return false;
+			if (o == this)
+				return true;
+			final Group g = (Group) o;
+			return CollectionsUtils.equals(queries, g.queries);
+		}
 	}
 
 	public final static class Or extends Group {

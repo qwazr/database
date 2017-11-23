@@ -1,5 +1,5 @@
-/**
- * Copyright 2015-2016 Emmanuel Keller / QWAZR
+/*
+ * Copyright 2015-2017 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,7 +31,6 @@ import javax.ws.rs.WebApplicationException;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -41,18 +40,18 @@ import static com.qwazr.database.test.JsonTest.checkErrorStatusCode;
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class JavaTest {
 
-	private static Set<String> COLUMNS;
-	private static Set<String> COLUMNS_WITHID;
+	private static String[] COLUMNS =
+			{ JavaRecord.COL_LABEL, JavaRecord.COL_DPT, JavaRecord.COL_LAST_UPDATE_DATE, JavaRecord.COL_CREATION_DATE };
 
-	static {
-		COLUMNS = new HashSet<>();
-		COLUMNS.add(JavaRecord.COL_LABEL);
-		COLUMNS.add(JavaRecord.COL_DPT);
-		COLUMNS.add(JavaRecord.COL_LAST_UPDATE_DATE);
-		COLUMNS.add(JavaRecord.COL_CREATION_DATE);
-		COLUMNS_WITHID = new HashSet<>(COLUMNS);
-		COLUMNS_WITHID.add(TableDefinition.ID_COLUMN_NAME);
-	}
+	private static Set<String> COLUMNS_SET = new LinkedHashSet<>(Arrays.asList(COLUMNS));
+
+	private static String[] COLUMNS_WITHID = { JavaRecord.COL_LABEL,
+			JavaRecord.COL_DPT,
+			JavaRecord.COL_LAST_UPDATE_DATE,
+			JavaRecord.COL_CREATION_DATE,
+			TableDefinition.ID_COLUMN_NAME };
+
+	private static Set<String> COLUMNS_WITHID_SET = new LinkedHashSet<>(Arrays.asList(COLUMNS_WITHID));
 
 	public static final String ID1 = "one";
 	public static final String ID2 = "two";
@@ -98,7 +97,7 @@ public class JavaTest {
 	@Test
 	public void test150MatchAllQueryEmpty() throws URISyntaxException, ReflectiveOperationException, IOException {
 		final AnnotatedTableService<JavaRecord> service = getService();
-		final TableRequest request = new TableRequest(0, 1000, COLUMNS, null, null);
+		final TableRequest request = TableRequest.from(0, 1000).column(COLUMNS).build();
 		final TableRequestResult result = service.queryRows(request);
 		Assert.assertNotNull(result);
 		Assert.assertEquals(new Long(0), result.count);
@@ -108,7 +107,7 @@ public class JavaTest {
 	public void test300upsertRow() throws ReflectiveOperationException, URISyntaxException, IOException {
 		final AnnotatedTableService<JavaRecord> service = getService();
 		service.upsertRow(ID1, ROW1);
-		Assert.assertEquals(ROW1, service.getRow(ID1, COLUMNS));
+		Assert.assertEquals(ROW1, service.getRow(ID1, COLUMNS_SET));
 	}
 
 	@Test
@@ -123,7 +122,7 @@ public class JavaTest {
 	@Test
 	public void test355MatchAllQuery() throws URISyntaxException, ReflectiveOperationException, IOException {
 		final AnnotatedTableService<JavaRecord> service = getService();
-		final TableRequest request = new TableRequest(0, 1000, COLUMNS_WITHID, null, null);
+		final TableRequest request = TableRequest.from(0, 1000).column(COLUMNS_WITHID).build();
 		final TableRequestResult result = service.queryRows(request);
 		Assert.assertNotNull(result);
 		Assert.assertEquals(new Long(3), result.count);
@@ -136,7 +135,7 @@ public class JavaTest {
 		final AnnotatedTableService<JavaRecord> service = getService();
 		Assert.assertTrue(service.deleteRow(ID1));
 		try {
-			service.getRow(ID1, COLUMNS);
+			service.getRow(ID1, COLUMNS_SET);
 			Assert.assertTrue("The 404 exception has not been thrown", false);
 		} catch (WebApplicationException e) {
 			Assert.assertEquals(404, e.getResponse().getStatus());
@@ -146,7 +145,7 @@ public class JavaTest {
 	private TableRequestResult checkResult(final AnnotatedTableService<JavaRecord> service,
 			final TableQuery.Group query, final Long expectedCount, final JavaRecord... rows)
 			throws IOException, ReflectiveOperationException {
-		final TableRequest request = new TableRequest(0, 100, COLUMNS_WITHID, null, query);
+		final TableRequest request = TableRequest.from(0, 100).column(COLUMNS_WITHID).query(query).build();
 		final AnnotatedTableService.TableRequestResultRecords<JavaRecord> result = service.queryRows(request);
 		Assert.assertNotNull(result);
 		Assert.assertNotNull(result.count);
@@ -188,7 +187,7 @@ public class JavaTest {
 	public void test705getRows() throws URISyntaxException, ReflectiveOperationException, IOException {
 		final AnnotatedTableService<JavaRecord> service = getService();
 		final Set<String> keys = new LinkedHashSet<>(Arrays.asList(ID3, ID2));
-		List<JavaRecord> results = service.getRows(COLUMNS_WITHID, keys);
+		List<JavaRecord> results = service.getRows(COLUMNS_WITHID_SET, keys);
 		Assert.assertNotNull(results);
 		Assert.assertEquals(keys.size(), results.size());
 		int i = 0;

@@ -39,7 +39,6 @@ import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -81,16 +80,11 @@ public abstract class JsonTest {
 	public static final String PASS2 = "password2";
 	public static final String PASS3 = "password3";
 	public static final String PASS4 = "password4";
-	public static final Set<String> COLUMNS;
-	public static final Set<String> COLUMNS_WITHID;
-
-	static {
-		COLUMNS = new HashSet<>();
-		COLUMNS.add("roles");
-		COLUMNS.add("password");
-		COLUMNS_WITHID = new HashSet<>(COLUMNS);
-		COLUMNS_WITHID.add(TableDefinition.ID_COLUMN_NAME);
-	}
+	public static final String[] COLUMNS = { COLUMN_NAME_ROLES, COLUMN_NAME_PASSWORD };
+	public static final Set<String> COLUMNS_SET = new LinkedHashSet<>(Arrays.asList(COLUMNS));
+	public static final String[] COLUMNS_WITHID =
+			{ COLUMN_NAME_ROLES, COLUMN_NAME_PASSWORD, TableDefinition.ID_COLUMN_NAME };
+	public static final Set<String> COLUMNS_WITHID_SET = new LinkedHashSet<>(Arrays.asList(COLUMNS_WITHID));
 
 	public static void checkErrorStatusCode(Runnable runnable, int... expectedStatusCodes) {
 		try {
@@ -193,7 +187,7 @@ public abstract class JsonTest {
 	@Test
 	public void test150MatchAllQueryEmpty() throws URISyntaxException {
 		TableServiceInterface client = getClient();
-		TableRequest request = new TableRequest(0, 1000, COLUMNS_WITHID, null, null);
+		TableRequest request = TableRequest.from(0, 1000).column(COLUMNS_WITHID).build();
 		checkErrorStatusCode(() -> client.queryRows(DUMMY_NAME, request), 404);
 		TableRequestResult result = client.queryRows(TABLE_NAME, request);
 		Assert.assertNotNull(result);
@@ -206,8 +200,8 @@ public abstract class JsonTest {
 		checkErrorStatusCode(() -> client.upsertRow(DUMMY_NAME, ID1, UPSERT_ROW1), 404);
 		Assert.assertNotNull(client.upsertRow(TABLE_NAME, ID1, UPSERT_ROW1));
 		Assert.assertNotNull(client.upsertRow(TABLE_NAME, ID2, UPSERT_ROW2));
-		checkGetRow("password", PASS1, client.getRow(TABLE_NAME, ID1, COLUMNS));
-		checkGetRow("password", PASS2, client.getRow(TABLE_NAME, ID2, COLUMNS));
+		checkGetRow("password", PASS1, client.getRow(TABLE_NAME, ID1, COLUMNS_SET));
+		checkGetRow("password", PASS2, client.getRow(TABLE_NAME, ID2, COLUMNS_SET));
 	}
 
 	@Test
@@ -232,7 +226,7 @@ public abstract class JsonTest {
 	@Test
 	public void test355MatchAllQuery() throws URISyntaxException {
 		final TableServiceInterface client = getClient();
-		final TableRequest request = new TableRequest(0, 1000, COLUMNS_WITHID, null, null);
+		final TableRequest request = TableRequest.from(0, 1000).column(COLUMNS_WITHID).build();
 		final TableRequestResult result = client.queryRows(TABLE_NAME, request);
 		Assert.assertNotNull(result);
 		Assert.assertEquals(new Long(4), result.count);
@@ -244,7 +238,7 @@ public abstract class JsonTest {
 		final TableServiceInterface client = getClient();
 		Assert.assertTrue(client.deleteRow(TABLE_NAME, id));
 		try {
-			client.getRow(TABLE_NAME, id, COLUMNS);
+			client.getRow(TABLE_NAME, id, COLUMNS_SET);
 			Assert.assertTrue("The 404 exception has not been thrown", false);
 		} catch (WebApplicationException e) {
 			Assert.assertEquals(404, e.getResponse().getStatus());
@@ -284,7 +278,7 @@ public abstract class JsonTest {
 
 	private TableRequestResult checkResult(final TableServiceInterface client, final TableQuery.Group query,
 			final Long expectedCount, final String... keys) {
-		final TableRequest request = new TableRequest(0, 100, COLUMNS_WITHID, null, query);
+		final TableRequest request = TableRequest.from(0, 100).column(COLUMNS_WITHID).query(query).build();
 		final TableRequestResult result = client.queryRows(TABLE_NAME, request);
 		Assert.assertNotNull(result);
 		Assert.assertNotNull(result.count);
@@ -312,11 +306,11 @@ public abstract class JsonTest {
 	@Test
 	public void test410GetRow() throws URISyntaxException {
 		final TableServiceInterface client = getClient();
-		checkErrorStatusCode(() -> client.getRow(DUMMY_NAME, ID3, COLUMNS), 404);
-		checkErrorStatusCode(() -> client.getRow(TABLE_NAME, DUMMY_NAME, COLUMNS), 404);
-		checkGetRow("password", PASS3, client.getRow(TABLE_NAME, ID3, COLUMNS));
-		checkGetRow("password", PASS4, client.getRow(TABLE_NAME, ID4, COLUMNS));
-		final Map<String, ?> row = checkGetRow("password", PASS1, client.getRow(TABLE_NAME, ID1, COLUMNS));
+		checkErrorStatusCode(() -> client.getRow(DUMMY_NAME, ID3, COLUMNS_SET), 404);
+		checkErrorStatusCode(() -> client.getRow(TABLE_NAME, DUMMY_NAME, COLUMNS_SET), 404);
+		checkGetRow("password", PASS3, client.getRow(TABLE_NAME, ID3, COLUMNS_SET));
+		checkGetRow("password", PASS4, client.getRow(TABLE_NAME, ID4, COLUMNS_SET));
+		final Map<String, ?> row = checkGetRow("password", PASS1, client.getRow(TABLE_NAME, ID1, COLUMNS_SET));
 		checkRows(row.get("roles"), "search", "table");
 	}
 
@@ -375,7 +369,7 @@ public abstract class JsonTest {
 	public void test705getRows() throws URISyntaxException {
 		final TableServiceInterface client = getClient();
 		final Set<String> keys = new LinkedHashSet<>(Arrays.asList(ID4, ID1, ID3, ID2));
-		final List<Map<String, Object>> results = client.getRows(TABLE_NAME, COLUMNS_WITHID, keys);
+		final List<Map<String, Object>> results = client.getRows(TABLE_NAME, COLUMNS_WITHID_SET, keys);
 		Assert.assertNotNull(results);
 		Assert.assertEquals(keys.size(), results.size());
 		int i = 0;
