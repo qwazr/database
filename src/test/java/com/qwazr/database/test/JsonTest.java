@@ -284,7 +284,7 @@ public abstract class JsonTest {
 
 	private TableRequestResult checkResult(final TableServiceInterface client, final TableQuery.Group query,
 			final Long expectedCount, final String... keys) {
-		final TableRequest request = new TableRequest(0, 100, COLUMNS_WITHID, null, query.build());
+		final TableRequest request = new TableRequest(0, 100, COLUMNS_WITHID, null, query);
 		final TableRequestResult result = client.queryRows(TABLE_NAME, request);
 		Assert.assertNotNull(result);
 		Assert.assertNotNull(result.count);

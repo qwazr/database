@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2016 Emmanuel Keller / QWAZR
+ * Copyright 2015-2017 Emmanuel Keller / QWAZR
  * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
  */
 package com.qwazr.database.store;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import com.qwazr.database.model.TableQuery;
 import com.qwazr.server.ServerException;
 import com.qwazr.utils.concurrent.RunnablePool;
 import com.qwazr.utils.concurrent.RunnablePoolException;
@@ -23,95 +23,76 @@ import org.roaringbitmap.RoaringBitmap;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.Collection;
+import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 
-public abstract class Query {
+public interface Query {
 
-	final public static Query prepare(JsonNode node, QueryHook queryHook) throws QueryException {
-		if (!node.isObject())
-			throw new QueryException(
-					"Query error: An object was expected. But got " + node.getNodeType() + " Near: " + node.asText());
-		if (node.size() == 0)
-			throw new QueryException("The query is empty: Near: " + node.asText());
-		if (node.size() > 1)
-			throw new QueryException("Query error: More than one object has been found. Near: " + node.asText());
+	static Query prepare(final TableQuery query, final QueryHook queryHook) throws QueryException {
 		final Query newQuery;
-		if (node.has("$OR"))
-			newQuery = new OrGroup(node.get("$OR"), queryHook);
-		else if (node.has("$AND"))
-			newQuery = new AndGroup(node.get("$AND"), queryHook);
-		else {
-			Map.Entry<String, JsonNode> entry = node.fields().next();
-			String field = entry.getKey();
-			JsonNode valueNode = entry.getValue();
-			if (valueNode.isTextual())
-				newQuery = new TermQuery<>(field, valueNode.asText());
-			else if (valueNode.isNumber()) {
-				if (valueNode.isInt())
-					newQuery = new TermQuery<>(field, valueNode.asInt());
-				else if (node.isLong())
-					newQuery = new TermQuery<>(field, valueNode.asLong());
-				else
-					newQuery = new TermQuery<>(field, valueNode.asDouble());
-			} else
-				throw new QueryException("Unexpected value: " + field + "  Type: " + valueNode.getNodeType());
-		}
+		if (query instanceof TableQuery.Group) {
+			if (query instanceof TableQuery.Or)
+				newQuery = new OrGroup((TableQuery.Or) query, queryHook);
+			else if (query instanceof TableQuery.And)
+				newQuery = new AndGroup((TableQuery.And) query, queryHook);
+			else
+				newQuery = null;
+		} else if (query instanceof TableQuery.Term) {
+			if (query instanceof TableQuery.StringTerm)
+				newQuery = new TermQuery<>((TableQuery.StringTerm) query);
+			else if (query instanceof TableQuery.LongTerm)
+				newQuery = new TermQuery<>((TableQuery.LongTerm) query);
+			else if (query instanceof TableQuery.IntegerTerm)
+				newQuery = new TermQuery<>((TableQuery.IntegerTerm) query);
+			else if (query instanceof TableQuery.DoubleTerm)
+				newQuery = new TermQuery<>((TableQuery.DoubleTerm) query);
+			else if (query instanceof TableQuery.FloatTerm)
+				newQuery = new TermQuery<>((TableQuery.FloatTerm) query);
+			else
+				newQuery = null;
+		} else
+			newQuery = null;
+		if (newQuery == null)
+			throw new QueryException("Unknown query type: " + query);
 		if (queryHook != null)
 			queryHook.query(newQuery);
 		return newQuery;
 	}
 
-	abstract RoaringBitmap execute(final QueryContext context, final ExecutorService executor) throws IOException;
+	RoaringBitmap execute(final QueryContext context, final ExecutorService executor) throws IOException;
 
-	public static class TermQuery<T> extends Query {
+	class TermQuery<T> implements Query {
 
-		private String field;
-		private final T value;
+		private final TableQuery.Term<T> termQuery;
 
-		public TermQuery(final String field, final T value) {
-			super();
-			this.field = field;
-			this.value = value;
+		public TermQuery(final TableQuery.Term<T> termQuery) {
+			this.termQuery = Objects.requireNonNull(termQuery, "The term query is null");
 		}
 
 		@Override
-		final RoaringBitmap execute(final QueryContext context, final ExecutorService executor) throws IOException {
-			RoaringBitmap bitset = context.getIndexedBitset(field, value);
+		final public RoaringBitmap execute(final QueryContext context, final ExecutorService executor)
+				throws IOException {
+			final RoaringBitmap bitset = context.getIndexedBitset(termQuery.column, termQuery.value);
 			if (bitset == null)
-				bitset = new RoaringBitmap();
+				return new RoaringBitmap();
 			return bitset;
 		}
 
-		final public void setField(String field) {
-			this.field = field;
-		}
-
-		final public String getField() {
-			return field;
-		}
-
 		final public T getValue() {
-			return value;
+			return termQuery.value;
 		}
 	}
 
-	static abstract class GroupQuery extends Query {
+	abstract class GroupQuery implements Query {
 
-		protected final List<Query> queries;
+		private final Collection<Query> queries;
 
-		protected GroupQuery(JsonNode node, QueryHook queryHook) throws QueryException {
-			if (!node.isArray())
-				throw new QueryException("Array expected, but got " + node.getNodeType());
-			queries = new ArrayList<>(node.size());
-			node.forEach(n -> queries.add(Query.prepare(n, queryHook)));
-		}
-
-		protected GroupQuery() {
-			queries = new ArrayList<>();
+		protected GroupQuery(TableQuery.Group groupQuery, QueryHook queryHook) throws QueryException {
+			queries = new ArrayList<>(groupQuery.queries.size());
+			groupQuery.queries.forEach(n -> this.queries.add(Query.prepare(n, queryHook)));
 		}
 
 		final public void add(Query query) {
@@ -138,32 +119,28 @@ public abstract class Query {
 		}
 	}
 
-	public static class OrGroup extends GroupQuery {
+	final class OrGroup extends GroupQuery {
 
-		protected OrGroup(JsonNode node, QueryHook queryHook) {
-			super(node, queryHook);
-		}
-
-		public OrGroup() {
+		protected OrGroup(final TableQuery.Or orQuery, QueryHook queryHook) {
+			super(orQuery, queryHook);
 		}
 
 		@Override
-		final RoaringBitmap execute(final QueryContext context, final ExecutorService executor) throws IOException {
+		final public RoaringBitmap execute(final QueryContext context, final ExecutorService executor)
+				throws IOException {
 			return execute(context, executor, (bitmap, finalBitmap) -> finalBitmap.or(bitmap));
 		}
 	}
 
-	public static class AndGroup extends GroupQuery {
+	class AndGroup extends GroupQuery {
 
-		protected AndGroup(JsonNode node, QueryHook queryHook) {
-			super(node, queryHook);
-		}
-
-		public AndGroup() {
+		protected AndGroup(final TableQuery.And andQuery, final QueryHook queryHook) {
+			super(andQuery, queryHook);
 		}
 
 		@Override
-		final RoaringBitmap execute(final QueryContext context, final ExecutorService executor) throws IOException {
+		final public RoaringBitmap execute(final QueryContext context, final ExecutorService executor)
+				throws IOException {
 			final AtomicBoolean first = new AtomicBoolean(true);
 			return execute(context, executor, (bitmap, finalBitmap) -> {
 				if (first.getAndSet(false))
@@ -174,19 +151,19 @@ public abstract class Query {
 		}
 	}
 
-	public static class QueryException extends RuntimeException {
+	class QueryException extends RuntimeException {
 
 		/**
 		 *
 		 */
 		private static final long serialVersionUID = -5566235355622756480L;
 
-		private QueryException(String reason) {
+		private QueryException(final String reason) {
 			super(reason);
 		}
 	}
 
-	public interface QueryHook {
+	interface QueryHook {
 
 		void query(Query query);
 	}

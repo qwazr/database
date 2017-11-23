@@ -146,7 +146,7 @@ public class JavaTest {
 	private TableRequestResult checkResult(final AnnotatedTableService<JavaRecord> service,
 			final TableQuery.Group query, final Long expectedCount, final JavaRecord... rows)
 			throws IOException, ReflectiveOperationException {
-		final TableRequest request = new TableRequest(0, 100, COLUMNS_WITHID, null, query.build());
+		final TableRequest request = new TableRequest(0, 100, COLUMNS_WITHID, null, query);
 		final AnnotatedTableService.TableRequestResultRecords<JavaRecord> result = service.queryRows(request);
 		Assert.assertNotNull(result);
 		Assert.assertNotNull(result.count);

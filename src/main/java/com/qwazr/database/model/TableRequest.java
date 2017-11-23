@@ -1,5 +1,5 @@
-/**
- * Copyright 2015-2016 Emmanuel Keller / QWAZR
+/*
+ * Copyright 2015-2017 Emmanuel Keller / QWAZR
  * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,13 +15,19 @@
  */
 package com.qwazr.database.model;
 
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.Set;
 
 @JsonInclude(Include.NON_EMPTY)
+@JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.PUBLIC_ONLY,
+		getterVisibility = JsonAutoDetect.Visibility.NONE,
+		setterVisibility = JsonAutoDetect.Visibility.NONE,
+		creatorVisibility = JsonAutoDetect.Visibility.NONE)
 public class TableRequest {
 
 	public final Integer start;
@@ -30,17 +36,12 @@ public class TableRequest {
 	public final Set<String> columns;
 	public final Set<String> counters;
 
-	public final JsonNode query;
+	public final TableQuery query;
 
-	public TableRequest() {
-		start = null;
-		rows = null;
-		columns = null;
-		counters = null;
-		query = null;
-	}
-
-	public TableRequest(Integer start, Integer rows, Set<String> columns, Set<String> counters, JsonNode query) {
+	@JsonCreator
+	public TableRequest(@JsonProperty("start") Integer start, @JsonProperty("rows") Integer rows,
+			@JsonProperty("columns") Set<String> columns, @JsonProperty("counters") Set<String> counters,
+			@JsonProperty("query") TableQuery query) {
 		this.start = start;
 		this.rows = rows;
 		this.columns = columns;
@@ -48,7 +49,4 @@ public class TableRequest {
 		this.query = query;
 	}
 
-	public static final String AND = "$AND";
-	public static final String OR = "$OR";
-	public static final String NOT = "$NOT";
 }

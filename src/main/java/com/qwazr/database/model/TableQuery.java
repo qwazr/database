@@ -15,96 +15,86 @@
  */
 package com.qwazr.database.model;
 
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.qwazr.utils.ObjectMappers;
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 import java.util.LinkedHashSet;
-import java.util.Set;
 
-public abstract class TableQuery {
+@JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.PUBLIC_ONLY,
+		getterVisibility = JsonAutoDetect.Visibility.NONE,
+		setterVisibility = JsonAutoDetect.Visibility.NONE,
+		creatorVisibility = JsonAutoDetect.Visibility.NONE)
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "@type")
+@JsonSubTypes({ @JsonSubTypes.Type(value = TableQuery.StringTerm.class, name = "string"),
+		@JsonSubTypes.Type(value = TableQuery.DoubleTerm.class, name = "double"),
+		@JsonSubTypes.Type(value = TableQuery.FloatTerm.class, name = "float"),
+		@JsonSubTypes.Type(value = TableQuery.LongTerm.class, name = "long"),
+		@JsonSubTypes.Type(value = TableQuery.IntegerTerm.class, name = "integer"),
+		@JsonSubTypes.Type(value = TableQuery.Or.class, name = "or"),
+		@JsonSubTypes.Type(value = TableQuery.And.class, name = "and") })
+public class TableQuery {
 
-	protected abstract ObjectNode build();
+	public static abstract class Term<T> extends TableQuery {
 
-	private static abstract class Term<T> extends TableQuery {
+		public final String column;
+		public final T value;
 
-		protected final String column;
-		protected final T value;
-
+		@JsonCreator
 		private Term(final String column, final T value) {
 			this.column = column;
 			this.value = value;
 		}
 	}
 
-	private static class StringTerm extends Term<String> {
+	final static public class StringTerm extends Term<String> {
 
-		private StringTerm(final String column, final String value) {
+		@JsonCreator
+		public StringTerm(@JsonProperty("column") final String column, @JsonProperty("value") final String value) {
 			super(column, value);
-		}
-
-		@Override
-		final protected ObjectNode build() {
-			return ObjectMappers.JSON.createObjectNode().put(column, value);
 		}
 	}
 
-	private static class DoubleTerm extends Term<Double> {
+	final static public class DoubleTerm extends Term<Double> {
 
-		private DoubleTerm(final String column, final Double value) {
+		@JsonCreator
+		public DoubleTerm(@JsonProperty("column") final String column, @JsonProperty("value") final Double value) {
 			super(column, value);
-		}
-
-		@Override
-		final protected ObjectNode build() {
-			return ObjectMappers.JSON.createObjectNode().put(column, value);
 		}
 	}
 
-	private static class FloatTerm extends Term<Float> {
+	final static public class FloatTerm extends Term<Float> {
 
-		private FloatTerm(final String column, final Float value) {
+		@JsonCreator
+		public FloatTerm(@JsonProperty("column") final String column, @JsonProperty("value") final Float value) {
 			super(column, value);
-		}
-
-		@Override
-		final protected ObjectNode build() {
-			return ObjectMappers.JSON.createObjectNode().put(column, value);
 		}
 	}
 
-	private static class LongTerm extends Term<Long> {
+	final static public class LongTerm extends Term<Long> {
 
-		private LongTerm(final String column, final Long value) {
+		@JsonCreator
+		public LongTerm(@JsonProperty("column") final String column, @JsonProperty("value") final Long value) {
 			super(column, value);
-		}
-
-		@Override
-		final protected ObjectNode build() {
-			return ObjectMappers.JSON.createObjectNode().put(column, value);
 		}
 	}
 
-	private static class IntegerTerm extends Term<Integer> {
+	final static public class IntegerTerm extends Term<Integer> {
 
-		private IntegerTerm(final String column, final Integer value) {
+		@JsonCreator
+		public IntegerTerm(@JsonProperty("column") final String column, @JsonProperty("value") final Integer value) {
 			super(column, value);
-		}
-
-		@Override
-		final protected ObjectNode build() {
-			return ObjectMappers.JSON.createObjectNode().put(column, value);
 		}
 	}
 
-	public abstract static class Group extends TableQuery {
+	static public class Group extends TableQuery {
 
-		private final String command;
-		private final Set<TableQuery> queries;
+		public final LinkedHashSet<TableQuery> queries;
 
-		protected Group(final String command) {
-			this.command = command;
-			queries = new LinkedHashSet<>();
+		private Group(final LinkedHashSet<TableQuery> queries) {
+			this.queries = queries;
 		}
 
 		final public Group add(final String column, final String term) {
@@ -137,28 +127,29 @@ public abstract class TableQuery {
 			return this;
 		}
 
-		@Override
-		final public ObjectNode build() {
-			final ArrayNode array = ObjectMappers.JSON.createArrayNode();
-			for (TableQuery q : queries)
-				array.add(q.build());
-			final ObjectNode object = ObjectMappers.JSON.createObjectNode();
-			object.set(command, array);
-			return object;
-		}
 	}
 
-	public static class Or extends Group {
+	public final static class Or extends Group {
+
+		@JsonCreator
+		private Or(@JsonProperty("queries") LinkedHashSet<TableQuery> queries) {
+			super(queries);
+		}
 
 		public Or() {
-			super("$OR");
+			this(new LinkedHashSet<>());
 		}
 	}
 
-	public static class And extends Group {
+	public final static class And extends Group {
+
+		@JsonCreator
+		private And(@JsonProperty("queries") LinkedHashSet<TableQuery> queries) {
+			super(queries);
+		}
 
 		public And() {
-			super("$AND");
+			this(new LinkedHashSet<>());
 		}
 	}
 
