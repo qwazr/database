@@ -139,10 +139,6 @@ public class AnnotatedTableService<T> extends FieldMapWrapper<T> {
 		});
 	}
 
-	public enum FieldStatus {
-		NOT_IDENTICAL, EXISTS_ONLY_IN_TABLE, EXISTS_ONLY_IN_ANNOTATION
-	}
-
 	/**
 	 * Check if the there is differences between the annotated fields and the fields already declared
 	 *
@@ -160,8 +156,8 @@ public class AnnotatedTableService<T> extends FieldMapWrapper<T> {
 				if (tableColumn == null) {
 					if (!name.equals(TableDefinition.ID_COLUMN_NAME))
 						fieldChanges.put(name, FieldStatus.EXISTS_ONLY_IN_ANNOTATION);
-				} else if (!Objects.equals(tableColumn.mode, annotatedField.mode) || !Objects.equals(tableColumn.type,
-						annotatedField.type))
+				} else if (!Objects.equals(tableColumn.mode, annotatedField.mode) ||
+						!Objects.equals(tableColumn.type, annotatedField.type))
 					fieldChanges.put(name, FieldStatus.NOT_IDENTICAL);
 			});
 		}
@@ -230,17 +226,7 @@ public class AnnotatedTableService<T> extends FieldMapWrapper<T> {
 			throws IOException, ReflectiveOperationException {
 		checkParameters();
 		final TableRequestResult result = tableService.queryRows(tableName, tableRequest);
-		return result == null ? null : new TableRequestResultRecords(result, toRecords(result.rows));
+		return result == null ? null : new TableRequestResultRecords<>(result, toRecords(result.rows));
 	}
 
-	public static class TableRequestResultRecords<T> extends TableRequestResult {
-
-		final public List<T> records;
-
-		private TableRequestResultRecords(final TableRequestResult result, final List<T> records) {
-			super(result);
-			this.records = records;
-		}
-
-	}
 }

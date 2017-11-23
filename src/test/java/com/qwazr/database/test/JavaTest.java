@@ -17,6 +17,7 @@ package com.qwazr.database.test;
 
 import com.qwazr.database.TableServer;
 import com.qwazr.database.annotations.AnnotatedTableService;
+import com.qwazr.database.annotations.TableRequestResultRecords;
 import com.qwazr.database.model.TableDefinition;
 import com.qwazr.database.model.TableQuery;
 import com.qwazr.database.model.TableRequest;
@@ -146,7 +147,7 @@ public class JavaTest {
 			final TableQuery.Group query, final Long expectedCount, final JavaRecord... rows)
 			throws IOException, ReflectiveOperationException {
 		final TableRequest request = TableRequest.from(0, 100).column(COLUMNS_WITHID).query(query).build();
-		final AnnotatedTableService.TableRequestResultRecords<JavaRecord> result = service.queryRows(request);
+		final TableRequestResultRecords<JavaRecord> result = service.queryRows(request);
 		Assert.assertNotNull(result);
 		Assert.assertNotNull(result.count);
 		if (expectedCount != null)
