@@ -451,24 +451,18 @@ public abstract class JsonTest {
 	}
 
 	private static ColumnDefinition getColumnDefinition(String res) {
-		InputStream is = JsonTest.class.getResourceAsStream(res);
-		try {
+		try (final InputStream is = JsonTest.class.getResourceAsStream(res)) {
 			return ColumnDefinition.newColumnDefinition(IOUtils.toString(is, StandardCharsets.UTF_8));
 		} catch (IOException e) {
 			throw new RuntimeException(e);
-		} finally {
-			IOUtils.close(is);
 		}
 	}
 
 	private static <T> T getTypeDef(String res, TypeReference valueTypeRef) {
-		InputStream is = JsonTest.class.getResourceAsStream(res);
-		try {
+		try (final InputStream is = JsonTest.class.getResourceAsStream(res)) {
 			return ObjectMappers.JSON.readValue(is, valueTypeRef);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
-		} finally {
-			IOUtils.close(is);
 		}
 	}
 

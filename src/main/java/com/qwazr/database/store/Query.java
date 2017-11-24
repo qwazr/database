@@ -66,23 +66,35 @@ public interface Query {
 
 	class TermQuery<T> implements Query {
 
-		private final TableQuery.Term<T> termQuery;
+		private volatile String field;
+
+		private final T value;
 
 		public TermQuery(final TableQuery.Term<T> termQuery) {
-			this.termQuery = Objects.requireNonNull(termQuery, "The term query is null");
+			Objects.requireNonNull(termQuery, "The term query is null");
+			this.field = termQuery.column;
+			this.value = termQuery.value;
+		}
+
+		final public String getField() {
+			return field;
+		}
+
+		final public void setField(String newField) {
+			this.field = newField;
 		}
 
 		@Override
 		final public RoaringBitmap execute(final QueryContext context, final ExecutorService executor)
 				throws IOException {
-			final RoaringBitmap bitset = context.getIndexedBitset(termQuery.column, termQuery.value);
+			final RoaringBitmap bitset = context.getIndexedBitset(field, value);
 			if (bitset == null)
 				return new RoaringBitmap();
 			return bitset;
 		}
 
 		final public T getValue() {
-			return termQuery.value;
+			return value;
 		}
 	}
 

@@ -40,8 +40,8 @@ class KeyStoreLmdb implements KeyStore {
 	}
 
 	@Override
-	final public void close() throws IOException {
-		IOUtils.close(db, env);
+	final public void close() {
+		IOUtils.closeQuietly(db, env);
 	}
 
 	@Override
@@ -85,8 +85,8 @@ class KeyStoreLmdb implements KeyStore {
 		}
 
 		@Override
-		final public void close() throws IOException {
-			IOUtils.close(it, tx);
+		final public void close() {
+			IOUtils.closeQuietly(it, tx);
 		}
 
 		@Override
