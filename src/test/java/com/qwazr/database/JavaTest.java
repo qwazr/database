@@ -13,9 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.qwazr.database.test;
+package com.qwazr.database;
 
-import com.qwazr.database.TableServer;
 import com.qwazr.database.annotations.AnnotatedTableService;
 import com.qwazr.database.annotations.TableRequestResultRecords;
 import com.qwazr.database.model.ColumnDefinition;
@@ -37,8 +36,6 @@ import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
-
-import static com.qwazr.database.test.JsonTest.checkErrorStatusCode;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class JavaTest implements TableTestHelper {
@@ -230,7 +227,7 @@ public class JavaTest implements TableTestHelper {
 	public void test950deleteTable() throws URISyntaxException, NoSuchMethodException {
 		final AnnotatedTableService<JavaRecord> service = getService();
 		service.deleteTable();
-		checkErrorStatusCode(() -> service.deleteTable(), 404);
+		JsonTest.checkErrorStatusCode(() -> service.deleteTable(), 404);
 	}
 
 	@AfterClass

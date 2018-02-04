@@ -13,12 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.qwazr.database.test;
+package com.qwazr.database;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.qwazr.database.TableBuilder;
-import com.qwazr.database.TableServer;
-import com.qwazr.database.TableServiceInterface;
 import com.qwazr.database.model.ColumnDefinition;
 import com.qwazr.database.model.TableDefinition;
 import com.qwazr.database.model.TableQuery;

@@ -17,7 +17,6 @@ package com.qwazr.database;
 
 import com.qwazr.cluster.ClusterManager;
 import com.qwazr.cluster.ClusterServiceInterface;
-import com.qwazr.database.store.Tables;
 import com.qwazr.server.ApplicationBuilder;
 import com.qwazr.server.BaseServer;
 import com.qwazr.server.GenericServer;
@@ -33,32 +32,32 @@ import java.net.URISyntaxException;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 public class TableServer implements BaseServer {
 
 	private final GenericServer server;
-	private final TableManager tableManager;
-	private final ClusterManager clusterManager;
 	private final TableServiceBuilder serviceBuilder;
 
 	public TableServer(final ServerConfiguration serverConfiguration) throws IOException, URISyntaxException {
-		final ExecutorService executorService = Executors.newCachedThreadPool();
+
+		final TableSingleton tableSingleton = new TableSingleton(serverConfiguration.dataDirectory.toPath(), null);
+		final ExecutorService executorService = tableSingleton.getExecutorService();
+
 		final GenericServerBuilder builder = GenericServer.of(serverConfiguration, executorService);
 		final ApplicationBuilder webServices = ApplicationBuilder.of("/*").classes(RestApplication.JSON_CLASSES).
 				singletons(new WelcomeShutdownService());
 		final Set<String> services = new HashSet<>();
 		services.add(ClusterServiceInterface.SERVICE_NAME);
 		services.add(TableServiceInterface.SERVICE_NAME);
-		clusterManager =
+
+		final ClusterManager clusterManager =
 				new ClusterManager(executorService, serverConfiguration).registerProtocolListener(builder, services)
 						.registerWebService(webServices);
-		tableManager = new TableManager(executorService,
-				TableManager.checkTablesDirectory(serverConfiguration.dataDirectory.toPath()));
-		builder.shutdownListener(server -> Tables.closeAll());
+		final TableManager tableManager = tableSingleton.getTableManager();
 		webServices.singletons(tableManager.getService());
 		serviceBuilder = new TableServiceBuilder(clusterManager, tableManager);
 		builder.getWebServiceContext().jaxrs(webServices);
+		builder.shutdownListener(server -> tableSingleton.close());
 		server = builder.build();
 	}
 

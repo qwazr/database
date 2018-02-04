@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.qwazr.database.test;
+package com.qwazr.database;
 
 import com.qwazr.database.model.TableQuery;
 import com.qwazr.database.model.TableRequest;

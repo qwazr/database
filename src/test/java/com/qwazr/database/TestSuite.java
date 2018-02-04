@@ -13,9 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.qwazr.database.test;
+package com.qwazr.database;
 
-import com.qwazr.database.TableServiceInterface;
 import com.qwazr.database.store.KeyStore;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
@@ -23,8 +22,7 @@ import org.junit.runners.Suite;
 import java.net.URISyntaxException;
 
 @RunWith(Suite.class)
-@Suite.SuiteClasses({ TestSuite.LevelDbLocalTest.class,
-		TestSuite.LevelDbRemoteTest.class /*, TestSuite.LmdbTest.class*/ })
+@Suite.SuiteClasses({ TestSuite.LevelDbLocalTest.class, TestSuite.LevelDbRemoteTest.class, TestSuite.LmdbTest.class })
 public class TestSuite {
 
 	public static class LevelDbLocalTest extends JsonTest {
