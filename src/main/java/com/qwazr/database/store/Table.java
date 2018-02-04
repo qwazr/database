@@ -15,7 +15,6 @@
  */
 package com.qwazr.database.store;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.qwazr.database.model.ColumnDefinition;
 import com.qwazr.database.model.TableDefinition;
 import com.qwazr.database.store.CollectorInterface.LongCounter;
@@ -47,7 +46,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 
@@ -57,38 +55,18 @@ public class Table implements Closeable {
 
 	private final ReadWriteLock rwlColumns = ReadWriteLock.stamped();
 
-	final File directory;
+	private final ExecutorService executorService;
 
-	final KeyStore keyStore;
+	private final File directory;
 
-	final ColumnDefsKey columnDefsKey;
+	private final KeyStore keyStore;
 
-	final PrimaryIndexKey primaryIndexKey;
+	private final ColumnDefsKey columnDefsKey;
 
-	private static final ExecutorService readExecutor;
+	private final PrimaryIndexKey primaryIndexKey;
 
-	private static final ExecutorService writeExecutor;
-
-	static {
-		readExecutor = Executors.newFixedThreadPool(12);
-		writeExecutor = Executors.newFixedThreadPool(4);
-		Runtime.getRuntime().addShutdownHook(new Thread() {
-			@Override
-			public void run() {
-				readExecutor.shutdown();
-				writeExecutor.shutdown();
-			}
-		});
-	}
-
-	public final static TypeReference<Map<String, Integer>> MapStringIntegerTypeRef =
-			new TypeReference<Map<String, Integer>>() {
-			};
-
-	private static final ByteConverter.JsonTypeByteConverter MapStringIntegerByteConverter =
-			new ByteConverter.JsonTypeByteConverter(MapStringIntegerTypeRef);
-
-	Table(final File directory, final KeyStore.Impl storeImpl) throws IOException {
+	Table(final ExecutorService executorService, final File directory, final KeyStore.Impl storeImpl) {
+		this.executorService = executorService;
 		this.directory = directory;
 		LOGGER.info(() -> "Load table: " + directory);
 		final File dbFile = new File(directory, storeImpl.directoryName);
@@ -114,6 +92,10 @@ public class Table implements Closeable {
 	public void delete() throws IOException {
 		if (keyStore.exists())
 			keyStore.delete();
+	}
+
+	public KeyStore.Impl getImplementation() {
+		return keyStore.getImplementation();
 	}
 
 	public Map<String, ColumnDefinition> getColumns() throws IOException {
@@ -297,7 +279,7 @@ public class Table implements Closeable {
 	}
 
 	private LinkedHashMap<String, Object> getRowByIdNoLock(final Integer docId,
-			final Map<String, ColumnDefinition.Internal> columns) throws IOException {
+			final Map<String, ColumnDefinition.Internal> columns) {
 		if (docId == null)
 			return null;
 		final LinkedHashMap<String, Object> row = new LinkedHashMap<>();
@@ -400,7 +382,7 @@ public class Table implements Closeable {
 
 			// First we search for the document using Bitset
 			final RoaringBitmap finalBitmap =
-					query != null ? query.execute(context, readExecutor) : primaryIndexKey.getValue(keyStore);
+					query != null ? query.execute(context, executorService) : primaryIndexKey.getValue(keyStore);
 			if (finalBitmap == null || finalBitmap.isEmpty())
 				return new QueryResult(context, finalBitmap);
 

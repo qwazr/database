@@ -19,6 +19,7 @@ import com.qwazr.database.model.ColumnDefinition;
 import com.qwazr.database.model.TableDefinition;
 import com.qwazr.database.model.TableRequest;
 import com.qwazr.database.model.TableRequestResult;
+import com.qwazr.database.model.TableStatus;
 import com.qwazr.database.store.KeyStore;
 import com.qwazr.server.RemoteService;
 import com.qwazr.server.client.JsonClient;
@@ -57,8 +58,8 @@ public class TableSingleClient extends JsonClient implements TableServiceInterfa
 	}
 
 	@Override
-	public TableDefinition getTable(final String tableName) {
-		return tableTarget.path(tableName).request(MediaType.APPLICATION_JSON).get(TableDefinition.class);
+	public TableStatus getTableStatus(final String tableName) {
+		return tableTarget.path(tableName).request(MediaType.APPLICATION_JSON).get(TableStatus.class);
 	}
 
 	@Override

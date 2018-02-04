@@ -18,10 +18,12 @@ package com.qwazr.database.test;
 import com.qwazr.database.TableServer;
 import com.qwazr.database.annotations.AnnotatedTableService;
 import com.qwazr.database.annotations.TableRequestResultRecords;
+import com.qwazr.database.model.ColumnDefinition;
 import com.qwazr.database.model.TableDefinition;
 import com.qwazr.database.model.TableQuery;
 import com.qwazr.database.model.TableRequest;
 import com.qwazr.database.model.TableRequestResult;
+import com.qwazr.database.store.KeyStore;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.FixMethodOrder;
@@ -39,7 +41,7 @@ import java.util.Set;
 import static com.qwazr.database.test.JsonTest.checkErrorStatusCode;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
-public class JavaTest {
+public class JavaTest implements TableTestHelper {
 
 	private static String[] COLUMNS =
 			{ JavaRecord.COL_LABEL, JavaRecord.COL_DPT, JavaRecord.COL_LAST_UPDATE_DATE, JavaRecord.COL_CREATION_DATE };
@@ -74,12 +76,14 @@ public class JavaTest {
 	@Test
 	public void test050CreateTable() throws URISyntaxException, NoSuchMethodException {
 		final AnnotatedTableService<JavaRecord> service = getService();
+
+		final TableDefinition tableDefinition = new TableDefinition(KeyStore.Impl.leveldb, null);
 		// First call create the table
 		service.createUpdateTable();
-		Assert.assertNotNull(service.getTable());
+		checkStatus(service.getTableStatus(), 0, tableDefinition);
 		// Second call should do nothing
 		service.createUpdateTable();
-		Assert.assertNotNull(service.getTable());
+		checkStatus(service.getTableStatus(), 0, tableDefinition);
 	}
 
 	@Test
@@ -88,11 +92,17 @@ public class JavaTest {
 		// First time
 		service.createUpdateFields();
 		Assert.assertNotNull(service.getColumns());
-		Assert.assertNotNull(service.getColumn(JavaRecord.COL_LABEL));
+		checkColumn(service.getColumn(JavaRecord.COL_LABEL), ColumnDefinition.Type.STRING,
+				ColumnDefinition.Mode.STORED);
+		checkColumn(service.getColumn(JavaRecord.COL_DPT), ColumnDefinition.Type.INTEGER,
+				ColumnDefinition.Mode.INDEXED);
 		// Second time
 		service.createUpdateFields();
 		Assert.assertNotNull(service.getColumns());
-		Assert.assertNotNull(service.getColumn(JavaRecord.COL_LABEL));
+		checkColumn(service.getColumn(JavaRecord.COL_LABEL), ColumnDefinition.Type.STRING,
+				ColumnDefinition.Mode.STORED);
+		checkColumn(service.getColumn(JavaRecord.COL_DPT), ColumnDefinition.Type.INTEGER,
+				ColumnDefinition.Mode.INDEXED);
 	}
 
 	@Test

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2017 Emmanuel Keller / QWAZR
+ * Copyright 2015-2018 Emmanuel Keller / QWAZR
  * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import com.qwazr.utils.LoggerUtils;
 import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -30,16 +31,13 @@ public class Tables {
 
 	private final static ConcurrentHashMap<File, Table> tables = new ConcurrentHashMap<>();
 
-	public static Table getInstance(final File directory, final KeyStore.Impl storeImpl) {
+	public static Table getInstance(final ExecutorService executorService, final File directory,
+			final KeyStore.Impl storeImpl) {
 		return tables.computeIfAbsent(directory, file -> {
 			final KeyStore.Impl si = storeImpl == null ? KeyStore.Impl.detect(directory) : storeImpl;
 			if (si == null)
 				throw new ServerException("Cannot detect the store type: " + directory);
-			try {
-				return new Table(file, si);
-			} catch (IOException e) {
-				throw ServerException.of(e);
-			}
+			return new Table(executorService, file, si);
 		});
 	}
 

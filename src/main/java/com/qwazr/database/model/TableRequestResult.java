@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2016 Emmanuel Keller / QWAZR
+ * Copyright 2015-2018 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
  */
 package com.qwazr.database.model;
 
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
@@ -26,6 +27,11 @@ import java.util.List;
 import java.util.Map;
 
 @JsonInclude(Include.NON_EMPTY)
+@JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.PUBLIC_ONLY,
+		isGetterVisibility = JsonAutoDetect.Visibility.NONE,
+		getterVisibility = JsonAutoDetect.Visibility.NONE,
+		setterVisibility = JsonAutoDetect.Visibility.NONE,
+		creatorVisibility = JsonAutoDetect.Visibility.NONE)
 public class TableRequestResult {
 
 	final public Long count;
@@ -49,5 +55,17 @@ public class TableRequestResult {
 
 	public TableRequestResult(final TableRequestResult result) {
 		this(result.count, result.rows, result.counters);
+	}
+
+	public Long getCount() {
+		return count;
+	}
+
+	public List<Map<String, Object>> getRows() {
+		return rows;
+	}
+
+	public Map<String, Map<String, Long>> getCounters() {
+		return counters;
 	}
 }

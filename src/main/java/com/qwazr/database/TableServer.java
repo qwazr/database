@@ -17,6 +17,7 @@ package com.qwazr.database;
 
 import com.qwazr.cluster.ClusterManager;
 import com.qwazr.cluster.ClusterServiceInterface;
+import com.qwazr.database.store.Tables;
 import com.qwazr.server.ApplicationBuilder;
 import com.qwazr.server.BaseServer;
 import com.qwazr.server.GenericServer;
@@ -52,9 +53,10 @@ public class TableServer implements BaseServer {
 		clusterManager =
 				new ClusterManager(executorService, serverConfiguration).registerProtocolListener(builder, services)
 						.registerWebService(webServices);
-		tableManager = new TableManager(
-				TableManager.checkTablesDirectory(serverConfiguration.dataDirectory.toPath())).registerContextAttribute(
-				builder).registerWebService(webServices).registerShutdownListener(builder);
+		tableManager = new TableManager(executorService,
+				TableManager.checkTablesDirectory(serverConfiguration.dataDirectory.toPath()));
+		builder.shutdownListener(server -> Tables.closeAll());
+		webServices.singletons(tableManager.getService());
 		serviceBuilder = new TableServiceBuilder(clusterManager, tableManager);
 		builder.getWebServiceContext().jaxrs(webServices);
 		server = builder.build();
@@ -75,8 +77,7 @@ public class TableServer implements BaseServer {
 	}
 
 	public static synchronized void main(final String... args)
-			throws IOException, ReflectiveOperationException, ServletException, JMException, URISyntaxException,
-			InterruptedException {
+			throws IOException, ReflectiveOperationException, ServletException, JMException, URISyntaxException {
 		if (INSTANCE != null)
 			shutdown();
 		INSTANCE = new TableServer(new ServerConfiguration(args));

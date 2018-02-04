@@ -18,49 +18,45 @@ package com.qwazr.database.model;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.qwazr.database.store.KeyStore;
-import com.qwazr.utils.CollectionsUtils;
 
-import java.util.Map;
 import java.util.Objects;
 
-@JsonInclude(Include.NON_EMPTY)
+@JsonInclude(JsonInclude.Include.NON_EMPTY)
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NON_PRIVATE,
 		getterVisibility = JsonAutoDetect.Visibility.NONE,
 		setterVisibility = JsonAutoDetect.Visibility.NONE,
 		isGetterVisibility = JsonAutoDetect.Visibility.NONE,
 		creatorVisibility = JsonAutoDetect.Visibility.NONE)
-public class TableDefinition {
+public class TableStatus {
 
-	final public KeyStore.Impl implementation;
-	final public Map<String, ColumnDefinition> columns;
+	public final TableDefinition definition;
 
-	public static final String ID_COLUMN_NAME = "$id$";
+	@JsonProperty("num_rows")
+	public final Integer numRows;
 
 	@JsonCreator
-	public TableDefinition(@JsonProperty("implementation") final KeyStore.Impl implementation,
-			@JsonProperty("columns") final Map<String, ColumnDefinition> columns) {
-		this.implementation = implementation;
-		this.columns = columns;
+	public TableStatus(final @JsonProperty("definition") TableDefinition definition,
+			final @JsonProperty("num_rows") Integer numRows) {
+		this.definition = definition;
+		this.numRows = numRows;
 	}
 
-	public KeyStore.Impl getImplementation() {
-		return implementation;
+	public TableDefinition getDefinition() {
+		return definition;
 	}
 
-	public Map<String, ColumnDefinition> getColumns() {
-		return columns;
+	public Integer getNumRows() {
+		return numRows;
 	}
 
 	@Override
 	public boolean equals(Object o) {
-		if (o == null || !(o instanceof TableDefinition))
+		if (o == null || !(o instanceof TableStatus))
 			return false;
 		if (o == this)
 			return true;
-		final TableDefinition t = (TableDefinition) o;
-		return Objects.equals(implementation, t.implementation) && CollectionsUtils.equals(columns, t.columns);
+		final TableStatus s = (TableStatus) o;
+		return Objects.equals(definition, s.definition) && Objects.equals(numRows, s.numRows);
 	}
 }

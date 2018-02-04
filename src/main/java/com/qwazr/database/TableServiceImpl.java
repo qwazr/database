@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2017 Emmanuel Keller / QWAZR
+ * Copyright 2015-2018 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import com.qwazr.database.model.ColumnDefinition;
 import com.qwazr.database.model.TableDefinition;
 import com.qwazr.database.model.TableRequest;
 import com.qwazr.database.model.TableRequestResult;
+import com.qwazr.database.model.TableStatus;
 import com.qwazr.database.store.KeyStore;
 import com.qwazr.database.store.Query;
 import com.qwazr.server.AbstractServiceImpl;
@@ -78,9 +79,9 @@ class TableServiceImpl extends AbstractServiceImpl implements TableServiceInterf
 	}
 
 	@Override
-	public TableDefinition getTable(String tableName) {
+	public TableStatus getTableStatus(String tableName) {
 		try {
-			return new TableDefinition(null, tableManager.getColumns(tableName));
+			return tableManager.getStatus(tableName);
 		} catch (IOException | ServerException e) {
 			throw ServerException.getJsonException(LOGGER, e);
 		}

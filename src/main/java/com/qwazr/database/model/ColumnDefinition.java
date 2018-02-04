@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2017 Emmanuel Keller / QWAZR
+ * Copyright 2015-2018 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,13 +15,24 @@
  */
 package com.qwazr.database.model;
 
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.qwazr.database.annotations.TableColumn;
 import com.qwazr.utils.ObjectMappers;
 
 import javax.ws.rs.core.GenericType;
 import java.io.IOException;
 import java.util.Map;
+import java.util.Objects;
 
+@JsonInclude(JsonInclude.Include.NON_EMPTY)
+@JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NON_PRIVATE,
+		getterVisibility = JsonAutoDetect.Visibility.NONE,
+		setterVisibility = JsonAutoDetect.Visibility.NONE,
+		isGetterVisibility = JsonAutoDetect.Visibility.NONE,
+		creatorVisibility = JsonAutoDetect.Visibility.NONE)
 public class ColumnDefinition {
 
 	public enum Type {
@@ -35,11 +46,8 @@ public class ColumnDefinition {
 	public final Type type;
 	public final Mode mode;
 
-	public ColumnDefinition() {
-		this(null, null);
-	}
-
-	public ColumnDefinition(final Type type, final Mode mode) {
+	@JsonCreator
+	public ColumnDefinition(@JsonProperty("type") final Type type, @JsonProperty("mode") final Mode mode) {
 		this.type = type;
 		this.mode = mode;
 	}
@@ -59,13 +67,31 @@ public class ColumnDefinition {
 		}
 	}
 
+	@Override
+	public boolean equals(Object o) {
+		if (o == null || !(o instanceof ColumnDefinition))
+			return false;
+		if (o == this)
+			return true;
+		final ColumnDefinition c = (ColumnDefinition) o;
+		return Objects.equals(type, c.type) && Objects.equals(mode, c.mode);
+	}
+
+	public Type getType() {
+		return type;
+	}
+
+	public Mode getMode() {
+		return mode;
+	}
+
 	public static class Internal extends ColumnDefinition {
 
 		public final int column_id;
 
 		public final static Internal PRIMARYKEY_COLUMN = new Internal();
 
-		public Internal() {
+		Internal() {
 			this(null, 0);
 		}
 
@@ -80,7 +106,7 @@ public class ColumnDefinition {
 			new GenericType<Map<String, ColumnDefinition>>() {
 			};
 
-	public final static ColumnDefinition newColumnDefinition(String jsonString) throws IOException {
+	public static ColumnDefinition newColumnDefinition(String jsonString) throws IOException {
 		return ObjectMappers.JSON.readValue(jsonString, ColumnDefinition.class);
 	}
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2016 Emmanuel Keller / QWAZR
+ * Copyright 2015-2018 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,6 @@ import org.fusesource.lmdbjni.Env;
 import org.fusesource.lmdbjni.Transaction;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.Map;
 
 class KeyStoreLmdb implements KeyStore {
@@ -31,7 +30,7 @@ class KeyStoreLmdb implements KeyStore {
 	private final Database db;
 	private final File file;
 
-	public KeyStoreLmdb(final File file) throws IOException {
+	public KeyStoreLmdb(final File file) {
 		this.file = file;
 		if (!file.exists())
 			file.mkdir();
@@ -45,12 +44,17 @@ class KeyStoreLmdb implements KeyStore {
 	}
 
 	@Override
+	public Impl getImplementation() {
+		return Impl.lmdb;
+	}
+
+	@Override
 	final public boolean exists() {
 		return file.exists();
 	}
 
 	@Override
-	final public void delete() throws IOException {
+	final public void delete() {
 		env.close();
 	}
 
@@ -65,7 +69,7 @@ class KeyStoreLmdb implements KeyStore {
 	}
 
 	@Override
-	final public void delete(final byte[] key) throws IOException {
+	final public void delete(final byte[] key) {
 		db.delete(key);
 	}
 

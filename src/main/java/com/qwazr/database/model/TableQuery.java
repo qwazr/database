@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2017 Emmanuel Keller / QWAZR
+ * Copyright 2015-2018 Emmanuel Keller / QWAZR
  * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,8 +24,10 @@ import com.qwazr.utils.CollectionsUtils;
 
 import java.util.LinkedHashSet;
 import java.util.Objects;
+import java.util.Set;
 
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.PUBLIC_ONLY,
+		isGetterVisibility = JsonAutoDetect.Visibility.NONE,
 		getterVisibility = JsonAutoDetect.Visibility.NONE,
 		setterVisibility = JsonAutoDetect.Visibility.NONE,
 		creatorVisibility = JsonAutoDetect.Visibility.NONE)
@@ -58,6 +60,14 @@ public class TableQuery {
 				return true;
 			final Term t = (Term) o;
 			return Objects.equals(column, t.column) && Objects.equals(value, t.value);
+		}
+
+		public String getColumn() {
+			return column;
+		}
+
+		public T getValue() {
+			return value;
 		}
 	}
 
@@ -147,6 +157,10 @@ public class TableQuery {
 				return true;
 			final Group g = (Group) o;
 			return CollectionsUtils.equals(queries, g.queries);
+		}
+
+		public Set<TableQuery> getQueries() {
+			return queries;
 		}
 	}
 

@@ -22,12 +22,14 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.qwazr.utils.CollectionsUtils;
 
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
 
 @JsonInclude(Include.NON_EMPTY)
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.PUBLIC_ONLY,
+		isGetterVisibility = JsonAutoDetect.Visibility.NONE,
 		getterVisibility = JsonAutoDetect.Visibility.NONE,
 		setterVisibility = JsonAutoDetect.Visibility.NONE,
 		creatorVisibility = JsonAutoDetect.Visibility.NONE)
@@ -64,6 +66,26 @@ public class TableRequest {
 				Objects.equals(query, r.query);
 	}
 
+	public Integer getStart() {
+		return start;
+	}
+
+	public Integer getRows() {
+		return rows;
+	}
+
+	public Set<String> getColumns() {
+		return columns;
+	}
+
+	public Set<String> getCounters() {
+		return counters;
+	}
+
+	public TableQuery getQuery() {
+		return query;
+	}
+
 	public static Builder from(Integer start, Integer rows) {
 		return new Builder().start(start).rows(rows);
 	}
@@ -89,18 +111,20 @@ public class TableRequest {
 		}
 
 		public Builder column(String... columns) {
-			if (this.columns == null)
-				this.columns = new LinkedHashSet<>();
-			for (final String column : columns)
-				this.columns.add(column);
+			if (columns != null && columns.length > 0) {
+				if (this.columns == null)
+					this.columns = new LinkedHashSet<>();
+				Collections.addAll(this.columns, columns);
+			}
 			return this;
 		}
 
 		public Builder counter(String... counters) {
-			if (this.counters == null)
-				this.counters = new LinkedHashSet<>();
-			for (final String counter : counters)
-				this.counters.add(counter);
+			if (counters != null && counters.length > 0) {
+				if (this.counters == null)
+					this.counters = new LinkedHashSet<>();
+				Collections.addAll(this.counters, counters);
+			}
 			return this;
 		}
 

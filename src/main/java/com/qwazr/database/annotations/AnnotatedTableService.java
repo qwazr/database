@@ -22,6 +22,7 @@ import com.qwazr.database.model.ColumnDefinition;
 import com.qwazr.database.model.TableDefinition;
 import com.qwazr.database.model.TableRequest;
 import com.qwazr.database.model.TableRequestResult;
+import com.qwazr.database.model.TableStatus;
 import com.qwazr.database.store.KeyStore;
 import com.qwazr.utils.AnnotationsUtils;
 import com.qwazr.utils.StringUtils;
@@ -54,7 +55,7 @@ public class AnnotatedTableService<T> extends FieldMapWrapper<T> {
 	 * @throws URISyntaxException if any URL is malformated
 	 */
 	public AnnotatedTableService(final TableServiceInterface tableService, final Class<T> tableDefinitionClass,
-			final String tableName) throws URISyntaxException, NoSuchMethodException {
+			final String tableName) throws NoSuchMethodException {
 		super(new LinkedHashMap<>(), tableDefinitionClass);
 		Objects.requireNonNull(tableService, "The tableService parameter is null");
 		Objects.requireNonNull(tableDefinitionClass, "The tableDefinitionClass parameter is null");
@@ -98,9 +99,9 @@ public class AnnotatedTableService<T> extends FieldMapWrapper<T> {
 		tableService.createTable(tableName, KeyStore.Impl.leveldb);
 	}
 
-	public TableDefinition getTable() {
+	public TableStatus getTableStatus() {
 		checkParameters();
-		return tableService.getTable(tableName);
+		return tableService.getTableStatus(tableName);
 	}
 
 	public void deleteTable() {

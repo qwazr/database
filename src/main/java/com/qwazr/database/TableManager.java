@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2017 Emmanuel Keller / QWAZR
+ * Copyright 2015-2018 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,24 +16,22 @@
 package com.qwazr.database;
 
 import com.qwazr.database.model.ColumnDefinition;
+import com.qwazr.database.model.TableDefinition;
 import com.qwazr.database.model.TableRequest;
 import com.qwazr.database.model.TableRequestResult;
+import com.qwazr.database.model.TableStatus;
 import com.qwazr.database.store.CollectorInterface;
 import com.qwazr.database.store.KeyStore;
 import com.qwazr.database.store.Query;
 import com.qwazr.database.store.Table;
 import com.qwazr.database.store.Tables;
-import com.qwazr.server.ApplicationBuilder;
-import com.qwazr.server.GenericServerBuilder;
 import com.qwazr.server.ServerException;
+import com.qwazr.utils.ExceptionUtils;
+import com.qwazr.utils.FileUtils;
 import com.qwazr.utils.concurrent.ReadWriteLock;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.filefilter.FileFilterUtils;
 import org.roaringbitmap.RoaringBitmap;
 
 import javax.ws.rs.core.Response;
-import java.io.File;
-import java.io.FileFilter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -45,17 +43,21 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.concurrent.ExecutorService;
 
 public class TableManager {
 
 	private final ReadWriteLock rwl = ReadWriteLock.stamped();
 
-	private final File directory;
+	private final ExecutorService executorService;
+
+	private final Path tablesDirectory;
 
 	private final TableServiceInterface service;
 
-	public TableManager(final Path tablesDirectory) throws ServerException, IOException {
-		this.directory = tablesDirectory.toFile();
+	public TableManager(final ExecutorService executorService, final Path tablesDirectory) throws ServerException {
+		this.executorService = executorService;
+		this.tablesDirectory = tablesDirectory;
 		service = new TableServiceImpl(this);
 	}
 
@@ -66,52 +68,46 @@ public class TableManager {
 		return tablesDirectory;
 	}
 
-	public TableManager registerWebService(final ApplicationBuilder builder) {
-		builder.singletons(service);
-		return this;
-	}
-
-	public TableManager registerContextAttribute(final GenericServerBuilder builder) {
-		builder.contextAttribute(this);
-		return this;
-	}
-
-	public TableManager registerShutdownListener(final GenericServerBuilder builder) {
-		builder.shutdownListener(server -> Tables.closeAll());
-		return this;
-	}
-
 	public TableServiceInterface getService() {
 		return service;
 	}
 
-	private Table getTable(final String tableName) throws IOException {
-		File dbDirectory = new File(directory, tableName);
-		if (!dbDirectory.exists())
+	private Table getTable(final String tableName) {
+		final Path tableDirectory = tablesDirectory.resolve(tableName);
+		if (!Files.exists(tableDirectory))
 			throw new ServerException(Response.Status.NOT_FOUND, "Table not found: " + tableName);
-		return Tables.getInstance(dbDirectory, null);
+		return Tables.getInstance(executorService, tableDirectory.toFile(), null);
 	}
 
 	public void createTable(final String tableName, final KeyStore.Impl storeImpl) throws IOException {
 		rwl.writeEx(() -> {
-			final File dbDirectory = new File(directory, tableName);
-			if (dbDirectory.exists())
+			final Path tableDirectory = tablesDirectory.resolve(tableName);
+			if (Files.exists(tableDirectory))
 				throw new ServerException(Response.Status.CONFLICT, "The table already exists: " + tableName);
-			dbDirectory.mkdir();
-			if (!dbDirectory.exists())
+			Files.createDirectory(tableDirectory);
+			if (!Files.exists(tableDirectory))
 				throw new ServerException(Response.Status.INTERNAL_SERVER_ERROR,
-						"The directory cannot be created: " + dbDirectory.getAbsolutePath());
-			Tables.getInstance(dbDirectory, storeImpl);
+						"The directory cannot be created: " + tableDirectory.toAbsolutePath().toString());
+			Tables.getInstance(executorService, tableDirectory.toFile(), storeImpl);
 		});
 	}
 
 	public SortedSet<String> getNameSet() {
 		return rwl.read(() -> {
 			final TreeSet<String> names = new TreeSet<>();
-			for (File file : directory.listFiles((FileFilter) FileFilterUtils.directoryFileFilter()))
-				if (!file.isHidden())
-					names.add(file.getName());
+			Files.list(tablesDirectory)
+					.filter(p -> Files.isDirectory(p))
+					.filter(p -> ExceptionUtils.bypass(() -> !Files.isHidden(p)))
+					.forEach(p -> names.add(p.getFileName().toString()));
 			return names;
+		});
+	}
+
+	public TableStatus getStatus(final String tableName) throws IOException {
+		return rwl.readEx(() -> {
+			final Table table = getTable(tableName);
+			final TableDefinition definition = new TableDefinition(table.getImplementation(), table.getColumns());
+			return new TableStatus(definition, table.getSize());
 		});
 	}
 
@@ -146,11 +142,11 @@ public class TableManager {
 
 	public void deleteTable(final String tableName) throws IOException {
 		rwl.writeEx(() -> {
-			final File dbDirectory = new File(directory, tableName);
-			if (!dbDirectory.exists())
+			final Path tableDirectory = tablesDirectory.resolve(tableName);
+			if (!Files.exists(tableDirectory))
 				throw new ServerException(Response.Status.NOT_FOUND, "Table not found: " + tableName);
-			Tables.delete(dbDirectory);
-			FileUtils.deleteDirectory(dbDirectory);
+			Tables.delete(tableDirectory.toFile());
+			FileUtils.deleteDirectory(tableDirectory);
 		});
 	}
 
