@@ -162,7 +162,7 @@ public class JavaTest implements TableTestHelper {
 		if (rows != null && rows.length > 0) {
 			Assert.assertEquals(rows.length, result.rows.size());
 			int i = 0;
-			for (JavaRecord record : result.records)
+			for (JavaRecord record : result.getRecords())
 				Assert.assertEquals(rows[i++], record);
 		}
 		return result;

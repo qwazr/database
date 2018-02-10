@@ -36,6 +36,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -210,23 +211,27 @@ public class TableManager {
 			final RoaringBitmap docBitset = table.query(query, counters).finalBitmap;
 
 			if (docBitset == null || docBitset.isEmpty())
-				return new TableRequestResult(0L);
+				return new TableRequestResult(0L, Collections.emptyList(), Collections.emptyMap());
 
-			final long count = docBitset.getCardinality();
-			final TableRequestResult result = new TableRequestResult(count);
+			final TableRequestResult.Builder builder =
+					new TableRequestResult.Builder((long) docBitset.getCardinality());
 
-			table.getRows(docBitset, request.columns, start, rows, result.rows);
+			final List<Map<String, Object>> resultRows = new ArrayList<>();
+			table.getRows(docBitset, request.columns, start, rows, resultRows);
+			builder.rows(resultRows);
 
 			if (counters == null)
-				return result;
+				return builder.build();
 
+			final Map<String, Map<String, Long>> resultCounters = new LinkedHashMap<>();
 			counters.forEach((countersEntryKey, countersEntry) -> {
 				final LinkedHashMap<String, Long> counter = new LinkedHashMap<>();
 				countersEntry.forEach((key, counterEntry) -> counter.put(key, counterEntry.count));
-				result.counters.put(countersEntryKey, counter);
+				resultCounters.put(countersEntryKey, counter);
 			});
+			builder.counters(resultCounters);
 
-			return result;
+			return builder.build();
 		});
 	}
 

@@ -21,8 +21,6 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -40,21 +38,11 @@ public class TableRequestResult {
 	final public Map<String, Map<String, Long>> counters;
 
 	@JsonCreator
-	TableRequestResult(@JsonProperty("count") Long count, @JsonProperty("rows") List<Map<String, Object>> rows,
+	public TableRequestResult(@JsonProperty("count") Long count, @JsonProperty("rows") List<Map<String, Object>> rows,
 			@JsonProperty("counters") Map<String, Map<String, Long>> counters) {
 		this.count = count;
 		this.rows = rows;
 		this.counters = counters;
-	}
-
-	public TableRequestResult(final Long count) {
-		this.count = count;
-		this.rows = new ArrayList<>();
-		this.counters = new LinkedHashMap<>();
-	}
-
-	public TableRequestResult(final TableRequestResult result) {
-		this(result.count, result.rows, result.counters);
 	}
 
 	public Long getCount() {
@@ -67,5 +55,31 @@ public class TableRequestResult {
 
 	public Map<String, Map<String, Long>> getCounters() {
 		return counters;
+	}
+
+	public static class Builder {
+
+		private final Long count;
+		private List<Map<String, Object>> rows;
+		private Map<String, Map<String, Long>> counters;
+
+		public Builder(final Long count) {
+			this.count = count;
+		}
+
+		public Builder rows(final List<Map<String, Object>> rows) {
+			this.rows = rows;
+			return this;
+		}
+
+		public Builder counters(final Map<String, Map<String, Long>> counters) {
+			this.counters = counters;
+			return this;
+		}
+
+		public TableRequestResult build() {
+			return new TableRequestResult(count, rows, counters);
+		}
+
 	}
 }
