@@ -59,7 +59,7 @@ public class TableBuilder {
 			tableService.createTable(tableName, implementation);
 		final Map<String, ColumnDefinition> existingColumns = tableService.getColumns(tableName);
 		columns.forEach((columnName, columnDefinition) -> {
-			if (!existingColumns.containsKey(columnName))
+			if (!columnName.equals(TableDefinition.ID_COLUMN_NAME) && !existingColumns.containsKey(columnName))
 				tableService.setColumn(tableName, columnName, columnDefinition);
 		});
 		existingColumns.keySet().forEach(columnName -> {

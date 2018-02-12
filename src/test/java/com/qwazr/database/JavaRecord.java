@@ -28,9 +28,7 @@ import java.util.Objects;
 @Table("JavaTest")
 public class JavaRecord {
 
-	@TableColumn(name = TableDefinition.ID_COLUMN_NAME,
-			mode = ColumnDefinition.Mode.INDEXED,
-			type = ColumnDefinition.Type.STRING)
+	@TableColumn(name = TableDefinition.ID_COLUMN_NAME)
 	public final String id;
 
 	public final static String COL_DPT = "dpt";

@@ -154,9 +154,10 @@ public class AnnotatedTableService<T> extends FieldMapWrapper<T> {
 			tableColumnMap.forEach((name, propertyField) -> {
 				final ColumnDefinition annotatedField = annotatedFields.get(name);
 				final ColumnDefinition tableColumn = tableColumns == null ? null : tableColumns.get(name);
+				if (name.equals(TableDefinition.ID_COLUMN_NAME)) // Ignore primary key
+					return;
 				if (tableColumn == null) {
-					if (!name.equals(TableDefinition.ID_COLUMN_NAME))
-						fieldChanges.put(name, FieldStatus.EXISTS_ONLY_IN_ANNOTATION);
+					fieldChanges.put(name, FieldStatus.EXISTS_ONLY_IN_ANNOTATION);
 				} else if (!Objects.equals(tableColumn.mode, annotatedField.mode) ||
 						!Objects.equals(tableColumn.type, annotatedField.type))
 					fieldChanges.put(name, FieldStatus.NOT_IDENTICAL);
