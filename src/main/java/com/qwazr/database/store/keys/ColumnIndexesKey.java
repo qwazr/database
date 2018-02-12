@@ -1,5 +1,5 @@
-/**
- * Copyright 2015-2016 Emmanuel Keller / QWAZR
+/*
+ * Copyright 2015-2018 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -12,10 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- **/
+ */
 package com.qwazr.database.store.keys;
 
-import com.qwazr.database.model.ColumnDefinition;
+import com.qwazr.database.model.InternalColumnDefinition;
 import com.qwazr.database.store.KeyStore;
 import com.qwazr.server.ServerException;
 
@@ -26,10 +26,10 @@ import java.util.Collection;
 
 public class ColumnIndexesKey extends KeysAbstract {
 
-	final private ColumnDefinition.Internal colDef;
+	final private InternalColumnDefinition colDef;
 	final private ArrayIterator arrayIterator;
 
-	public ColumnIndexesKey(ColumnDefinition.Internal colDef) {
+	public ColumnIndexesKey(InternalColumnDefinition colDef) {
 		super(KeyEnum.COLUMN_INDEX);
 		this.colDef = colDef;
 		switch (colDef.type) {
@@ -53,7 +53,7 @@ public class ColumnIndexesKey extends KeysAbstract {
 	@Override
 	final public void buildKey(final DataOutputStream output) throws IOException {
 		super.buildKey(output);
-		output.writeInt(colDef.column_id);
+		output.writeInt(colDef.columnId);
 	}
 
 	final public void remove(KeyStore store, ColumnStoreKey<?> columnStoreKey) throws IOException {

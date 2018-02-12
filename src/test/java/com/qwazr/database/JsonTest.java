@@ -425,7 +425,7 @@ public abstract class JsonTest {
 		getTableBuilder().build(client);
 		final Map<String, ColumnDefinition> columns = client.getColumns(TB_NAME);
 		checkColumns(columns, TB_COLS);
-		Assert.assertEquals(TB_COLS.length, columns.size());
+		Assert.assertEquals(TB_COLS.length + 1, columns.size());
 	}
 
 	@Test
@@ -435,7 +435,7 @@ public abstract class JsonTest {
 		final Map<String, ColumnDefinition> columns = client.getColumns(TB_NAME);
 		checkColumns(columns, TB_COLS);
 		checkColumns(columns, "col5");
-		Assert.assertEquals(TB_COLS.length + 1, columns.size());
+		Assert.assertEquals(TB_COLS.length + 2, columns.size());
 	}
 
 	@Test

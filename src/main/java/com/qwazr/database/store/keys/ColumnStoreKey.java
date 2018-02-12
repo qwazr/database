@@ -1,5 +1,5 @@
-/**
- * Copyright 2015-2016 Emmanuel Keller / QWAZR
+/*
+ * Copyright 2015-2018 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -12,15 +12,15 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- **/
+ */
 package com.qwazr.database.store.keys;
 
-import com.qwazr.database.model.ColumnDefinition;
+import com.qwazr.database.model.InternalColumnDefinition;
 import com.qwazr.database.store.ByteConverter;
 import com.qwazr.database.store.KeyStore;
 import com.qwazr.database.store.ValueConsumer;
-import com.qwazr.utils.ArrayUtils;
 import com.qwazr.server.ServerException;
+import com.qwazr.utils.ArrayUtils;
 
 import javax.ws.rs.core.Response;
 import java.io.DataOutputStream;
@@ -29,10 +29,10 @@ import java.util.Collection;
 
 final public class ColumnStoreKey<V> extends KeyAbstract<V> {
 
-	final ColumnDefinition.Internal columnDef;
+	final InternalColumnDefinition columnDef;
 	final int docId;
 
-	protected ColumnStoreKey(ColumnDefinition.Internal columnDef, int docId, ByteConverter<V> byteConverter) {
+	protected ColumnStoreKey(InternalColumnDefinition columnDef, int docId, ByteConverter<V> byteConverter) {
 		super(KeyEnum.COLUMN_STORE, byteConverter);
 		this.docId = docId;
 		this.columnDef = columnDef;
@@ -41,7 +41,7 @@ final public class ColumnStoreKey<V> extends KeyAbstract<V> {
 	@Override
 	final public void buildKey(final DataOutputStream output) throws IOException {
 		super.buildKey(output);
-		output.writeInt(columnDef.column_id);
+		output.writeInt(columnDef.columnId);
 		output.writeInt(docId);
 	}
 
@@ -53,7 +53,7 @@ final public class ColumnStoreKey<V> extends KeyAbstract<V> {
 		byteConverter.forFirst(getValue(store), consumer);
 	}
 
-	final public static ColumnStoreKey<?> newInstance(ColumnDefinition.Internal colDef, int docId) {
+	public static ColumnStoreKey<?> newInstance(final InternalColumnDefinition colDef, final int docId) {
 		switch (colDef.type) {
 		case DOUBLE:
 			return new ColumnStoreKey<>(colDef, docId, ByteConverter.DoubleArrayByteConverter.INSTANCE);

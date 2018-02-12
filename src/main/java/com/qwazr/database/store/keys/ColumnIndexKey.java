@@ -1,5 +1,5 @@
-/**
- * Copyright 2015-2016 Emmanuel Keller / QWAZR
+/*
+ * Copyright 2015-2018 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -12,10 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- **/
+ */
 package com.qwazr.database.store.keys;
 
-import com.qwazr.database.model.ColumnDefinition;
+import com.qwazr.database.model.InternalColumnDefinition;
 import com.qwazr.database.store.ByteConverter;
 import com.qwazr.database.store.KeyStore;
 import com.qwazr.server.ServerException;
@@ -58,18 +58,17 @@ public class ColumnIndexKey<V> extends IndexKey {
 		return values;
 	}
 
-	final public static ColumnIndexKey<?> newInstance(final ColumnDefinition.Internal colDef, Object value)
+	public static ColumnIndexKey<?> newInstance(final InternalColumnDefinition colDef, final Object value)
 			throws IOException {
-
 		switch (colDef.type) {
 		case DOUBLE:
-			return new ColumnIndexKey<>(colDef.column_id, value, ByteConverter.DoubleByteConverter.INSTANCE);
+			return new ColumnIndexKey<>(colDef.columnId, value, ByteConverter.DoubleByteConverter.INSTANCE);
 		case INTEGER:
-			return new ColumnIndexKey<>(colDef.column_id, value, ByteConverter.IntegerByteConverter.INSTANCE);
+			return new ColumnIndexKey<>(colDef.columnId, value, ByteConverter.IntegerByteConverter.INSTANCE);
 		case LONG:
-			return new ColumnIndexKey<>(colDef.column_id, value, ByteConverter.LongByteConverter.INSTANCE);
+			return new ColumnIndexKey<>(colDef.columnId, value, ByteConverter.LongByteConverter.INSTANCE);
 		case STRING:
-			return new ColumnIndexKey<>(colDef.column_id, value, ByteConverter.StringByteConverter.INSTANCE);
+			return new ColumnIndexKey<>(colDef.columnId, value, ByteConverter.StringByteConverter.INSTANCE);
 		}
 		throw new ServerException(Response.Status.NOT_ACCEPTABLE, "unknown type: " + colDef.type);
 	}

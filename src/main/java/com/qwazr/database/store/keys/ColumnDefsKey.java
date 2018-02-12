@@ -15,7 +15,7 @@
  **/
 package com.qwazr.database.store.keys;
 
-import com.qwazr.database.model.ColumnDefinition;
+import com.qwazr.database.model.InternalColumnDefinition;
 import com.qwazr.database.store.KeyStore;
 import com.qwazr.utils.CharsetUtils;
 
@@ -24,19 +24,19 @@ import java.nio.ByteBuffer;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-final public class ColumnDefsKey extends KeyAbstract<Map<String, ColumnDefinition.Internal>> {
+final public class ColumnDefsKey extends KeyAbstract<Map<String, InternalColumnDefinition>> {
 
 	public ColumnDefsKey() {
 		super(KeyEnum.COLUMN_DEF, null);
 	}
 
-	public Map<String, ColumnDefinition.Internal> getColumns(final KeyStore store) throws IOException {
-		final Map<String, ColumnDefinition.Internal> map = new LinkedHashMap<>();
+	public Map<String, InternalColumnDefinition> getColumns(final KeyStore store) throws IOException {
+		final Map<String, InternalColumnDefinition> map = new LinkedHashMap<>();
 		final byte[] prefixKey = getCachedKey();
 		prefixedKeys(store, 0, Integer.MAX_VALUE, (key, value) -> {
 			String fieldName =
 					CharsetUtils.decodeUtf8(ByteBuffer.wrap(key, prefixKey.length, key.length - prefixKey.length));
-			ColumnDefinition.Internal colDef = ColumnDefKey.columnInternalDefinitionByteConverter.toValue(value);
+			InternalColumnDefinition colDef = ColumnDefKey.columnInternalDefinitionByteConverter.toValue(value);
 			map.put(fieldName, colDef);
 		});
 		return map;

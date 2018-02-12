@@ -1,5 +1,5 @@
-/**
- * Copyright 2014-2016 Emmanuel Keller / QWAZR
+/*
+ * Copyright 2015-2018 Emmanuel Keller / QWAZR
  * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -12,10 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- **/
+ */
 package com.qwazr.database.store;
 
-import com.qwazr.database.model.ColumnDefinition;
+import com.qwazr.database.model.InternalColumnDefinition;
 import com.qwazr.database.store.keys.ColumnStoreKey;
 import org.roaringbitmap.RoaringBitmap;
 
@@ -37,7 +37,7 @@ public interface CollectorInterface {
 
 	DocumentsCollector documents(Collection<Integer> documentIds);
 
-	FacetsCollector facets(QueryContext context, ColumnDefinition.Internal columnDef,
+	FacetsCollector facets(QueryContext context, InternalColumnDefinition columnDef,
 			Map<Object, LongCounter> termCounter);
 
 	ScoresCollector scores();
@@ -56,7 +56,7 @@ public interface CollectorInterface {
 		}
 
 		@Override
-		final public FacetsCollector facets(QueryContext context, ColumnDefinition.Internal columnDef,
+		final public FacetsCollector facets(QueryContext context, InternalColumnDefinition columnDef,
 				Map<Object, LongCounter> termCounter) {
 			return new FacetsCollector(this, context, columnDef, termCounter);
 		}
@@ -122,10 +122,10 @@ public interface CollectorInterface {
 	class FacetsCollector extends CollectorAbstract implements ValueConsumer {
 
 		private final QueryContext context;
-		private final ColumnDefinition.Internal columnDef;
+		private final InternalColumnDefinition columnDef;
 		private final Map<Object, LongCounter> termCounter;
 
-		private FacetsCollector(CollectorInterface parent, QueryContext context, ColumnDefinition.Internal columnDef,
+		private FacetsCollector(CollectorInterface parent, QueryContext context, InternalColumnDefinition columnDef,
 				Map<Object, LongCounter> termCounter) {
 			super(parent);
 			this.context = context;

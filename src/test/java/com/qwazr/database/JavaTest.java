@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2017 Emmanuel Keller / QWAZR
+ * Copyright 2015-2018 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,6 +36,7 @@ import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.LinkedHashMap;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class JavaTest implements TableTestHelper {
@@ -74,7 +75,9 @@ public class JavaTest implements TableTestHelper {
 	public void test050CreateTable() throws URISyntaxException, NoSuchMethodException {
 		final AnnotatedTableService<JavaRecord> service = getService();
 
-		final TableDefinition tableDefinition = new TableDefinition(KeyStore.Impl.leveldb, null);
+		final LinkedHashMap columns = new LinkedHashMap<>();
+		columns.put(TableDefinition.ID_COLUMN_NAME, ColumnDefinition.ID_COLUMN_DEF);
+		final TableDefinition tableDefinition = new TableDefinition(KeyStore.Impl.leveldb, columns);
 		// First call create the table
 		service.createUpdateTable();
 		checkStatus(service.getTableStatus(), 0, tableDefinition);

@@ -85,23 +85,6 @@ public class ColumnDefinition {
 		return mode;
 	}
 
-	public static class Internal extends ColumnDefinition {
-
-		public final int column_id;
-
-		public final static Internal PRIMARYKEY_COLUMN = new Internal();
-
-		Internal() {
-			this(null, 0);
-		}
-
-		public Internal(ColumnDefinition colDef, int column_id) {
-			super(colDef);
-			this.column_id = column_id;
-		}
-
-	}
-
 	public final static GenericType<Map<String, ColumnDefinition>> mapStringColumnType =
 			new GenericType<Map<String, ColumnDefinition>>() {
 			};
@@ -109,4 +92,7 @@ public class ColumnDefinition {
 	public static ColumnDefinition newColumnDefinition(String jsonString) throws IOException {
 		return ObjectMappers.JSON.readValue(jsonString, ColumnDefinition.class);
 	}
+
+	public final static ColumnDefinition ID_COLUMN_DEF = new ColumnDefinition(Type.STRING, Mode.INDEXED);
+
 }

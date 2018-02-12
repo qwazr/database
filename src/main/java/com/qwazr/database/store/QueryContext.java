@@ -1,5 +1,5 @@
-/**
- * Copyright 2015-2016 Emmanuel Keller / QWAZR
+/*
+ * Copyright 2015-2018 Emmanuel Keller / QWAZR
  * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -12,10 +12,11 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- **/
+ */
 package com.qwazr.database.store;
 
 import com.qwazr.database.model.ColumnDefinition;
+import com.qwazr.database.model.InternalColumnDefinition;
 import com.qwazr.database.store.keys.ColumnIndexKey;
 import com.qwazr.database.store.keys.ColumnStoreKey;
 import com.qwazr.database.store.keys.PrimaryIdsKey;
@@ -29,15 +30,15 @@ import java.util.Map;
 public class QueryContext {
 
 	final KeyStore store;
-	final Map<String, ColumnDefinition.Internal> columns;
+	final Map<String, InternalColumnDefinition> columns;
 
-	QueryContext(final KeyStore store, final Map<String, ColumnDefinition.Internal> columns) {
+	QueryContext(final KeyStore store, final Map<String, InternalColumnDefinition> columns) {
 		this.store = store;
 		this.columns = columns;
 	}
 
 	public final RoaringBitmap getIndexedBitset(final String columnName, final Object value) throws IOException {
-		final ColumnDefinition.Internal colDef = columns.get(columnName);
+		final InternalColumnDefinition colDef = columns.get(columnName);
 		if (colDef == null)
 			throw new ServerException(Response.Status.NOT_ACCEPTABLE, "Unknown column: " + columnName);
 		if (colDef.mode != ColumnDefinition.Mode.INDEXED)

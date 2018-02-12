@@ -1,5 +1,5 @@
-/**
- * Copyright 2015-2016 Emmanuel Keller / QWAZR
+/*
+ * Copyright 2015-2018 Emmanuel Keller / QWAZR
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 package com.qwazr.database;
 
 import com.qwazr.database.model.ColumnDefinition;
+import com.qwazr.database.model.TableDefinition;
 import com.qwazr.database.store.KeyStore;
 
 import java.util.LinkedHashMap;
@@ -62,7 +63,7 @@ public class TableBuilder {
 				tableService.setColumn(tableName, columnName, columnDefinition);
 		});
 		existingColumns.keySet().forEach(columnName -> {
-			if (!columns.containsKey(columnName))
+			if (!columnName.equals(TableDefinition.ID_COLUMN_NAME) && !columns.containsKey(columnName))
 				tableService.removeColumn(tableName, columnName);
 		});
 	}

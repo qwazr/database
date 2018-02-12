@@ -16,6 +16,7 @@
 package com.qwazr.database.store;
 
 import com.qwazr.database.model.ColumnDefinition;
+import com.qwazr.database.model.InternalColumnDefinition;
 import com.qwazr.database.model.TableDefinition;
 import com.qwazr.database.store.CollectorInterface.LongCounter;
 import com.qwazr.database.store.keys.ColumnDefKey;
@@ -100,31 +101,32 @@ public class Table implements Closeable {
 
 	public Map<String, ColumnDefinition> getColumns() throws IOException {
 		return rwlColumns.readEx(() -> {
-			Map<String, ColumnDefinition.Internal> map = columnDefsKey.getColumns(keyStore);
-			Map<String, ColumnDefinition> res = new LinkedHashMap<String, ColumnDefinition>();
+			Map<String, InternalColumnDefinition> map = columnDefsKey.getColumns(keyStore);
+			Map<String, ColumnDefinition> res = new LinkedHashMap<>();
+			res.put(TableDefinition.ID_COLUMN_NAME, ColumnDefinition.ID_COLUMN_DEF);
 			map.forEach((s, columnInternalDefinition) -> res.put(s, new ColumnDefinition(columnInternalDefinition)));
 			return res;
 		});
 	}
 
-	private void addColumn(final Map<String, ColumnDefinition.Internal> columns, final String columnName,
+	private void addColumn(final Map<String, InternalColumnDefinition> columns, final String columnName,
 			final ColumnDefinition columnDefinition) throws IOException {
 		// Find the next available column id
 		final BitSet bitset = new BitSet();
 		if (columns != null)
-			columns.forEach((s, columnInternalDefinition) -> bitset.set(columnInternalDefinition.column_id));
+			columns.forEach((s, columnInternalDefinition) -> bitset.set(columnInternalDefinition.columnId));
 		final int columnId = bitset.nextClearBit(0);
 
 		// Write the new column
-		new ColumnDefKey(columnName).setValue(keyStore, new ColumnDefinition.Internal(columnDefinition, columnId));
+		new ColumnDefKey(columnName).setValue(keyStore, new InternalColumnDefinition(columnDefinition, columnId));
 	}
 
 	final public void setColumn(final String columnName, final ColumnDefinition columnDefinition) throws IOException {
 		rwlColumns.writeEx(() -> {
 			// Check if the column already exists
-			final Map<String, ColumnDefinition.Internal> columns = columnDefsKey.getColumns(keyStore);
+			final Map<String, InternalColumnDefinition> columns = columnDefsKey.getColumns(keyStore);
 			if (columns != null) {
-				final ColumnDefinition.Internal oldColDef = columns.get(columnName);
+				final InternalColumnDefinition oldColDef = columns.get(columnName);
 				if (oldColDef != null) {
 					if (oldColDef.mode == columnDefinition.mode && oldColDef.type == columnDefinition.type)
 						return;
@@ -139,12 +141,12 @@ public class Table implements Closeable {
 		rwlColumns.writeEx(() -> {
 			// Check if the column exists
 			final ColumnDefKey columnDefKey = new ColumnDefKey(columnName);
-			final ColumnDefinition.Internal colDef = columnDefKey.getValue(keyStore);
+			final InternalColumnDefinition colDef = columnDefKey.getValue(keyStore);
 			if (colDef == null)
 				throw new ServerException(Response.Status.NOT_ACCEPTABLE,
 						"Cannot delete an unknown column: " + columnName);
 			// Delete stored values
-			new ColumnStoresKey(colDef.column_id).deleteAll(keyStore);
+			new ColumnStoresKey(colDef.columnId).deleteAll(keyStore);
 			// Delete any index
 			new ColumnIndexesKey(colDef).deleteAll(keyStore);
 			// Remove the column definition
@@ -154,7 +156,7 @@ public class Table implements Closeable {
 
 	private void deleteRow(final int docId) throws IOException {
 		rwlColumns.readEx(() -> {
-			for (ColumnDefinition.Internal colDef : columnDefsKey.getColumns(keyStore).values()) {
+			for (InternalColumnDefinition colDef : columnDefsKey.getColumns(keyStore).values()) {
 				ColumnStoreKey<?> columnStoreKey = ColumnStoreKey.newInstance(colDef, docId);
 				if (colDef.mode == ColumnDefinition.Mode.INDEXED)
 					new ColumnIndexesKey(colDef).remove(keyStore, columnStoreKey);
@@ -171,7 +173,7 @@ public class Table implements Closeable {
 		if (docId == null)
 			return null;
 		return rwlColumns.readEx(() -> {
-			final Map<String, ColumnDefinition.Internal> columns = columnNames == null || columnNames.isEmpty() ?
+			final Map<String, InternalColumnDefinition> columns = columnNames == null || columnNames.isEmpty() ?
 					columnDefsKey.getColumns(keyStore) :
 					getColumns(columnNames);
 			return getRowByIdNoLock(docId, columns);
@@ -214,12 +216,12 @@ public class Table implements Closeable {
 		final int docId = tempId;
 		try {
 			return rwlColumns.readEx(() -> {
-				final Map<String, ColumnDefinition.Internal> columns = columnDefsKey.getColumns(keyStore);
+				final Map<String, InternalColumnDefinition> columns = columnDefsKey.getColumns(keyStore);
 				for (Map.Entry<String, ?> entry : row.entrySet()) {
 					final String colName = entry.getKey();
 					if (TableDefinition.ID_COLUMN_NAME.equals(colName))
 						continue;
-					final ColumnDefinition.Internal colDef = columns.get(colName);
+					final InternalColumnDefinition colDef = columns.get(colName);
 					if (colDef == null)
 						throw new ServerException(Response.Status.NOT_ACCEPTABLE, "Unknown column: " + colName);
 					final ColumnStoreKey<?> columnStoreKey = ColumnStoreKey.newInstance(colDef, docId);
@@ -260,16 +262,16 @@ public class Table implements Closeable {
 		return bitmap == null ? 0 : bitmap.getCardinality();
 	}
 
-	private Map<String, ColumnDefinition.Internal> getColumns(final Set<String> columnNames) throws IOException {
+	private Map<String, InternalColumnDefinition> getColumns(final Set<String> columnNames) throws IOException {
 		if (columnNames == null || columnNames.isEmpty())
 			return Collections.emptyMap();
-		final Map<String, ColumnDefinition.Internal> columnDefs = columnDefsKey.getColumns(keyStore);
-		final Map<String, ColumnDefinition.Internal> columns = new LinkedHashMap<>();
+		final Map<String, InternalColumnDefinition> columnDefs = columnDefsKey.getColumns(keyStore);
+		final Map<String, InternalColumnDefinition> columns = new LinkedHashMap<>();
 		for (String columnName : columnNames) {
-			ColumnDefinition.Internal columnDef = columnDefs.get(columnName);
+			InternalColumnDefinition columnDef = columnDefs.get(columnName);
 			if (columnDef == null) {
 				if (columnName.equals(TableDefinition.ID_COLUMN_NAME))
-					columnDef = ColumnDefinition.Internal.PRIMARYKEY_COLUMN;
+					columnDef = InternalColumnDefinition.PRIMARY_KEY;
 				else
 					throw new ServerException(Response.Status.NOT_ACCEPTABLE, "Column not found: " + columnName);
 			}
@@ -279,13 +281,13 @@ public class Table implements Closeable {
 	}
 
 	private LinkedHashMap<String, Object> getRowByIdNoLock(final Integer docId,
-			final Map<String, ColumnDefinition.Internal> columns) {
+			final Map<String, InternalColumnDefinition> columns) {
 		if (docId == null)
 			return null;
 		final LinkedHashMap<String, Object> row = new LinkedHashMap<>();
 		columns.forEach((name, internal) -> {
 			try {
-				final Object value = internal == ColumnDefinition.Internal.PRIMARYKEY_COLUMN ?
+				final Object value = internal == InternalColumnDefinition.PRIMARY_KEY ?
 						primaryIndexKey.getKey(keyStore, docId) :
 						ColumnStoreKey.newInstance(internal, docId).getValue(keyStore);
 				row.put(name, value);
@@ -301,7 +303,7 @@ public class Table implements Closeable {
 		if (bitmap == null || bitmap.isEmpty())
 			return;
 		rwlColumns.readEx(() -> {
-			final Map<String, ColumnDefinition.Internal> columns = getColumns(columnNames);
+			final Map<String, InternalColumnDefinition> columns = getColumns(columnNames);
 			final IntIterator docIterator = bitmap.getIntIterator();
 			long s = start;
 			while (s-- > 0 && docIterator.hasNext())
@@ -324,7 +326,7 @@ public class Table implements Closeable {
 		if (ids.isEmpty())
 			return;
 		rwlColumns.readEx(() -> {
-			final Map<String, ColumnDefinition.Internal> columns = getColumns(columnNames);
+			final Map<String, InternalColumnDefinition> columns = getColumns(columnNames);
 			for (Integer id : ids) {
 				final LinkedHashMap<String, Object> row = getRowByIdNoLock(id, columns);
 				// Id can be null if the document did not exists
@@ -340,8 +342,8 @@ public class Table implements Closeable {
 		return keys;
 	}
 
-	private ColumnDefinition.Internal getIndexedColumn(final String columnName) throws IOException {
-		final ColumnDefinition.Internal columnDef = new ColumnDefKey(columnName).getValue(keyStore);
+	private InternalColumnDefinition getIndexedColumn(final String columnName) throws IOException {
+		final InternalColumnDefinition columnDef = new ColumnDefKey(columnName).getValue(keyStore);
 		if (columnDef == null)
 			throw new ServerException(Response.Status.NOT_FOUND, "Column not found: " + columnName);
 		if (columnDef.mode != ColumnDefinition.Mode.INDEXED)
