@@ -51,11 +51,13 @@ public class TableServer implements BaseServer {
 		services.add(TableServiceInterface.SERVICE_NAME);
 
 		final ClusterManager clusterManager =
-				new ClusterManager(executorService, serverConfiguration).registerProtocolListener(builder, services)
-						.registerWebService(webServices);
+				new ClusterManager(executorService, serverConfiguration).registerProtocolListener(builder, services);
+		webServices.singletons(clusterManager.getService());
+
 		final TableManager tableManager = tableSingleton.getTableManager();
 		webServices.singletons(tableManager.getService());
 		serviceBuilder = new TableServiceBuilder(clusterManager, tableManager);
+
 		builder.getWebServiceContext().jaxrs(webServices);
 		builder.shutdownListener(server -> tableSingleton.close());
 		server = builder.build();
