@@ -81,11 +81,11 @@ final public class ColumnStoreKey<V> extends KeyAbstract<V> {
 	private Object collectionToArray(Collection<?> collection) {
 		switch (columnDef.type) {
 		case DOUBLE:
-			return ArrayUtils.toPrimitiveDouble((Collection<Double>) collection);
+			return ArrayUtils.toPrimitiveDouble((Collection<? extends Number>) collection);
 		case INTEGER:
-			return ArrayUtils.toPrimitiveInt((Collection<Integer>) collection);
+			return ArrayUtils.toPrimitiveInt((Collection<? extends Number>) collection);
 		case LONG:
-			return ArrayUtils.toPrimitiveLong((Collection<Long>) collection);
+			return ArrayUtils.toPrimitiveLong((Collection<? extends Number>) collection);
 		case STRING:
 			return collection.toArray(new String[collection.size()]);
 		}
