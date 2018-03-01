@@ -95,13 +95,13 @@ final public class ColumnStoreKey<V> extends KeyAbstract<V> {
 	private Object objectToArray(Object object) {
 		switch (columnDef.type) {
 		case DOUBLE:
-			return new double[] { (Double) object };
+			return new double[] { ((Number) object).doubleValue() };
 		case INTEGER:
-			return new int[] { (Integer) object };
+			return new int[] { ((Number) object).intValue() };
 		case LONG:
-			return new long[] { (Long) object };
+			return new long[] { ((Number) object).longValue() };
 		case STRING:
-			return new String[] { (String) object };
+			return new String[] { object.toString() };
 		}
 		throw new ServerException(Response.Status.NOT_ACCEPTABLE, "unknown type: " + columnDef.type);
 	}
