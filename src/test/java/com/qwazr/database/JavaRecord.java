@@ -47,6 +47,10 @@ public class JavaRecord {
 	@TableColumn(name = COL_CREATION_DATE, mode = ColumnDefinition.Mode.STORED, type = ColumnDefinition.Type.LONG)
 	public final Long creationDate;
 
+	public final static String COL_STATUS = "status";
+	@TableColumn(name = COL_STATUS, mode = ColumnDefinition.Mode.INDEXED, type = ColumnDefinition.Type.INTEGER)
+	public final Integer status;
+
 	public JavaRecord(final String id, final int dptStart) {
 		this.id = id;
 		dpt = new ArrayList<>(
@@ -55,6 +59,7 @@ public class JavaRecord {
 		label = RandomUtils.alphanumeric(16);
 		lastUpdateDate = System.currentTimeMillis() + RandomUtils.nextInt(0, 86400000);
 		creationDate = System.currentTimeMillis() + RandomUtils.nextInt(0, 86400000);
+		status = RandomUtils.nextInt();
 	}
 
 	public JavaRecord() {
@@ -63,6 +68,7 @@ public class JavaRecord {
 		label = null;
 		lastUpdateDate = null;
 		creationDate = null;
+		status = null;
 	}
 
 	@Override
@@ -78,7 +84,7 @@ public class JavaRecord {
 			return false;
 		if (!Objects.equals(creationDate, r.creationDate))
 			return false;
-		return true;
+		return Objects.equals(status, r.status);
 	}
 
 }

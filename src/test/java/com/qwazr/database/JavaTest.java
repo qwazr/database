@@ -41,8 +41,11 @@ import java.util.LinkedHashMap;
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class JavaTest implements TableTestHelper {
 
-	private static String[] COLUMNS =
-			{ JavaRecord.COL_LABEL, JavaRecord.COL_DPT, JavaRecord.COL_LAST_UPDATE_DATE, JavaRecord.COL_CREATION_DATE };
+	private static String[] COLUMNS = { JavaRecord.COL_LABEL,
+			JavaRecord.COL_DPT,
+			JavaRecord.COL_LAST_UPDATE_DATE,
+			JavaRecord.COL_CREATION_DATE,
+			JavaRecord.COL_STATUS };
 
 	private static Set<String> COLUMNS_SET = new LinkedHashSet<>(Arrays.asList(COLUMNS));
 
@@ -50,6 +53,7 @@ public class JavaTest implements TableTestHelper {
 			JavaRecord.COL_DPT,
 			JavaRecord.COL_LAST_UPDATE_DATE,
 			JavaRecord.COL_CREATION_DATE,
+			JavaRecord.COL_STATUS,
 			TableDefinition.ID_COLUMN_NAME };
 
 	private static Set<String> COLUMNS_WITHID_SET = new LinkedHashSet<>(Arrays.asList(COLUMNS_WITHID));
