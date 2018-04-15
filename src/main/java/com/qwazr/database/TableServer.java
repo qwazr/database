@@ -38,7 +38,7 @@ public class TableServer implements BaseServer {
 	private final GenericServer server;
 	private final TableServiceBuilder serviceBuilder;
 
-	public TableServer(final ServerConfiguration serverConfiguration) throws IOException, URISyntaxException {
+	public TableServer(final ServerConfiguration serverConfiguration) throws IOException {
 
 		final TableSingleton tableSingleton = new TableSingleton(serverConfiguration.dataDirectory.toPath(), null);
 		final ExecutorService executorService = tableSingleton.getExecutorService();
