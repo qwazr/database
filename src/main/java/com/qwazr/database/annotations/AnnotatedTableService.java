@@ -26,6 +26,7 @@ import com.qwazr.database.model.TableStatus;
 import com.qwazr.database.store.KeyStore;
 import com.qwazr.utils.AnnotationsUtils;
 import com.qwazr.utils.StringUtils;
+import org.apache.commons.lang3.SystemUtils;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -79,7 +80,7 @@ public class AnnotatedTableService<T> extends FieldMapWrapper<T> {
 	}
 
 	public AnnotatedTableService(final TableServiceInterface tableService, final Class<T> tableDefinitionClass)
-			throws URISyntaxException, NoSuchMethodException {
+			throws NoSuchMethodException {
 		this(tableService, tableDefinitionClass, null);
 	}
 
@@ -92,11 +93,15 @@ public class AnnotatedTableService<T> extends FieldMapWrapper<T> {
 			throw new RuntimeException("The table name is empty");
 	}
 
-	public void createUpdateTable() {
+	public void createUpdateTable(KeyStore.Impl keyStore) {
 		checkParameters();
 		if (tableService.list().contains(tableName))
 			return;
-		tableService.createTable(tableName, KeyStore.Impl.leveldb);
+		tableService.createTable(tableName, keyStore);
+	}
+
+	public void createUpdateTable() {
+		createUpdateTable(SystemUtils.IS_OS_WINDOWS ? KeyStore.Impl.lmdb : KeyStore.Impl.leveldb);
 	}
 
 	public TableStatus getTableStatus() {

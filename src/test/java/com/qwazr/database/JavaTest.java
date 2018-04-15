@@ -82,8 +82,8 @@ public class JavaTest implements TableTestHelper {
 
 		final LinkedHashMap columns = new LinkedHashMap<>();
 		columns.put(TableDefinition.ID_COLUMN_NAME, ColumnDefinition.ID_COLUMN_DEF);
-		final TableDefinition tableDefinition =
-				new TableDefinition(SystemUtils.IS_OS_WINDOWS ? KeyStore.Impl.lmdb : KeyStore.Impl.leveldb, columns);
+		final KeyStore.Impl storeImpl = SystemUtils.IS_OS_WINDOWS ? KeyStore.Impl.lmdb : KeyStore.Impl.leveldb;
+		final TableDefinition tableDefinition = new TableDefinition(storeImpl, columns);
 		// First call create the table
 		service.createUpdateTable();
 		checkStatus(service.getTableStatus(), 0, tableDefinition);
