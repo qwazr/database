@@ -16,6 +16,7 @@
 package com.qwazr.database;
 
 import com.qwazr.database.store.KeyStore;
+import org.apache.commons.lang3.SystemUtils;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
@@ -29,7 +30,7 @@ public class TestSuite {
 
 		@Override
 		protected KeyStore.Impl getStoreImplementation() {
-			return KeyStore.Impl.leveldb;
+			return SystemUtils.IS_OS_WINDOWS ? KeyStore.Impl.lmdb : KeyStore.Impl.leveldb;
 		}
 
 		@Override
@@ -42,7 +43,7 @@ public class TestSuite {
 
 		@Override
 		protected KeyStore.Impl getStoreImplementation() {
-			return KeyStore.Impl.leveldb;
+			return SystemUtils.IS_OS_WINDOWS ? KeyStore.Impl.lmdb : KeyStore.Impl.leveldb;
 		}
 
 		@Override

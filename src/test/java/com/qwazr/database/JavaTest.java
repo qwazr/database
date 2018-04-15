@@ -23,6 +23,7 @@ import com.qwazr.database.model.TableQuery;
 import com.qwazr.database.model.TableRequest;
 import com.qwazr.database.model.TableRequestResult;
 import com.qwazr.database.store.KeyStore;
+import org.apache.commons.lang3.SystemUtils;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.FixMethodOrder;
@@ -81,7 +82,8 @@ public class JavaTest implements TableTestHelper {
 
 		final LinkedHashMap columns = new LinkedHashMap<>();
 		columns.put(TableDefinition.ID_COLUMN_NAME, ColumnDefinition.ID_COLUMN_DEF);
-		final TableDefinition tableDefinition = new TableDefinition(KeyStore.Impl.leveldb, columns);
+		final TableDefinition tableDefinition =
+				new TableDefinition(SystemUtils.IS_OS_WINDOWS ? KeyStore.Impl.lmdb : KeyStore.Impl.leveldb, columns);
 		// First call create the table
 		service.createUpdateTable();
 		checkStatus(service.getTableStatus(), 0, tableDefinition);
@@ -234,7 +236,7 @@ public class JavaTest implements TableTestHelper {
 	public void test950deleteTable() throws URISyntaxException, NoSuchMethodException {
 		final AnnotatedTableService<JavaRecord> service = getService();
 		service.deleteTable();
-		JsonTest.checkErrorStatusCode(() -> service.deleteTable(), 404);
+		JsonTest.checkErrorStatusCode(service::deleteTable, 404);
 	}
 
 	@AfterClass
