@@ -23,18 +23,18 @@ import java.io.IOException;
 
 interface KeyInterface<T> {
 
-	void buildKey(DataOutputStream output) throws IOException;
+    void buildKey(DataOutputStream output) throws IOException;
 
-	byte[] getCachedKey() throws IOException;
+    byte[] getCachedKey() throws IOException;
 
-	T getValue(KeyStore store) throws IOException;
+    T getValue(KeyStore store) throws IOException;
 
-	void setValue(KeyStore store, T value) throws IOException;
+    void setValue(KeyStore store, T value) throws IOException;
 
-	void deleteValue(KeyStore store) throws IOException;
+    void deleteValue(KeyStore store) throws IOException;
 
-	void prefixedKeys(KeyStore store, int start, int rows, BiConsumerEx<byte[], byte[], IOException> consumer)
-			throws IOException;
+    void prefixedKeys(KeyStore store, int start, int rows, BiConsumerEx<byte[], byte[], IOException> consumer)
+            throws IOException;
 
 }
 

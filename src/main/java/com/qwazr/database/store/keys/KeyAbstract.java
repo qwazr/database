@@ -28,72 +28,72 @@ import java.util.Map;
 
 public abstract class KeyAbstract<V> implements KeyInterface<V> {
 
-	private final KeyEnum keyType;
+    private final KeyEnum keyType;
 
-	protected final ByteConverter<V> byteConverter;
+    protected final ByteConverter<V> byteConverter;
 
-	private byte[] keyBytes;
+    private byte[] keyBytes;
 
-	protected KeyAbstract(final KeyEnum keyType, final ByteConverter<V> byteConverter) {
-		this.keyType = keyType;
-		this.byteConverter = byteConverter;
-		this.keyBytes = null;
-	}
+    protected KeyAbstract(final KeyEnum keyType, final ByteConverter<V> byteConverter) {
+        this.keyType = keyType;
+        this.byteConverter = byteConverter;
+        this.keyBytes = null;
+    }
 
-	@Override
-	public void buildKey(final DataOutputStream output) throws IOException {
-		output.writeChar(keyType.id);
-	}
+    @Override
+    public void buildKey(final DataOutputStream output) throws IOException {
+        output.writeChar(keyType.id);
+    }
 
-	final public synchronized byte[] getCachedKey() throws IOException {
-		if (keyBytes != null)
-			return keyBytes;
-		try (final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-			try (final DataOutputStream output = new DataOutputStream(baos)) {
-				buildKey(output);
-				output.flush();
-				keyBytes = baos.toByteArray();
-				return keyBytes;
-			}
-		}
-	}
+    final public synchronized byte[] getCachedKey() throws IOException {
+        if (keyBytes != null)
+            return keyBytes;
+        try (final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            try (final DataOutputStream output = new DataOutputStream(baos)) {
+                buildKey(output);
+                output.flush();
+                keyBytes = baos.toByteArray();
+                return keyBytes;
+            }
+        }
+    }
 
-	@Override
-	final public V getValue(final KeyStore store) throws IOException {
-		byte[] bytes = store.get(getCachedKey());
-		if (bytes == null)
-			return null;
-		return byteConverter.toValue(bytes);
-	}
+    @Override
+    final public V getValue(final KeyStore store) throws IOException {
+        byte[] bytes = store.get(getCachedKey());
+        if (bytes == null)
+            return null;
+        return byteConverter.toValue(bytes);
+    }
 
-	@Override
-	final public void setValue(final KeyStore store, final V value) throws IOException {
-		store.put(getCachedKey(), byteConverter.toBytes(value));
-	}
+    @Override
+    final public void setValue(final KeyStore store, final V value) throws IOException {
+        store.put(getCachedKey(), byteConverter.toBytes(value));
+    }
 
-	@Override
-	final public void deleteValue(final KeyStore store) throws IOException {
-		store.delete(getCachedKey());
-	}
+    @Override
+    final public void deleteValue(final KeyStore store) throws IOException {
+        store.delete(getCachedKey());
+    }
 
-	@Override
-	final public void prefixedKeys(final KeyStore store, int start, int rows,
-			final BiConsumerEx<byte[], byte[], IOException> consumer) throws IOException {
-		final byte[] prefixKey = getCachedKey();
-		try (final KeyIterator iterator = store.iterator(prefixKey)) {
-			while (start-- > 0 && iterator.hasNext()) {
-				final Map.Entry<byte[], byte[]> entry = iterator.next();
-				if (!ArrayUtils.startsWith(entry.getKey(), prefixKey))
-					return;
-			}
-			while (rows-- > 0 && iterator.hasNext()) {
-				final Map.Entry<byte[], byte[]> entry = iterator.next();
-				final byte[] key = entry.getKey();
-				if (!ArrayUtils.startsWith(key, prefixKey))
-					return;
-				consumer.accept(key, entry.getValue());
-			}
-		}
-	}
+    @Override
+    final public void prefixedKeys(final KeyStore store, int start, int rows,
+                                   final BiConsumerEx<byte[], byte[], IOException> consumer) throws IOException {
+        final byte[] prefixKey = getCachedKey();
+        try (final KeyIterator iterator = store.iterator(prefixKey)) {
+            while (start-- > 0 && iterator.hasNext()) {
+                final Map.Entry<byte[], byte[]> entry = iterator.next();
+                if (!ArrayUtils.startsWith(entry.getKey(), prefixKey))
+                    return;
+            }
+            while (rows-- > 0 && iterator.hasNext()) {
+                final Map.Entry<byte[], byte[]> entry = iterator.next();
+                final byte[] key = entry.getKey();
+                if (!ArrayUtils.startsWith(key, prefixKey))
+                    return;
+                consumer.accept(key, entry.getValue());
+            }
+        }
+    }
 
 }

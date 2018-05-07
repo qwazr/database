@@ -22,85 +22,87 @@ import org.fusesource.lmdbjni.Env;
 import org.fusesource.lmdbjni.Transaction;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.Map;
 
 class KeyStoreLmdb implements KeyStore {
 
-	private final Env env;
-	private final Database db;
-	private final File file;
+    private final Env env;
+    private final Database db;
+    private final File file;
 
-	public KeyStoreLmdb(final File file) {
-		this.file = file;
-		if (!file.exists())
-			file.mkdir();
-		this.env = new Env(file.getAbsolutePath());
-		this.db = env.openDatabase();
-	}
+    public KeyStoreLmdb(final File file) throws IOException {
+        this.file = file;
+        if (!file.exists())
+            Files.createDirectory(file.toPath());
+        this.env = new Env(file.getAbsolutePath());
+        this.db = env.openDatabase();
+    }
 
-	@Override
-	final public void close() {
-		IOUtils.closeQuietly(db, env);
-	}
+    @Override
+    final public void close() {
+        IOUtils.closeQuietly(db, env);
+    }
 
-	@Override
-	public Impl getImplementation() {
-		return Impl.lmdb;
-	}
+    @Override
+    public Impl getImplementation() {
+        return Impl.lmdb;
+    }
 
-	@Override
-	final public boolean exists() {
-		return file.exists();
-	}
+    @Override
+    final public boolean exists() {
+        return file.exists();
+    }
 
-	@Override
-	final public void delete() {
-		env.close();
-	}
+    @Override
+    final public void delete() {
+        env.close();
+    }
 
-	@Override
-	final public byte[] get(final byte[] key) {
-		return db.get(key);
-	}
+    @Override
+    final public byte[] get(final byte[] key) {
+        return db.get(key);
+    }
 
-	@Override
-	final public void put(final byte[] key, final byte[] value) {
-		db.put(key, value);
-	}
+    @Override
+    final public void put(final byte[] key, final byte[] value) {
+        db.put(key, value);
+    }
 
-	@Override
-	final public void delete(final byte[] key) {
-		db.delete(key);
-	}
+    @Override
+    final public void delete(final byte[] key) {
+        db.delete(key);
+    }
 
-	@Override
-	final public KeyIterator iterator(final byte[] key) {
-		return new KeyIteratorImpl(key);
-	}
+    @Override
+    final public KeyIterator iterator(final byte[] key) {
+        return new KeyIteratorImpl(key);
+    }
 
-	private class KeyIteratorImpl implements KeyIterator {
+    private class KeyIteratorImpl implements KeyIterator {
 
-		private final Transaction tx;
-		private final EntryIterator it;
+        private final Transaction tx;
+        private final EntryIterator it;
 
-		private KeyIteratorImpl(byte[] key) {
-			tx = env.createReadTransaction();
-			it = db.seek(tx, key);
-		}
+        private KeyIteratorImpl(byte[] key) {
+            tx = env.createReadTransaction();
+            it = db.seek(tx, key);
+        }
 
-		@Override
-		final public void close() {
-			IOUtils.closeQuietly(it, tx);
-		}
+        @Override
+        final public void close() {
+            IOUtils.closeQuietly(it, tx);
+        }
 
-		@Override
-		final public boolean hasNext() {
-			return it.hasNext();
-		}
+        @Override
+        final public boolean hasNext() {
+            return it.hasNext();
+        }
 
-		@Override
-		final public Map.Entry<byte[], byte[]> next() {
-			return it.next();
-		}
-	}
+        @Override
+        final public Map.Entry<byte[], byte[]> next() {
+            return it.next();
+        }
+    }
 }

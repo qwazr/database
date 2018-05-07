@@ -24,39 +24,44 @@ import java.util.Objects;
 
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NON_PRIVATE,
-		getterVisibility = JsonAutoDetect.Visibility.NONE,
-		setterVisibility = JsonAutoDetect.Visibility.NONE,
-		isGetterVisibility = JsonAutoDetect.Visibility.NONE,
-		creatorVisibility = JsonAutoDetect.Visibility.NONE)
+        getterVisibility = JsonAutoDetect.Visibility.NONE,
+        setterVisibility = JsonAutoDetect.Visibility.NONE,
+        isGetterVisibility = JsonAutoDetect.Visibility.NONE,
+        creatorVisibility = JsonAutoDetect.Visibility.NONE)
 public class TableStatus {
 
-	public final TableDefinition definition;
+    public final TableDefinition definition;
 
-	@JsonProperty("num_rows")
-	public final Integer numRows;
+    @JsonProperty("num_rows")
+    public final Integer numRows;
 
-	@JsonCreator
-	public TableStatus(final @JsonProperty("definition") TableDefinition definition,
-			final @JsonProperty("num_rows") Integer numRows) {
-		this.definition = definition;
-		this.numRows = numRows;
-	}
+    @JsonCreator
+    public TableStatus(final @JsonProperty("definition") TableDefinition definition,
+                       final @JsonProperty("num_rows") Integer numRows) {
+        this.definition = definition;
+        this.numRows = numRows;
+    }
 
-	public TableDefinition getDefinition() {
-		return definition;
-	}
+    public TableDefinition getDefinition() {
+        return definition;
+    }
 
-	public Integer getNumRows() {
-		return numRows;
-	}
+    public Integer getNumRows() {
+        return numRows;
+    }
 
-	@Override
-	public boolean equals(Object o) {
-		if (o == null || !(o instanceof TableStatus))
-			return false;
-		if (o == this)
-			return true;
-		final TableStatus s = (TableStatus) o;
-		return Objects.equals(definition, s.definition) && Objects.equals(numRows, s.numRows);
-	}
+    @Override
+    public int hashCode() {
+        return Objects.hash(definition, numRows);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof TableStatus))
+            return false;
+        if (o == this)
+            return true;
+        final TableStatus s = (TableStatus) o;
+        return Objects.equals(definition, s.definition) && Objects.equals(numRows, s.numRows);
+    }
 }

@@ -20,30 +20,46 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.util.Objects;
+
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NON_PRIVATE,
-		getterVisibility = JsonAutoDetect.Visibility.NONE,
-		setterVisibility = JsonAutoDetect.Visibility.NONE,
-		isGetterVisibility = JsonAutoDetect.Visibility.NONE,
-		creatorVisibility = JsonAutoDetect.Visibility.NONE)
+        getterVisibility = JsonAutoDetect.Visibility.NONE,
+        setterVisibility = JsonAutoDetect.Visibility.NONE,
+        isGetterVisibility = JsonAutoDetect.Visibility.NONE,
+        creatorVisibility = JsonAutoDetect.Visibility.NONE)
 public class InternalColumnDefinition extends ColumnDefinition {
 
-	@JsonProperty("column_id")
-	public final int columnId;
+    @JsonProperty("column_id")
+    public final int columnId;
 
-	@JsonCreator
-	public InternalColumnDefinition(@JsonProperty("type") final Type type, @JsonProperty("mode") final Mode mode,
-			@JsonProperty("column_id") int columnId) {
-		super(type, mode);
-		this.columnId = columnId;
-	}
+    @JsonCreator
+    public InternalColumnDefinition(@JsonProperty("type") final Type type, @JsonProperty("mode") final Mode mode,
+                                    @JsonProperty("column_id") int columnId) {
+        super(type, mode);
+        this.columnId = columnId;
+    }
 
-	public InternalColumnDefinition(ColumnDefinition columnDefinition, int columnId) {
-		super(columnDefinition);
-		this.columnId = columnId;
-	}
+    public InternalColumnDefinition(final ColumnDefinition columnDefinition, final int columnId) {
+        super(columnDefinition);
+        this.columnId = columnId;
+    }
 
-	public final static InternalColumnDefinition PRIMARY_KEY =
-			new InternalColumnDefinition(ColumnDefinition.ID_COLUMN_DEF, 0);
+    @Override
+    public int hashCode() {
+        return 31 * super.hashCode() + Integer.hashCode(columnId);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof InternalColumnDefinition))
+            return false;
+        if (o == this)
+            return true;
+        return super.equals(o) && Objects.equals(columnId, ((InternalColumnDefinition) o).columnId);
+    }
+
+    public final static InternalColumnDefinition PRIMARY_KEY =
+            new InternalColumnDefinition(ColumnDefinition.ID_COLUMN_DEF, 0);
 
 }

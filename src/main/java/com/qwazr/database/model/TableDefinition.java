@@ -17,6 +17,7 @@ package com.qwazr.database.model;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -28,39 +29,53 @@ import java.util.Objects;
 
 @JsonInclude(Include.NON_EMPTY)
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NON_PRIVATE,
-		getterVisibility = JsonAutoDetect.Visibility.NONE,
-		setterVisibility = JsonAutoDetect.Visibility.NONE,
-		isGetterVisibility = JsonAutoDetect.Visibility.NONE,
-		creatorVisibility = JsonAutoDetect.Visibility.NONE)
+        getterVisibility = JsonAutoDetect.Visibility.NONE,
+        setterVisibility = JsonAutoDetect.Visibility.NONE,
+        isGetterVisibility = JsonAutoDetect.Visibility.NONE,
+        creatorVisibility = JsonAutoDetect.Visibility.NONE)
 public class TableDefinition {
 
-	final public KeyStore.Impl implementation;
-	final public Map<String, ColumnDefinition> columns;
+    final public KeyStore.Impl implementation;
+    final public Map<String, ColumnDefinition> columns;
 
-	public static final String ID_COLUMN_NAME = "$id$";
+    public static final String ID_COLUMN_NAME = "$id$";
 
-	@JsonCreator
-	public TableDefinition(@JsonProperty("implementation") final KeyStore.Impl implementation,
-			@JsonProperty("columns") final Map<String, ColumnDefinition> columns) {
-		this.implementation = implementation;
-		this.columns = columns;
-	}
+    @JsonIgnore
+    private volatile int hashCode;
 
-	public KeyStore.Impl getImplementation() {
-		return implementation;
-	}
+    @JsonCreator
+    public TableDefinition(@JsonProperty("implementation") final KeyStore.Impl implementation,
+                           @JsonProperty("columns") final Map<String, ColumnDefinition> columns) {
+        this.implementation = implementation;
+        this.columns = columns;
+    }
 
-	public Map<String, ColumnDefinition> getColumns() {
-		return columns;
-	}
+    public KeyStore.Impl getImplementation() {
+        return implementation;
+    }
 
-	@Override
-	public boolean equals(Object o) {
-		if (o == null || !(o instanceof TableDefinition))
-			return false;
-		if (o == this)
-			return true;
-		final TableDefinition t = (TableDefinition) o;
-		return Objects.equals(implementation, t.implementation) && CollectionsUtils.equals(columns, t.columns);
-	}
+    public Map<String, ColumnDefinition> getColumns() {
+        return columns;
+    }
+
+    public synchronized int hashCode() {
+        if (hashCode == 0) {
+            int result = Objects.hashCode(implementation);
+            if (columns != null)
+                for (final String column : columns.keySet())
+                    result = 31 * result + Objects.hashCode(column);
+            hashCode = result;
+        }
+        return hashCode;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof TableDefinition))
+            return false;
+        if (o == this)
+            return true;
+        final TableDefinition t = (TableDefinition) o;
+        return Objects.equals(implementation, t.implementation) && CollectionsUtils.equals(columns, t.columns);
+    }
 }

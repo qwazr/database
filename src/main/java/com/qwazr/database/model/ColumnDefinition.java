@@ -17,6 +17,7 @@ package com.qwazr.database.model;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.qwazr.database.annotations.TableColumn;
@@ -29,70 +30,79 @@ import java.util.Objects;
 
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NON_PRIVATE,
-		getterVisibility = JsonAutoDetect.Visibility.NONE,
-		setterVisibility = JsonAutoDetect.Visibility.NONE,
-		isGetterVisibility = JsonAutoDetect.Visibility.NONE,
-		creatorVisibility = JsonAutoDetect.Visibility.NONE)
+        getterVisibility = JsonAutoDetect.Visibility.NONE,
+        setterVisibility = JsonAutoDetect.Visibility.NONE,
+        isGetterVisibility = JsonAutoDetect.Visibility.NONE,
+        creatorVisibility = JsonAutoDetect.Visibility.NONE)
 public class ColumnDefinition {
 
-	public enum Type {
-		STRING, DOUBLE, LONG, INTEGER
-	}
+    public enum Type {
+        STRING, DOUBLE, LONG, INTEGER
+    }
 
-	public enum Mode {
-		INDEXED, STORED
-	}
+    public enum Mode {
+        INDEXED, STORED
+    }
 
-	public final Type type;
-	public final Mode mode;
+    public final Type type;
+    public final Mode mode;
 
-	@JsonCreator
-	public ColumnDefinition(@JsonProperty("type") final Type type, @JsonProperty("mode") final Mode mode) {
-		this.type = type;
-		this.mode = mode;
-	}
+    @JsonIgnore
+    private final int hashCode;
 
-	public ColumnDefinition(final TableColumn propertyField) {
-		this.type = propertyField.type();
-		this.mode = propertyField.mode();
-	}
+    @JsonCreator
+    public ColumnDefinition(@JsonProperty("type") final Type type, @JsonProperty("mode") final Mode mode) {
+        this.type = type;
+        this.mode = mode;
+        hashCode = Objects.hash(type, mode);
+    }
 
-	public ColumnDefinition(final ColumnDefinition colDef) {
-		if (colDef != null) {
-			this.type = colDef.type;
-			this.mode = colDef.mode;
-		} else {
-			this.type = null;
-			this.mode = null;
-		}
-	}
+    public ColumnDefinition(final TableColumn propertyField) {
+        this(propertyField.type(), propertyField.mode());
+    }
 
-	@Override
-	public boolean equals(Object o) {
-		if (o == null || !(o instanceof ColumnDefinition))
-			return false;
-		if (o == this)
-			return true;
-		final ColumnDefinition c = (ColumnDefinition) o;
-		return Objects.equals(type, c.type) && Objects.equals(mode, c.mode);
-	}
+    public ColumnDefinition(final ColumnDefinition colDef) {
+        if (colDef != null) {
+            this.type = colDef.type;
+            this.mode = colDef.mode;
+        } else {
+            this.type = null;
+            this.mode = null;
+        }
+        hashCode = Objects.hash(type, mode);
+    }
 
-	public Type getType() {
-		return type;
-	}
+    @Override
+    public int hashCode() {
+        return hashCode;
+    }
 
-	public Mode getMode() {
-		return mode;
-	}
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof ColumnDefinition))
+            return false;
+        if (o == this)
+            return true;
+        final ColumnDefinition c = (ColumnDefinition) o;
+        return Objects.equals(type, c.type) && Objects.equals(mode, c.mode);
+    }
 
-	public final static GenericType<Map<String, ColumnDefinition>> mapStringColumnType =
-			new GenericType<Map<String, ColumnDefinition>>() {
-			};
+    public Type getType() {
+        return type;
+    }
 
-	public static ColumnDefinition newColumnDefinition(String jsonString) throws IOException {
-		return ObjectMappers.JSON.readValue(jsonString, ColumnDefinition.class);
-	}
+    public Mode getMode() {
+        return mode;
+    }
 
-	public final static ColumnDefinition ID_COLUMN_DEF = new ColumnDefinition(Type.STRING, Mode.INDEXED);
+    public final static GenericType<Map<String, ColumnDefinition>> mapStringColumnType =
+            new GenericType<Map<String, ColumnDefinition>>() {
+            };
+
+    public static ColumnDefinition newColumnDefinition(String jsonString) throws IOException {
+        return ObjectMappers.JSON.readValue(jsonString, ColumnDefinition.class);
+    }
+
+    public final static ColumnDefinition ID_COLUMN_DEF = new ColumnDefinition(Type.STRING, Mode.INDEXED);
 
 }

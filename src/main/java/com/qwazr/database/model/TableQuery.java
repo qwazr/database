@@ -17,6 +17,7 @@ package com.qwazr.database.model;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
@@ -27,165 +28,185 @@ import java.util.Objects;
 import java.util.Set;
 
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.PUBLIC_ONLY,
-		isGetterVisibility = JsonAutoDetect.Visibility.NONE,
-		getterVisibility = JsonAutoDetect.Visibility.NONE,
-		setterVisibility = JsonAutoDetect.Visibility.NONE,
-		creatorVisibility = JsonAutoDetect.Visibility.NONE)
+        isGetterVisibility = JsonAutoDetect.Visibility.NONE,
+        getterVisibility = JsonAutoDetect.Visibility.NONE,
+        setterVisibility = JsonAutoDetect.Visibility.NONE,
+        creatorVisibility = JsonAutoDetect.Visibility.NONE)
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "@type")
-@JsonSubTypes({ @JsonSubTypes.Type(value = TableQuery.StringTerm.class, name = "string"),
-		@JsonSubTypes.Type(value = TableQuery.DoubleTerm.class, name = "double"),
-		@JsonSubTypes.Type(value = TableQuery.FloatTerm.class, name = "float"),
-		@JsonSubTypes.Type(value = TableQuery.LongTerm.class, name = "long"),
-		@JsonSubTypes.Type(value = TableQuery.IntegerTerm.class, name = "integer"),
-		@JsonSubTypes.Type(value = TableQuery.Or.class, name = "or"),
-		@JsonSubTypes.Type(value = TableQuery.And.class, name = "and") })
+@JsonSubTypes({@JsonSubTypes.Type(value = TableQuery.StringTerm.class, name = "string"),
+        @JsonSubTypes.Type(value = TableQuery.DoubleTerm.class, name = "double"),
+        @JsonSubTypes.Type(value = TableQuery.FloatTerm.class, name = "float"),
+        @JsonSubTypes.Type(value = TableQuery.LongTerm.class, name = "long"),
+        @JsonSubTypes.Type(value = TableQuery.IntegerTerm.class, name = "integer"),
+        @JsonSubTypes.Type(value = TableQuery.Or.class, name = "or"),
+        @JsonSubTypes.Type(value = TableQuery.And.class, name = "and")})
 public class TableQuery {
 
-	public static abstract class Term<T> extends TableQuery {
+    public static abstract class Term<T> extends TableQuery {
 
-		public final String column;
-		public final T value;
+        public final String column;
+        public final T value;
 
-		@JsonCreator
-		private Term(final String column, final T value) {
-			this.column = column;
-			this.value = value;
-		}
+        @JsonCreator
+        private Term(final String column, final T value) {
+            this.column = column;
+            this.value = value;
+        }
 
-		@Override
-		final public boolean equals(final Object o) {
-			if (o == null || !(o instanceof Term))
-				return false;
-			if (o == this)
-				return true;
-			final Term t = (Term) o;
-			return Objects.equals(column, t.column) && Objects.equals(value, t.value);
-		}
+        @Override
+        public int hashCode() {
+            return Objects.hash(column, value);
+        }
 
-		public String getColumn() {
-			return column;
-		}
+        @Override
+        final public boolean equals(final Object o) {
+            if (!(o instanceof Term))
+                return false;
+            if (o == this)
+                return true;
+            final Term t = (Term) o;
+            return Objects.equals(column, t.column) && Objects.equals(value, t.value);
+        }
 
-		public T getValue() {
-			return value;
-		}
-	}
+        public String getColumn() {
+            return column;
+        }
 
-	final static public class StringTerm extends Term<String> {
+        public T getValue() {
+            return value;
+        }
+    }
 
-		@JsonCreator
-		public StringTerm(@JsonProperty("column") final String column, @JsonProperty("value") final String value) {
-			super(column, value);
-		}
-	}
+    final static public class StringTerm extends Term<String> {
 
-	final static public class DoubleTerm extends Term<Double> {
+        @JsonCreator
+        public StringTerm(@JsonProperty("column") final String column, @JsonProperty("value") final String value) {
+            super(column, value);
+        }
+    }
 
-		@JsonCreator
-		public DoubleTerm(@JsonProperty("column") final String column, @JsonProperty("value") final Double value) {
-			super(column, value);
-		}
-	}
+    final static public class DoubleTerm extends Term<Double> {
 
-	final static public class FloatTerm extends Term<Float> {
+        @JsonCreator
+        public DoubleTerm(@JsonProperty("column") final String column, @JsonProperty("value") final Double value) {
+            super(column, value);
+        }
+    }
 
-		@JsonCreator
-		public FloatTerm(@JsonProperty("column") final String column, @JsonProperty("value") final Float value) {
-			super(column, value);
-		}
-	}
+    final static public class FloatTerm extends Term<Float> {
 
-	final static public class LongTerm extends Term<Long> {
+        @JsonCreator
+        public FloatTerm(@JsonProperty("column") final String column, @JsonProperty("value") final Float value) {
+            super(column, value);
+        }
+    }
 
-		@JsonCreator
-		public LongTerm(@JsonProperty("column") final String column, @JsonProperty("value") final Long value) {
-			super(column, value);
-		}
-	}
+    final static public class LongTerm extends Term<Long> {
 
-	final static public class IntegerTerm extends Term<Integer> {
+        @JsonCreator
+        public LongTerm(@JsonProperty("column") final String column, @JsonProperty("value") final Long value) {
+            super(column, value);
+        }
+    }
 
-		@JsonCreator
-		public IntegerTerm(@JsonProperty("column") final String column, @JsonProperty("value") final Integer value) {
-			super(column, value);
-		}
-	}
+    final static public class IntegerTerm extends Term<Integer> {
 
-	static public class Group extends TableQuery {
+        @JsonCreator
+        public IntegerTerm(@JsonProperty("column") final String column, @JsonProperty("value") final Integer value) {
+            super(column, value);
+        }
+    }
 
-		public final LinkedHashSet<TableQuery> queries;
+    static public class Group extends TableQuery {
 
-		private Group(final LinkedHashSet<TableQuery> queries) {
-			this.queries = queries;
-		}
+        public final LinkedHashSet<TableQuery> queries;
 
-		final public Group add(final String column, final String term) {
-			queries.add(new StringTerm(column, term));
-			return this;
-		}
+        @JsonIgnore
+        private volatile int hashCode;
 
-		final public Group add(final String column, final Long term) {
-			queries.add(new LongTerm(column, term));
-			return this;
-		}
+        private Group(final LinkedHashSet<TableQuery> queries) {
+            this.queries = queries;
+        }
 
-		final public Group add(final String column, final Integer term) {
-			queries.add(new IntegerTerm(column, term));
-			return this;
-		}
+        final public Group add(final String column, final String term) {
+            queries.add(new StringTerm(column, term));
+            return this;
+        }
 
-		final public Group add(final String column, final Double term) {
-			queries.add(new DoubleTerm(column, term));
-			return this;
-		}
+        final public Group add(final String column, final Long term) {
+            queries.add(new LongTerm(column, term));
+            return this;
+        }
 
-		final public Group add(final String column, final Float term) {
-			queries.add(new FloatTerm(column, term));
-			return this;
-		}
+        final public Group add(final String column, final Integer term) {
+            queries.add(new IntegerTerm(column, term));
+            return this;
+        }
 
-		final public Group add(final Group group) {
-			queries.add(group);
-			return this;
-		}
+        final public Group add(final String column, final Double term) {
+            queries.add(new DoubleTerm(column, term));
+            return this;
+        }
 
-		@Override
-		final public boolean equals(final Object o) {
-			if (o == null || !(o instanceof Group))
-				return false;
-			if (o == this)
-				return true;
-			final Group g = (Group) o;
-			return CollectionsUtils.equals(queries, g.queries);
-		}
+        final public Group add(final String column, final Float term) {
+            queries.add(new FloatTerm(column, term));
+            return this;
+        }
 
-		public Set<TableQuery> getQueries() {
-			return queries;
-		}
-	}
+        final public Group add(final Group group) {
+            queries.add(group);
+            return this;
+        }
 
-	public final static class Or extends Group {
+        @Override
+        public synchronized final int hashCode() {
+            if (hashCode == 0) {
+                int result = 0;
+                if (queries != null)
+                    for (final TableQuery query : queries)
+                        result = 31 * result + query.hashCode();
+                hashCode = result;
+            }
+            return hashCode;
+        }
 
-		@JsonCreator
-		private Or(@JsonProperty("queries") LinkedHashSet<TableQuery> queries) {
-			super(queries);
-		}
+        @Override
+        final public boolean equals(final Object o) {
+            if (!(o instanceof Group))
+                return false;
+            if (o == this)
+                return true;
+            final Group g = (Group) o;
+            return CollectionsUtils.equals(queries, g.queries);
+        }
 
-		public Or() {
-			this(new LinkedHashSet<>());
-		}
-	}
+        public Set<TableQuery> getQueries() {
+            return queries;
+        }
+    }
 
-	public final static class And extends Group {
+    public final static class Or extends Group {
 
-		@JsonCreator
-		private And(@JsonProperty("queries") LinkedHashSet<TableQuery> queries) {
-			super(queries);
-		}
+        @JsonCreator
+        private Or(@JsonProperty("queries") LinkedHashSet<TableQuery> queries) {
+            super(queries);
+        }
 
-		public And() {
-			this(new LinkedHashSet<>());
-		}
-	}
+        public Or() {
+            this(new LinkedHashSet<>());
+        }
+    }
+
+    public final static class And extends Group {
+
+        @JsonCreator
+        private And(@JsonProperty("queries") LinkedHashSet<TableQuery> queries) {
+            super(queries);
+        }
+
+        public And() {
+            this(new LinkedHashSet<>());
+        }
+    }
 
 }

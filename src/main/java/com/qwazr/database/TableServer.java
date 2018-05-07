@@ -35,60 +35,60 @@ import java.util.concurrent.ExecutorService;
 
 public class TableServer implements BaseServer {
 
-	private final GenericServer server;
-	private final TableServiceBuilder serviceBuilder;
+    private final GenericServer server;
+    private final TableServiceBuilder serviceBuilder;
 
-	public TableServer(final ServerConfiguration serverConfiguration) throws IOException {
+    public TableServer(final ServerConfiguration serverConfiguration) throws IOException {
 
-		final TableSingleton tableSingleton = new TableSingleton(serverConfiguration.dataDirectory.toPath(), null);
-		final ExecutorService executorService = tableSingleton.getExecutorService();
+        final TableSingleton tableSingleton = new TableSingleton(serverConfiguration.dataDirectory, null);
+        final ExecutorService executorService = tableSingleton.getExecutorService();
 
-		final GenericServerBuilder builder = GenericServer.of(serverConfiguration, executorService);
-		final ApplicationBuilder webServices = ApplicationBuilder.of("/*").classes(RestApplication.JSON_CLASSES).
-				singletons(new WelcomeShutdownService());
-		final Set<String> services = new HashSet<>();
-		services.add(ClusterServiceInterface.SERVICE_NAME);
-		services.add(TableServiceInterface.SERVICE_NAME);
+        final GenericServerBuilder builder = GenericServer.of(serverConfiguration, executorService);
+        final ApplicationBuilder webServices = ApplicationBuilder.of("/*").classes(RestApplication.JSON_CLASSES).
+                singletons(new WelcomeShutdownService());
+        final Set<String> services = new HashSet<>();
+        services.add(ClusterServiceInterface.SERVICE_NAME);
+        services.add(TableServiceInterface.SERVICE_NAME);
 
-		final ClusterManager clusterManager =
-				new ClusterManager(executorService, serverConfiguration).registerProtocolListener(builder, services);
-		webServices.singletons(clusterManager.getService());
+        final ClusterManager clusterManager =
+                new ClusterManager(executorService, serverConfiguration).registerProtocolListener(builder, services);
+        webServices.singletons(clusterManager.getService());
 
-		final TableManager tableManager = tableSingleton.getTableManager();
-		webServices.singletons(tableManager.getService());
-		serviceBuilder = new TableServiceBuilder(clusterManager, tableManager);
+        final TableManager tableManager = tableSingleton.getTableManager();
+        webServices.singletons(tableManager.getService());
+        serviceBuilder = new TableServiceBuilder(clusterManager, tableManager);
 
-		builder.getWebServiceContext().jaxrs(webServices);
-		builder.shutdownListener(server -> tableSingleton.close());
-		server = builder.build();
-	}
+        builder.getWebServiceContext().jaxrs(webServices);
+        builder.shutdownListener(server -> tableSingleton.close());
+        server = builder.build();
+    }
 
-	public TableServiceBuilder getServiceBuilder() {
-		return serviceBuilder;
-	}
+    public TableServiceBuilder getServiceBuilder() {
+        return serviceBuilder;
+    }
 
-	public GenericServer getServer() {
-		return server;
-	}
+    public GenericServer getServer() {
+        return server;
+    }
 
-	private static volatile TableServer INSTANCE;
+    private static volatile TableServer INSTANCE;
 
-	public static synchronized TableServer getInstance() {
-		return INSTANCE;
-	}
+    public static synchronized TableServer getInstance() {
+        return INSTANCE;
+    }
 
-	public static synchronized void main(final String... args)
-			throws IOException, ReflectiveOperationException, ServletException, JMException, URISyntaxException {
-		if (INSTANCE != null)
-			shutdown();
-		INSTANCE = new TableServer(new ServerConfiguration(args));
-		INSTANCE.start();
-	}
+    public static synchronized void main(final String... args)
+            throws IOException, ServletException, JMException {
+        if (INSTANCE != null)
+            shutdown();
+        INSTANCE = new TableServer(new ServerConfiguration(args));
+        INSTANCE.start();
+    }
 
-	public static synchronized void shutdown() {
-		if (INSTANCE != null)
-			INSTANCE.stop();
-		INSTANCE = null;
-	}
+    public static synchronized void shutdown() {
+        if (INSTANCE != null)
+            INSTANCE.stop();
+        INSTANCE = null;
+    }
 
 }
