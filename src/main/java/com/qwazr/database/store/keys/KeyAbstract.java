@@ -45,9 +45,13 @@ public abstract class KeyAbstract<V> implements KeyInterface<V> {
         output.writeChar(keyType.id);
     }
 
-    final public synchronized byte[] getCachedKey() throws IOException {
-        if (keyBytes != null)
-            return keyBytes;
+    @Override
+    public synchronized byte[] getCachedKey() throws IOException {
+        if (keyBytes != null) {
+            final byte[] kb = new byte[keyBytes.length];
+            System.arraycopy(keyBytes, 0, kb, 0, keyBytes.length);
+            return kb;
+        }
         try (final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
             try (final DataOutputStream output = new DataOutputStream(baos)) {
                 buildKey(output);
