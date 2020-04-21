@@ -42,207 +42,209 @@ import java.util.LinkedHashMap;
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class JavaTest implements TableTestHelper {
 
-	private static String[] COLUMNS = { JavaRecord.COL_LABEL,
-			JavaRecord.COL_DPT,
-			JavaRecord.COL_LAST_UPDATE_DATE,
-			JavaRecord.COL_CREATION_DATE,
-			JavaRecord.COL_STATUS };
+    private static String[] COLUMNS = {JavaRecord.COL_LABEL,
+            JavaRecord.COL_DPT,
+            JavaRecord.COL_LAST_UPDATE_DATE,
+            JavaRecord.COL_CREATION_DATE,
+            JavaRecord.COL_STATUS};
 
-	private static Set<String> COLUMNS_SET = new LinkedHashSet<>(Arrays.asList(COLUMNS));
+    private static Set<String> COLUMNS_SET = new LinkedHashSet<>(Arrays.asList(COLUMNS));
 
-	private static String[] COLUMNS_WITHID = { JavaRecord.COL_LABEL,
-			JavaRecord.COL_DPT,
-			JavaRecord.COL_LAST_UPDATE_DATE,
-			JavaRecord.COL_CREATION_DATE,
-			JavaRecord.COL_STATUS,
-			TableDefinition.ID_COLUMN_NAME };
+    private static String[] COLUMNS_WITHID = {JavaRecord.COL_LABEL,
+            JavaRecord.COL_DPT,
+            JavaRecord.COL_LAST_UPDATE_DATE,
+            JavaRecord.COL_CREATION_DATE,
+            JavaRecord.COL_STATUS,
+            TableDefinition.ID_COLUMN_NAME};
 
-	private static Set<String> COLUMNS_WITHID_SET = new LinkedHashSet<>(Arrays.asList(COLUMNS_WITHID));
+    private static Set<String> COLUMNS_WITHID_SET = new LinkedHashSet<>(Arrays.asList(COLUMNS_WITHID));
 
-	public static final String ID1 = "one";
-	public static final String ID2 = "two";
-	public static final String ID3 = "three";
+    public static final String ID1 = "one";
+    public static final String ID2 = "two";
+    public static final String ID3 = "three";
 
-	private static JavaRecord ROW1 = new JavaRecord(ID1, 100);
-	private static JavaRecord ROW2 = new JavaRecord(ID2, 200);
-	private static JavaRecord ROW3 = new JavaRecord(ID3, 300);
+    private static JavaRecord ROW1 = new JavaRecord(ID1, 100);
+    private static JavaRecord ROW2 = new JavaRecord(ID2, 200);
+    private static JavaRecord ROW3 = new JavaRecord(ID3, 300);
 
-	@Test
-	public void test000startServer() throws Exception {
-		TestServer.start();
-	}
+    @Test
+    public void test000startServer() throws Exception {
+        TestServer.start();
+    }
 
-	private AnnotatedTableService<JavaRecord> getService() throws URISyntaxException, NoSuchMethodException {
-		return new AnnotatedTableService<>(TestServer.getRemoteClient(), JavaRecord.class);
-	}
+    private AnnotatedTableService<JavaRecord> getService() throws URISyntaxException, NoSuchMethodException {
+        return new AnnotatedTableService<>(TestServer.getRemoteClient(), JavaRecord.class);
+    }
 
-	@Test
-	public void test050CreateTable() throws URISyntaxException, NoSuchMethodException {
-		final AnnotatedTableService<JavaRecord> service = getService();
+    @Test
+    public void test050CreateTable() throws URISyntaxException, NoSuchMethodException {
+        final AnnotatedTableService<JavaRecord> service = getService();
 
-		final LinkedHashMap columns = new LinkedHashMap<>();
-		columns.put(TableDefinition.ID_COLUMN_NAME, ColumnDefinition.ID_COLUMN_DEF);
-		final KeyStore.Impl storeImpl = SystemUtils.IS_OS_WINDOWS ? KeyStore.Impl.lmdb : KeyStore.Impl.leveldb;
-		final TableDefinition tableDefinition = new TableDefinition(storeImpl, columns);
-		// First call create the table
-		service.createUpdateTable();
-		checkStatus(service.getTableStatus(), 0, tableDefinition);
-		// Second call should do nothing
-		service.createUpdateTable();
-		checkStatus(service.getTableStatus(), 0, tableDefinition);
-	}
+        final LinkedHashMap columns = new LinkedHashMap<>();
+        columns.put(TableDefinition.ID_COLUMN_NAME, ColumnDefinition.ID_COLUMN_DEF);
+        final KeyStore.Impl storeImpl = SystemUtils.IS_OS_WINDOWS ? KeyStore.Impl.lmdb : KeyStore.Impl.leveldb;
+        final TableDefinition tableDefinition = new TableDefinition(storeImpl, columns);
+        // First call create the table
+        service.createUpdateTable();
+        checkStatus(service.getTableStatus(), 0, tableDefinition);
+        // Second call should do nothing
+        service.createUpdateTable();
+        checkStatus(service.getTableStatus(), 0, tableDefinition);
+        Assert.assertEquals(service.getTableName(), "JavaTest");
+    }
 
-	@Test
-	public void test100SetColumns() throws URISyntaxException, NoSuchMethodException {
-		final AnnotatedTableService<JavaRecord> service = getService();
-		// First time
-		service.createUpdateFields();
-		Assert.assertNotNull(service.getColumns());
-		checkColumn(service.getColumn(JavaRecord.COL_LABEL), ColumnDefinition.Type.STRING,
-				ColumnDefinition.Mode.STORED);
-		checkColumn(service.getColumn(JavaRecord.COL_DPT), ColumnDefinition.Type.INTEGER,
-				ColumnDefinition.Mode.INDEXED);
-		// Second time
-		service.createUpdateFields();
-		Assert.assertNotNull(service.getColumns());
-		checkColumn(service.getColumn(JavaRecord.COL_LABEL), ColumnDefinition.Type.STRING,
-				ColumnDefinition.Mode.STORED);
-		checkColumn(service.getColumn(JavaRecord.COL_DPT), ColumnDefinition.Type.INTEGER,
-				ColumnDefinition.Mode.INDEXED);
-	}
+    @Test
+    public void test100SetColumns() throws URISyntaxException, NoSuchMethodException {
+        final AnnotatedTableService<JavaRecord> service = getService();
+        // First time
+        service.createUpdateFields();
+        Assert.assertNotNull(service.getColumns());
+        checkColumn(service.getColumn(JavaRecord.COL_LABEL), ColumnDefinition.Type.STRING,
+                ColumnDefinition.Mode.STORED);
+        checkColumn(service.getColumn(JavaRecord.COL_DPT), ColumnDefinition.Type.INTEGER,
+                ColumnDefinition.Mode.INDEXED);
+        // Second time
+        service.createUpdateFields();
+        Assert.assertNotNull(service.getColumns());
+        checkColumn(service.getColumn(JavaRecord.COL_LABEL), ColumnDefinition.Type.STRING,
+                ColumnDefinition.Mode.STORED);
+        checkColumn(service.getColumn(JavaRecord.COL_DPT), ColumnDefinition.Type.INTEGER,
+                ColumnDefinition.Mode.INDEXED);
+    }
 
-	@Test
-	public void test150MatchAllQueryEmpty() throws URISyntaxException, ReflectiveOperationException, IOException {
-		final AnnotatedTableService<JavaRecord> service = getService();
-		final TableRequest request = TableRequest.from(0, 1000).column(COLUMNS).build();
-		final TableRequestResult result = service.queryRows(request);
-		Assert.assertNotNull(result);
-		Assert.assertEquals(new Long(0), result.count);
-	}
+    @Test
+    public void test150MatchAllQueryEmpty() throws URISyntaxException, ReflectiveOperationException, IOException {
+        final AnnotatedTableService<JavaRecord> service = getService();
+        final TableRequest request = TableRequest.from(0, 1000).column(COLUMNS).build();
+        final TableRequestResult result = service.queryRows(request);
+        Assert.assertNotNull(result);
+        Assert.assertEquals(Long.valueOf(0), result.count);
+    }
 
-	@Test
-	public void test300upsertRow() throws ReflectiveOperationException, URISyntaxException, IOException {
-		final AnnotatedTableService<JavaRecord> service = getService();
-		service.upsertRow(ID1, ROW1);
-		Assert.assertEquals(ROW1, service.getRow(ID1, COLUMNS_SET));
-	}
+    @Test
+    public void test300upsertRow() throws ReflectiveOperationException, URISyntaxException, IOException {
+        final AnnotatedTableService<JavaRecord> service = getService();
+        service.upsertRow(ID1, ROW1);
+        Assert.assertEquals(ROW1, service.getRow(ID1, COLUMNS_SET));
+    }
 
-	@Test
-	public void test350upsertRows() throws URISyntaxException, NoSuchMethodException {
-		final AnnotatedTableService<JavaRecord> service = getService();
-		final List<JavaRecord> rows = Arrays.asList(ROW2, ROW3);
-		final Long result = service.upsertRows(rows);
-		Assert.assertNotNull(result);
-		Assert.assertEquals((long) result, rows.size());
-	}
+    @Test
+    public void test350upsertRows() throws URISyntaxException, NoSuchMethodException {
+        final AnnotatedTableService<JavaRecord> service = getService();
+        final List<JavaRecord> rows = Arrays.asList(ROW2, ROW3);
+        final Long result = service.upsertRows(rows);
+        Assert.assertNotNull(result);
+        Assert.assertEquals((long) result, rows.size());
+    }
 
-	@Test
-	public void test355MatchAllQuery() throws URISyntaxException, ReflectiveOperationException, IOException {
-		final AnnotatedTableService<JavaRecord> service = getService();
-		final TableRequest request = TableRequest.from(0, 1000).column(COLUMNS_WITHID).build();
-		final TableRequestResult result = service.queryRows(request);
-		Assert.assertNotNull(result);
-		Assert.assertEquals(new Long(3), result.count);
-		Assert.assertNotNull(result.rows);
-		Assert.assertEquals(3, result.rows.size());
-	}
+    @Test
+    public void test355MatchAllQuery() throws URISyntaxException, ReflectiveOperationException, IOException {
+        final AnnotatedTableService<JavaRecord> service = getService();
+        final TableRequest request = TableRequest.from(0, 1000).column(COLUMNS_WITHID).build();
+        final TableRequestResult result = service.queryRows(request);
+        Assert.assertNotNull(result);
+        Assert.assertEquals(Long.valueOf(3), result.count);
+        Assert.assertNotNull(result.rows);
+        Assert.assertEquals(3, result.rows.size());
+    }
 
-	@Test
-	public void test360DeleteRow() throws ReflectiveOperationException, URISyntaxException, IOException {
-		final AnnotatedTableService<JavaRecord> service = getService();
-		Assert.assertTrue(service.deleteRow(ID1));
-		try {
-			service.getRow(ID1, COLUMNS_SET);
-			Assert.assertTrue("The 404 exception has not been thrown", false);
-		} catch (WebApplicationException e) {
-			Assert.assertEquals(404, e.getResponse().getStatus());
-		}
-	}
+    @Test
+    public void test360DeleteRow() throws ReflectiveOperationException, URISyntaxException, IOException {
+        final AnnotatedTableService<JavaRecord> service = getService();
+        Assert.assertTrue(service.deleteRow(ID1));
+        try {
+            service.getRow(ID1, COLUMNS_SET);
+            Assert.assertTrue("The 404 exception has not been thrown", false);
+        }
+        catch (WebApplicationException e) {
+            Assert.assertEquals(404, e.getResponse().getStatus());
+        }
+    }
 
-	private TableRequestResult checkResult(final AnnotatedTableService<JavaRecord> service,
-			final TableQuery.Group query, final Long expectedCount, final JavaRecord... rows)
-			throws IOException, ReflectiveOperationException {
-		final TableRequest request = TableRequest.from(0, 100).column(COLUMNS_WITHID).query(query).build();
-		final TableRequestResultRecords<JavaRecord> result = service.queryRows(request);
-		Assert.assertNotNull(result);
-		Assert.assertNotNull(result.count);
-		if (expectedCount != null)
-			Assert.assertEquals(expectedCount, result.count);
-		if (rows != null && rows.length > 0) {
-			Assert.assertEquals(rows.length, result.rows.size());
-			int i = 0;
-			for (JavaRecord record : result.getRecords())
-				Assert.assertEquals(rows[i++], record);
-		}
-		return result;
-	}
+    private TableRequestResult checkResult(final AnnotatedTableService<JavaRecord> service,
+                                           final TableQuery.Group query, final Long expectedCount, final JavaRecord... rows)
+            throws IOException, ReflectiveOperationException {
+        final TableRequest request = TableRequest.from(0, 100).column(COLUMNS_WITHID).query(query).build();
+        final TableRequestResultRecords<JavaRecord> result = service.queryRows(request);
+        Assert.assertNotNull(result);
+        Assert.assertNotNull(result.count);
+        if (expectedCount != null)
+            Assert.assertEquals(expectedCount, result.count);
+        if (rows != null && rows.length > 0) {
+            Assert.assertEquals(rows.length, result.rows.size());
+            int i = 0;
+            for (JavaRecord record : result.getRecords())
+                Assert.assertEquals(rows[i++], record);
+        }
+        return result;
+    }
 
-	@Test
-	public void test400FilterQuery() throws URISyntaxException, ReflectiveOperationException, IOException {
-		final AnnotatedTableService<JavaRecord> service = getService();
-		checkResult(service, new TableQuery.And().add(JavaRecord.COL_DPT, ROW2.dpt.get(0)), 1L);
-		checkResult(service,
-				new TableQuery.Or().add(JavaRecord.COL_DPT, ROW3.dpt.get(0)).add(JavaRecord.COL_DPT, ROW2.dpt.get(0)),
-				2L, ROW2, ROW3);
-	}
+    @Test
+    public void test400FilterQuery() throws URISyntaxException, ReflectiveOperationException, IOException {
+        final AnnotatedTableService<JavaRecord> service = getService();
+        checkResult(service, new TableQuery.And().add(JavaRecord.COL_DPT, ROW2.dpt.get(0)), 1L);
+        checkResult(service,
+                new TableQuery.Or().add(JavaRecord.COL_DPT, ROW3.dpt.get(0)).add(JavaRecord.COL_DPT, ROW2.dpt.get(0)),
+                2L, ROW2, ROW3);
+    }
 
-	private void checkRows(final List<String> rows, final String... keys) {
-		Assert.assertNotNull(rows);
-		Assert.assertEquals(keys.length, rows.size());
-		int i = 0;
-		for (String key : keys)
-			Assert.assertEquals(key, rows.get(i++));
-	}
+    private void checkRows(final List<String> rows, final String... keys) {
+        Assert.assertNotNull(rows);
+        Assert.assertEquals(keys.length, rows.size());
+        int i = 0;
+        for (String key : keys)
+            Assert.assertEquals(key, rows.get(i++));
+    }
 
-	@Test
-	public void test700getRows() throws URISyntaxException, NoSuchMethodException {
-		final AnnotatedTableService<JavaRecord> service = getService();
-		checkRows(service.getRows((Integer) null, null), ID2, ID3);
-	}
+    @Test
+    public void test700getRows() throws URISyntaxException, NoSuchMethodException {
+        final AnnotatedTableService<JavaRecord> service = getService();
+        checkRows(service.getRows((Integer) null, null), ID2, ID3);
+    }
 
-	@Test
-	public void test705getRows() throws URISyntaxException, ReflectiveOperationException, IOException {
-		final AnnotatedTableService<JavaRecord> service = getService();
-		final Set<String> keys = new LinkedHashSet<>(Arrays.asList(ID3, ID2));
-		List<JavaRecord> results = service.getRows(COLUMNS_WITHID_SET, keys);
-		Assert.assertNotNull(results);
-		Assert.assertEquals(keys.size(), results.size());
-		int i = 0;
-		for (String key : keys)
-			Assert.assertEquals(key, results.get(i++).id);
-	}
+    @Test
+    public void test705getRows() throws URISyntaxException, ReflectiveOperationException, IOException {
+        final AnnotatedTableService<JavaRecord> service = getService();
+        final Set<String> keys = new LinkedHashSet<>(Arrays.asList(ID3, ID2));
+        List<JavaRecord> results = service.getRows(COLUMNS_WITHID_SET, keys);
+        Assert.assertNotNull(results);
+        Assert.assertEquals(keys.size(), results.size());
+        int i = 0;
+        for (String key : keys)
+            Assert.assertEquals(key, results.get(i++).id);
+    }
 
-	private void checkColumnsTerms(List<?> terms, Object... expectedTerms) {
-		Assert.assertNotNull(terms);
-		Assert.assertEquals(expectedTerms.length, terms.size());
-		for (Object expectedTerm : expectedTerms)
-			Assert.assertTrue(terms.contains(expectedTerm));
-	}
+    private void checkColumnsTerms(List<?> terms, Object... expectedTerms) {
+        Assert.assertNotNull(terms);
+        Assert.assertEquals(expectedTerms.length, terms.size());
+        for (Object expectedTerm : expectedTerms)
+            Assert.assertTrue(terms.contains(expectedTerm));
+    }
 
-	@Test
-	public void test800getColumnsTerms() throws URISyntaxException, NoSuchMethodException {
-		final AnnotatedTableService<JavaRecord> service = getService();
-		checkColumnsTerms(service.getColumnTerms(JavaRecord.COL_DPT, 0, 100), ROW2.dpt.get(0), ROW2.dpt.get(1),
-				ROW2.dpt.get(2), ROW3.dpt.get(0), ROW3.dpt.get(1), ROW3.dpt.get(2));
-	}
+    @Test
+    public void test800getColumnsTerms() throws URISyntaxException, NoSuchMethodException {
+        final AnnotatedTableService<JavaRecord> service = getService();
+        checkColumnsTerms(service.getColumnTerms(JavaRecord.COL_DPT, 0, 100), ROW2.dpt.get(0), ROW2.dpt.get(1),
+                ROW2.dpt.get(2), ROW3.dpt.get(0), ROW3.dpt.get(1), ROW3.dpt.get(2));
+    }
 
-	@Test
-	public void test81getColumnsTermKeys() throws URISyntaxException, NoSuchMethodException {
-		final AnnotatedTableService<JavaRecord> service = getService();
-		checkColumnsTerms(service.getColumnTermKeys(JavaRecord.COL_DPT, ROW2.dpt.get(0).toString(), 0, 100), ID2);
-	}
+    @Test
+    public void test81getColumnsTermKeys() throws URISyntaxException, NoSuchMethodException {
+        final AnnotatedTableService<JavaRecord> service = getService();
+        checkColumnsTerms(service.getColumnTermKeys(JavaRecord.COL_DPT, ROW2.dpt.get(0).toString(), 0, 100), ID2);
+    }
 
-	@Test
-	public void test950deleteTable() throws URISyntaxException, NoSuchMethodException {
-		final AnnotatedTableService<JavaRecord> service = getService();
-		service.deleteTable();
-		JsonTest.checkErrorStatusCode(service::deleteTable, 404);
-	}
+    @Test
+    public void test950deleteTable() throws URISyntaxException, NoSuchMethodException {
+        final AnnotatedTableService<JavaRecord> service = getService();
+        service.deleteTable();
+        JsonTest.checkErrorStatusCode(service::deleteTable, 404);
+    }
 
-	@AfterClass
-	public static void stopServer() {
-		TableServer.shutdown();
-		TestServer.shutdown();
-	}
+    @AfterClass
+    public static void stopServer() {
+        TableServer.shutdown();
+        TestServer.shutdown();
+    }
 
 }
