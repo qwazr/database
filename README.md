@@ -1,6 +1,8 @@
 QWAZR Database
 ==============
 
+***This project is now deprecated and archived***
+
 [![Build Status](https://travis-ci.org/qwazr/database.svg?branch=master)](https://travis-ci.org/qwazr/database)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.qwazr/qwazr-database/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.qwazr/qwazr-database)
 [![Coverage Status](https://coveralls.io/repos/github/qwazr/database/badge.svg?branch=master)](https://coveralls.io/github/qwazr/database?branch=master)
